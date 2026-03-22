@@ -1,17 +1,49 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'ru' %>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sazumi Cloud - Инструмент сброса Cursor</title>
-  <meta name="description" content="Sazumi Cloud — мощный инструмент для обхода ограничений Cursor IDE. Сброс Machine ID, конвертация пробной версии в Pro, обход лимитов токенов и предотвращение автообновлений.">
+  <title><%= typeof t !== 'undefined' ? t('title') : 'Sazumi Cloud - Cursor Reset Tool' %></title>
+  <meta name="description" content="<%= typeof t !== 'undefined' ? t('description') : '' %>">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <style>
+    .lang-switcher {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+    }
+    .lang-btn {
+      padding: 8px 12px;
+      border: 1px solid #757575;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .lang-btn:hover {
+      background: #f5f5f5;
+    }
+    .lang-btn.active {
+      background: #757575;
+      color: white;
+    }
+  </style>
 </head>
 <body>
+  <!-- Language Switcher -->
+  <div class="lang-switcher">
+    <button class="lang-btn" data-lang="ru" title="Русский">🇷🇺 RU</button>
+    <button class="lang-btn" data-lang="en" title="English">🇬🇧 EN</button>
+    <button class="lang-btn" data-lang="zh" title="中文">🇨🇳 中文</button>
+  </div>
   <div id="disclaimer-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -547,6 +579,18 @@ sudo npm start</div>
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('current-year').textContent = new Date().getFullYear();
+    
+    // Language Switcher
+    const currentLang = '<%= typeof lang !== 'undefined' ? lang : 'ru' %>';
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      if (btn.dataset.lang === currentLang) {
+        btn.classList.add('active');
+      }
+      btn.addEventListener('click', () => {
+        const lang = btn.dataset.lang;
+        window.location.href = window.location.pathname + '?lang=' + lang;
+      });
+    });
   </script>
 </body>
 </html>

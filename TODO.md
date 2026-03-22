@@ -37,8 +37,10 @@
 - [x] utils/config.js - конфигурация и паттерны
 - [x] utils/cache.js - кэширование с TTL
 - [x] utils/rollback.js - BackupManager для отката
+- [x] utils/i18n.js - поддержка 3 языков (RU, EN, ZH)
 - [x] Обновление routes/reset.js с логированием
 - [x] helmet + rate limiting в app.js
 - [x] checkCursorProcess с таймаутом
 - [x] getCursorVersion + isCursorVersionSupported
 - [x] Откат изменений при ошибке (rollback)
+- [x] Переключатель языков в UI

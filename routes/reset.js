@@ -9,8 +9,10 @@ import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { checkAdminRights, validatePaths, delay } from '../utils/helpers.js';
+import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
+import { config } from '../utils/config.js';
+import { globalCache } from '../utils/cache.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -23,35 +25,16 @@ const gp = () => {
   const hm = os.homedir();
   const dc = path.join(hm, 'Documents', '.cursor-free-vip');
   const cf = path.join(dc, 'config.ini');
-  let mp = '';
-  let sp = '';
-  let dp = '';
-  let ap = '';
-  let cp = '';
-  let up = '';
-
-  if (pt === 'win32') {
-    mp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'machineId');
-    sp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'storage.json');
-    dp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
-    ap = path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app');
-    cp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'cursor.json');
-    up = path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app-update.yml');
-  } else if (pt === 'darwin') {
-    mp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'machineId');
-    sp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'storage.json');
-    dp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
-    ap = path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app');
-    cp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'cursor.json');
-    up = path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app-update.yml');
-  } else if (pt === 'linux') {
-    mp = path.join(hm, '.config', 'cursor', 'machineId');
-    sp = path.join(hm, '.config', 'cursor', 'User', 'globalStorage', 'storage.json');
-    dp = path.join(hm, '.config', 'cursor', 'User', 'globalStorage', 'state.vscdb');
-    ap = path.join('/usr', 'share', 'cursor', 'resources', 'app');
-    cp = path.join(hm, '.config', 'cursor', 'User', 'globalStorage', 'cursor.json');
-    up = path.join('/usr', 'share', 'cursor', 'resources', 'app-update.yml');
-  }
+  
+  // Используем пути из конфигурации
+  const paths = config.platformPaths[pt] || config.platformPaths.win32;
+  
+  const mp = paths.machineId(hm);
+  const sp = paths.storage(hm);
+  const dp = paths.database(hm);
+  const ap = paths.app(hm);
+  const cp = paths.cursor(hm);
+  const up = paths.update(hm);
 
   return { mp, sp, dp, ap, cp, up, pt, dc, cf };
 };
@@ -386,25 +369,17 @@ const bt = async () => {
     logger.info(`Backup created: ${bkPath}`, 'bypass');
 
     const content = await fs.readFile(workbenchPath, 'utf8');
-    
-    const patterns = {
-      '<div>Pro Trial': '<div>Pro',
-      'py-1">Auto-select': 'py-1">Bypass-Version-Pin',
-      'async getEffectiveTokenLimit(e){const n=e.modelName;if(!n)return 2e5;': 'async getEffectiveTokenLimit(e){return 9000000;const n=e.modelName;if(!n)return 9e5;',
-      'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>.");': 'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>. <h1>Pro</h1>");',
-      'notifications-toasts': 'notifications-toasts hidden',
-      'hasReachedTokenLimit\\(\\w+\\)\\s*{[^}]+}': 'hasReachedTokenLimit(e){return false}',
-      'isProUser\\(\\w*\\)\\s*{\\s*[^}]+}': 'isProUser(){return true}',
-      'isPro\\(\\w*\\)\\s*{\\s*[^}]+}': 'isPro(){return true}',
-      'getTokenLimit\\(\\w*\\)\\s*{\\s*[^}]+}': 'getTokenLimit(){return 999999}',
-      'getTokensRemaining\\(\\w*\\)\\s*{\\s*[^}]+}': 'getTokensRemaining(){return 999999}',
-      'getTokensUsed\\(\\w*\\)\\s*{\\s*[^}]+}': 'getTokensUsed(){return 0}'
-    };
-    
+
+    // Используем паттерны из конфигурации
     let modified = content;
-    for (const [pattern, replacement] of Object.entries(patterns)) {
-      const regex = new RegExp(pattern, 'g');
-      modified = modified.replace(regex, replacement);
+    for (const [key, { pattern, replacement }] of Object.entries(config.workbenchPatterns)) {
+      try {
+        const regex = new RegExp(pattern, 'g');
+        modified = modified.replace(regex, replacement);
+        logger.debug(`Applied pattern ${key}`, 'bypass');
+      } catch (e) {
+        logger.warn(`Failed to apply pattern ${key}: ${e.message}`, 'bypass');
+      }
     }
     
     await fs.writeFile(workbenchPath, modified);
@@ -611,22 +586,23 @@ const pc = async () => {
       logs.push("ℹ️ Modifying workbench file for Pro UI...");
       const bkPath = await bk(workbenchPath);
       logs.push(`💾 Created backup: ${bkPath}`);
-      
+
       const content = await fs.readFile(workbenchPath, 'utf8');
-      
-      const patterns = {
-        '<div>Pro Trial': '<div>Pro',
-        'Upgrade to Pro': 'Sazumi Github',
-        'return t.pay': 'return function(){window.open("https://github.com/sazumivicky","_blank")}',
-        'rocket': 'github',
-        'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>.");': 'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>. <h1>Pro</h1>");',
-      };
-      
+
+      // Комбинируем паттерны для Pro конвертации
       let modified = content;
-      for (const [pattern, replacement] of Object.entries(patterns)) {
-        modified = modified.replace(new RegExp(pattern, 'g'), replacement);
-      }
       
+      // Применяем паттерны для Pro UI
+      for (const [key, { pattern, replacement }] of Object.entries(config.proConversionPatterns)) {
+        try {
+          const regex = new RegExp(pattern, 'g');
+          modified = modified.replace(regex, replacement);
+          logger.debug(`Applied Pro pattern ${key}`, 'pro');
+        } catch (e) {
+          logger.warn(`Failed to apply Pro pattern ${key}: ${e.message}`, 'pro');
+        }
+      }
+
       await fs.writeFile(workbenchPath, modified);
       logs.push("✅ Workbench file modified for Pro UI");
     } else {
@@ -691,20 +667,19 @@ rt.get('/patch', async (req, res) => {
 rt.get('/paths', async (req, res) => {
   try {
     const { mp, sp, dp, ap, cp, up, pt, dc } = gp();
-    
-    let isRunning = false;
-    try {
-      if (pt === 'win32') {
-        const { stdout } = await execPromise('tasklist /FI "IMAGENAME eq Cursor.exe" /NH');
-        isRunning = stdout.includes('Cursor.exe');
-      } else {
-        const { stdout } = await execPromise('ps aux | grep -i Cursor | grep -v grep');
-        isRunning = stdout.trim().length > 0;
-      }
-    } catch (e) {
-      isRunning = false;
-    }
-    
+
+    // Кэшированная проверка процесса Cursor
+    const cacheKey = `cursor_running_${pt}`;
+    let isRunning = await globalCache.getOrCompute(
+      cacheKey,
+      () => checkCursorProcess(pt),
+      2000 // 2 секунды кэш
+    );
+
+    // Получение версии Cursor
+    const version = await getCursorVersion(ap);
+    const isSupported = isCursorVersionSupported(version);
+
     const info = {
       platform: pt,
       osVersion: os.release(),
@@ -717,6 +692,8 @@ rt.get('/paths', async (req, res) => {
       cursorPath: cp,
       updatePath: up,
       isRunning,
+      cursorVersion: version,
+      isSupported,
       exists: {
         machineId: fs.existsSync(mp),
         storage: fs.existsSync(sp),
@@ -726,7 +703,7 @@ rt.get('/paths', async (req, res) => {
         update: fs.existsSync(up)
       }
     };
-    
+
     if (fs.existsSync(sp)) {
       try {
         const data = await fs.readFile(sp, 'utf8');

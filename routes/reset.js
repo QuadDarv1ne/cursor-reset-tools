@@ -13,6 +13,7 @@ import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersi
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 import { globalCache } from '../utils/cache.js';
+import { globalBackupManager } from '../utils/rollback.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -50,12 +51,18 @@ const mk = () => {
   return `${yr}${mn}${dy}_${hr}${mi}${sc}`;
 };
 
-const bk = async (filePath) => {
+/**
+ * Создать бэкап файла
+ * @param {string} filePath - Путь к файлу
+ * @param {string} [operationId] - ID операции для группировки
+ * @returns {Promise<string|null>}
+ */
+const bk = async (filePath, operationId = 'default') => {
   try {
-    const bkPath = `${filePath}.bak.${mk()}`;
-    await fs.copy(filePath, bkPath);
+    const bkPath = await globalBackupManager.createBackup(filePath, operationId);
     return bkPath;
   } catch (error) {
+    logger.error(`Backup error: ${error.message}`, 'backup');
     return null;
   }
 };
@@ -129,6 +136,7 @@ const um = async (id) => {
 const rm = async () => {
   const logs = [];
   const { mp, sp, dp, ap, cp, pt, dc, cf } = gp();
+  const operationId = 'reset_' + Date.now();
 
   try {
     logs.push("ℹ️ Checking Config File...");
@@ -159,10 +167,13 @@ const rm = async () => {
       logs.push("⚠️ Warning: Storage file not found, will create if needed");
     }
 
-    if (fs.existsSync(sp)) {
-      const bkPath = await bk(sp);
-      logs.push(`💾 Creating Config Backup: ${bkPath}`);
-      logger.info(`Backup created: ${bkPath}`);
+    // Создаём бэкапы всех файлов перед модификацией
+    const filesToBackup = [sp, dp, mp, cp].filter(f => f && fs.existsSync(f));
+    for (const file of filesToBackup) {
+      const bkPath = await bk(file, operationId);
+      if (bkPath) {
+        logs.push(`💾 Backup: ${path.basename(bkPath)}`);
+      }
     }
 
     logs.push("🔄 Generating New Machine ID...");
@@ -332,6 +343,15 @@ const rm = async () => {
   } catch (err) {
     logs.push(`❌ Process Error: ${err.message}`);
     logger.error(`Reset failed: ${err.message}`, 'reset');
+    
+    // Откат изменений при ошибке
+    logger.info('Attempting rollback...', 'rollback');
+    const rollbackResult = await globalBackupManager.rollback(operationId);
+    if (rollbackResult.restored > 0) {
+      logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored, ${rollbackResult.failed} failed`);
+      logger.info(`Rollback completed: ${rollbackResult.restored} restored, ${rollbackResult.failed} failed`, 'rollback');
+    }
+    
     return await ld(logs, "Machine ID Reset");
   }
 };
@@ -354,6 +374,7 @@ const bt = async () => {
   const logs = [];
   const { dp } = gp();
   const workbenchPath = gw();
+  const operationId = 'bypass_' + Date.now();
 
   try {
     logs.push("ℹ️ Starting token limit bypass...");
@@ -364,7 +385,7 @@ const bt = async () => {
       return await ld(logs, "Bypass Token Limit");
     }
 
-    const bkPath = await bk(workbenchPath);
+    const bkPath = await bk(workbenchPath, operationId);
     logs.push(`💾 Created backup: ${bkPath}`);
     logger.info(`Backup created: ${bkPath}`, 'bypass');
 
@@ -381,7 +402,7 @@ const bt = async () => {
         logger.warn(`Failed to apply pattern ${key}: ${e.message}`, 'bypass');
       }
     }
-    
+
     await fs.writeFile(workbenchPath, modified);
     logs.push("✅ Workbench file modified successfully");
     
@@ -408,6 +429,13 @@ const bt = async () => {
   } catch (err) {
     logs.push(`❌ Token limit bypass error: ${err.message}`);
     logger.error(`Bypass failed: ${err.message}`, 'bypass');
+    
+    // Откат изменений при ошибке
+    const rollbackResult = await globalBackupManager.rollback(operationId);
+    if (rollbackResult.restored > 0) {
+      logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored`);
+    }
+    
     return await ld(logs, "Bypass Token Limit");
   }
 };
@@ -415,7 +443,8 @@ const bt = async () => {
 const du = async () => {
   const { ap, pt, up } = gp();
   const logs = [];
-  
+  const operationId = 'disable_update_' + Date.now();
+
   try {
     logs.push("ℹ️ Starting auto-update disabling process...");
     
@@ -550,6 +579,13 @@ const du = async () => {
   } catch (e) {
     logs.push(`❌ Error disabling auto-updates: ${e.message}`);
     logger.error(`Disable update failed: ${e.message}`, 'disable-update');
+    
+    // Откат изменений при ошибке
+    const rollbackResult = await globalBackupManager.rollback(operationId);
+    if (rollbackResult.restored > 0) {
+      logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored`);
+    }
+    
     return await ld(logs, "Disable Auto-Update");
   }
 };
@@ -558,7 +594,8 @@ const pc = async () => {
   const logs = [];
   const { dp } = gp();
   const workbenchPath = gw();
-  
+  const operationId = 'pro_conversion_' + Date.now();
+
   try {
     logs.push("ℹ️ Starting Pro conversion...");
     
@@ -614,6 +651,13 @@ const pc = async () => {
   } catch (err) {
     logs.push(`❌ Pro conversion error: ${err.message}`);
     logger.error(`Pro conversion failed: ${err.message}`, 'pro');
+    
+    // Откат изменений при ошибке
+    const rollbackResult = await globalBackupManager.rollback(operationId);
+    if (rollbackResult.restored > 0) {
+      logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored`);
+    }
+    
     return await ld(logs, "Pro Conversion + Custom UI");
   }
 };

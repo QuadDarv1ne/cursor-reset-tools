@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sazumi Cloud - Cursor Reset Tool</title>
-  <meta name="description" content="Sazumi Cloud is a powerful tool designed to bypass Cursor IDE limitations. Reset Machine ID, convert free trials to Pro, bypass token limits, and prevent auto updates.">
+  <title>Sazumi Cloud - Инструмент сброса Cursor</title>
+  <meta name="description" content="Sazumi Cloud — мощный инструмент для обхода ограничений Cursor IDE. Сброс Machine ID, конвертация пробной версии в Pro, обход лимитов токенов и предотвращение автообновлений.">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,25 +15,25 @@
   <div id="disclaimer-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2><i class="ri-alert-line"></i> Important Disclaimer</h2>
+        <h2><i class="ri-alert-line"></i> Важное предупреждение</h2>
         <span class="modal-close">&times;</span>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning">
           <i class="ri-error-warning-line"></i>
-          <strong>Warning:</strong> Excessive use of this tool may violate Cursor's terms of service.
+          <strong>Внимание:</strong> Чрезмерное использование этого инструмента может нарушать условия использования Cursor.
         </div>
-        <p>By using this tool, you acknowledge that:</p>
+        <p>Используя этот инструмент, вы признаёте, что:</p>
         <ul>
-          <li>All actions performed are at your own risk</li>
-          <li>Sazumi Cloud developers are not responsible for any consequences</li>
-          <li>This tool should not be abused frequently</li>
-          <li>This is provided for educational and research purposes only</li>
+          <li>Все действия выполняются на ваш собственный риск</li>
+          <li>Разработчики Sazumi Cloud не несут ответственности за последствия</li>
+          <li>Этот инструмент не следует использовать слишком часто</li>
+          <li>Предоставлено только для образовательных и исследовательских целей</li>
         </ul>
-        <p>Please use responsibly and consider supporting Cursor by purchasing a legitimate license if you find their product valuable.</p>
+        <p>Пожалуйста, используйте ответственно и рассмотрите возможность поддержки Cursor, приобретя лицензию, если вы находите их продукт ценным.</p>
       </div>
       <div class="modal-footer">
-        <button id="accept-disclaimer" class="btn">I Understand and Accept</button>
+        <button id="accept-disclaimer" class="btn">Я понимаю и принимаю</button>
       </div>
     </div>
   </div>
@@ -41,109 +41,109 @@
   <div class="container">
     <header>
       <h1>Sazumi Cloud</h1>
-      <p>Cursor Machine ID Reset Tool</p>
+      <p>Инструмент сброса Machine ID Cursor</p>
       <span class="version-label">v2.0.0</span>
     </header>
-    
+
     <section id="intro">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-file-info-line"></i>About This Tool</h2>
+          <h2><i class="ri-file-info-line"></i>Об этом инструменте</h2>
         </div>
         <div class="card-body">
           <div class="alert alert-info" style="margin-bottom:1rem;">
             <i class="ri-information-line"></i>
-            <strong>Recommended:</strong> For best compatibility, use <b>Cursor version 0.49.x</b>.
+            <strong>Рекомендуется:</strong> Для лучшей совместимости используйте <b>Cursor версии 0.49.x</b>.
           </div>
-          <p>Sazumi Cloud is a powerful tool designed to reset the Machine ID of Cursor IDE. This helps to bypass trial limits, convert free trials to Pro, bypass token limitations, and prevent automatic updates to unleash the full potential of Cursor AI capabilities.</p>
+          <p>Sazumi Cloud — мощный инструмент для сброса Machine ID Cursor IDE. Это помогает обойти ограничения пробной версии, конвертировать пробную версию в Pro, обойти лимиты токенов и предотвратить автоматические обновления для полного раскрытия возможностей AI Cursor.</p>
           <div class="features">
             <div class="feature">
               <i class="ri-shield-check-line"></i>
               <div>
-                <h3>Token Limit Bypass</h3>
-                <p>Remove restrictions on token usage for AI completions</p>
+                <h3>Обход лимита токенов</h3>
+                <p>Удаление ограничений на использование токенов для AI completions</p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-vip-crown-line"></i>
               <div>
-                <h3>Pro Conversion</h3>
-                <p>Access Pro features without purchasing a subscription and customize the UI</p>
+                <h3>Pro конвертация</h3>
+                <p>Доступ к Pro функциям без подписки и кастомизация UI</p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-restart-line"></i>
               <div>
-                <h3>Machine ID Reset</h3>
-                <p>Bypass the "Too many free trial accounts" limitation</p>
+                <h3>Сброс Machine ID</h3>
+                <p>Обход ограничения "Слишком много пробных аккаунтов"</p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-shield-flash-line"></i>
               <div>
-                <h3>Auto Update Prevention</h3>
-                <p>Stop Cursor from automatically updating to versions that could patch these bypasses</p>
+                <h3>Блокировка обновлений</h3>
+                <p>Предотвращение автоматических обновлений Cursor, которые могут удалить обходы</p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-    
+
     <main>
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-computer-line"></i>System Information</h2>
+          <h2><i class="ri-computer-line"></i>Информация о системе</h2>
         </div>
         <div class="card-body">
           <div id="system-info">
-            <div class="loading">Loading system information</div>
+            <div class="loading">Загрузка информации о системе</div>
           </div>
         </div>
       </div>
-      
+
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-apps-line"></i>Cursor Status</h2>
+          <h2><i class="ri-apps-line"></i>Статус Cursor</h2>
         </div>
         <div class="card-body">
           <div id="cursor-status">
-            <div class="loading">Loading cursor information</div>
+            <div class="loading">Загрузка информации о Cursor</div>
           </div>
         </div>
       </div>
-      
+
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-lock-unlock-line"></i>Reset Machine ID</h2>
+          <h2><i class="ri-lock-unlock-line"></i>Сброс Machine ID</h2>
         </div>
         <div class="card-body">
           <div class="alert alert-info">
             <i class="ri-information-line"></i>
-            <strong>Important:</strong> Make sure Cursor is closed before resetting the machine ID.
+            <strong>Важно:</strong> Убедитесь, что Cursor закрыт перед сбросом Machine ID.
           </div>
           <div class="action-grid">
-            <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i>Reset Machine ID</button>
-            <button id="bypass-btn" class="btn btn-warning"><i class="ri-shield-flash-line"></i>Bypass Token Limit</button>
-            <button id="disable-update-btn" class="btn btn-info"><i class="ri-lock-line"></i>Disable Auto-Update</button>
-            <button id="pro-convert-btn" class="btn btn-success"><i class="ri-vip-crown-line"></i>Pro Conversion + Custom UI</button>
+            <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i>Сбросить Machine ID</button>
+            <button id="bypass-btn" class="btn btn-warning"><i class="ri-shield-flash-line"></i>Обойти лимит токенов</button>
+            <button id="disable-update-btn" class="btn btn-info"><i class="ri-lock-line"></i>Отключить автообновление</button>
+            <button id="pro-convert-btn" class="btn btn-success"><i class="ri-vip-crown-line"></i>Pro версия + Кастомный UI</button>
           </div>
           <div id="reset-result"></div>
         </div>
       </div>
-      
+
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-mail-line"></i>Email Generator</h2>
+          <h2><i class="ri-mail-line"></i>Генератор Email</h2>
         </div>
         <div class="card-body">
           <div class="alert alert-info">
             <i class="ri-information-line"></i>
-            <strong>Note:</strong> When you encounter "too many requests" errors, you MUST change your IP address by toggling your mobile data OFF and ON.
+            <strong>Примечание:</strong> При ошибке "too many requests" необходимо сменить IP адрес, включив и выключив мобильные данные.
           </div>
           <div class="email-generator-container">
-            <p>Email generator feature has been removed in this version.</p>
-            <p>Please use an external email service for verification needs.</p>
+            <p>Функция генератора email была удалена в этой версии.</p>
+            <p>Пожалуйста, используйте внешний сервис email для проверки.</p>
           </div>
         </div>
       </div>
@@ -152,80 +152,80 @@
     <section id="requirements">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-list-check"></i>Requirements</h2>
+          <h2><i class="ri-list-check"></i>Требования</h2>
         </div>
         <div class="card-body">
           <ul class="req-list">
-            <li><i class="ri-checkbox-circle-line"></i>Admin privileges are required for file operations</li>
-            <li><i class="ri-checkbox-circle-line"></i>Cursor must be completely closed when resetting</li>
-            <li><i class="ri-checkbox-circle-line"></i>Internet connection for API calls</li>
-            <li><i class="ri-checkbox-circle-line"></i>Compatible with Windows, macOS, and Linux</li>
+            <li><i class="ri-checkbox-circle-line"></i>Требуются права администратора для операций с файлами</li>
+            <li><i class="ri-checkbox-circle-line"></i>Cursor должен быть полностью закрыт при сбросе</li>
+            <li><i class="ri-checkbox-circle-line"></i>Подключение к интернету для API вызовов</li>
+            <li><i class="ri-checkbox-circle-line"></i>Совместимость с Windows, macOS и Linux</li>
           </ul>
         </div>
       </div>
     </section>
-    
+
     <section id="docs">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-question-line"></i>Documentation</h2>
+          <h2><i class="ri-question-line"></i>Документация</h2>
         </div>
         <div class="card-body">
           <div class="accordion">
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>How It Works</h3>
+                <h3>Как это работает</h3>
               </div>
               <div class="accordion-content">
-                <p>Cursor identifies your machine using a unique ID stored in specific locations of your system. This tool works by:</p>
+                <p>Cursor идентифицирует ваше устройство с помощью уникального ID, хранящегося в определённых местах системы. Этот инструмент работает следующим образом:</p>
                 <ul>
-                  <li><strong>Machine ID Reset:</strong> Generates a new unique identifier using secure cryptographic methods to bypass device restrictions and Cursor's telemetry tracking</li>
-                  <li><strong>Token Limits:</strong> Modifies system files and SQLite database to remove AI completion token restrictions with improved patching methods</li>
-                  <li><strong>Pro Features:</strong> Modifies authentication data to enable premium features without a paid subscription <em>(Note: This only changes the UI appearance, not actual Pro functionality as Pro features work in the cloud, not locally)</em></li>
-                  <li><strong>Update Prevention:</strong> Implements multiple layers of protection to block Cursor from automatically updating, including app-update.yml modification, blocker files, and URL endpoint removal</li>
-                  <li><strong>Storage Clearance:</strong> Removes cached data that tracks your usage history and limits</li>
-                  <li><strong>Cross-Platform:</strong> Works across Windows, macOS and Linux with dedicated optimizations for each platform</li>
+                  <li><strong>Сброс Machine ID:</strong> Генерирует новый уникальный идентификатор с использованием криптографических методов для обхода ограничений устройства и телеметрии Cursor</li>
+                  <li><strong>Лимиты токенов:</strong> Модифицирует системные файлы и базу данных SQLite для удаления ограничений токенов AI completions</li>
+                  <li><strong>Pro функции:</strong> Изменяет данные аутентификации для включения премиум функций без платной подписки <em>(Примечание: это меняет только внешний вид UI, не фактические Pro функции, так как они работают в облаке, а не локально)</em></li>
+                  <li><strong>Блокировка обновлений:</strong> Реализует многоуровневую защиту от автоматических обновлений Cursor, включая модификацию app-update.yml, файлов блокировщиков и удаление URL эндпоинтов</li>
+                  <li><strong>Очистка хранилища:</strong> Удаляет кэшированные данные, отслеживающие историю использования и лимиты</li>
+                  <li><strong>Кроссплатформенность:</strong> Работает на Windows, macOS и Linux с оптимизацией для каждой платформы</li>
                 </ul>
-                <p>These modifications allow Cursor to treat your machine as a new device with full Pro capabilities.</p>
+                <p>Эти модификации позволяют Cursor считать ваше устройство новым с полными Pro возможностями.</p>
               </div>
             </div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Prerequisites</h3>
+                <h3>Предварительные требования</h3>
               </div>
               <div class="accordion-content">
                 <ul>
-                  <li>Close all instances of Cursor before resetting</li>
-                  <li>Administrator privileges may be required</li>
-                  <li>Restart Cursor after reset for changes to take effect</li>
-                  <li><strong>Recommended Version:</strong> For optimal results, use Cursor version 0.49.x</li>
-                </ul>
-              </div>
-            </div>
-            <div class="accordion-item">
-              <div class="accordion-header">
-                <i class="ri-arrow-right-s-line"></i>
-                <h3>Troubleshooting</h3>
-              </div>
-              <div class="accordion-content">
-                <ul>
-                  <li>If reset fails, try running the application with administrator privileges</li>
-                  <li>Ensure Cursor is completely closed (check task manager)</li>
-                  <li>If problems persist, manual deletion of files may be required</li>
+                  <li>Закройте все экземпляры Cursor перед сбросом</li>
+                  <li>Могут потребоваться права администратора</li>
+                  <li>Перезапустите Cursor после сброса для применения изменений</li>
+                  <li><strong>Рекомендуемая версия:</strong> Для оптимальных результатов используйте Cursor версии 0.49.x</li>
                 </ul>
               </div>
             </div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Recommended Tips</h3>
+                <h3>Устранение неполадок</h3>
               </div>
               <div class="accordion-content">
-                <p>For best results when creating new Cursor accounts:</p>
                 <ul>
-                  <li><strong>Use our Disposable Email:</strong> <a href="https://mail.sazumi.com" target="_blank" style="color: #0000FF;">Sazumi Cloud - Email Disposable</a> works well with Cursor and doesn't get blocked</li>
+                  <li>Если сброс не удаётся, попробуйте запустить приложение от имени администратора</li>
+                  <li>Убедитесь, что Cursor полностью закрыт (проверьте диспетчер задач)</li>
+                  <li>Если проблемы сохраняются, может потребоваться ручное удаление файлов</li>
+                </ul>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>Рекомендуемые советы</h3>
+              </div>
+              <div class="accordion-content">
+                <p>Для лучших результатов при создании новых аккаунтов Cursor:</p>
+                <ul>
+                  <li><strong>Используйте нашу одноразовую почту:</strong> <a href="https://mail.sazumi.com" target="_blank" style="color: #0000FF;">Sazumi Cloud - Email Disposable</a> хорошо работает с Cursor и не блокируется</li>
                 </ul>
               </div>
             </div>
@@ -237,53 +237,53 @@
     <section id="installation">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-install-line"></i>Installation Guide</h2>
+          <h2><i class="ri-install-line"></i>Руководство по установке</h2>
         </div>
         <div class="card-body">
           <div class="alert alert-warning">
             <i class="ri-alert-line"></i>
-            <strong>Important:</strong> Do not run or edit this code using Cursor IDE. Use VS Code or another code editor instead.
+            <strong>Важно:</strong> Не запускайте и не редактируйте этот код в Cursor IDE. Используйте VS Code или другой редактор кода.
           </div>
-          
+
           <div class="installation-steps">
             <div class="step">
               <div class="step-number">1</div>
               <div class="step-content">
-                <h3>Clone Repository</h3>
+                <h3>Клонировать репозиторий</h3>
                 <div class="code-block">git clone https://github.com/sazumivicky/cursor-reset-tools.git
 cd cursor-reset-tools</div>
               </div>
             </div>
-            
+
             <div class="step">
               <div class="step-number">2</div>
               <div class="step-content">
-                <h3>Install Dependencies</h3>
+                <h3>Установить зависимости</h3>
                 <div class="code-block">npm install</div>
               </div>
             </div>
-            
+
             <div class="step">
               <div class="step-number">3</div>
               <div class="step-content">
-                <h3>Start the Application</h3>
+                <h3>Запустить приложение</h3>
                 <div class="code-block">npm start</div>
-                <p>The server will start on <span class="highlight">http://localhost:3000</span></p>
+                <p>Сервер запустится на <span class="highlight">http://localhost:3000</span></p>
               </div>
             </div>
           </div>
-          
+
           <div class="accordion">
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Running as Administrator</h3>
+                <h3>Запуск от имени администратора</h3>
               </div>
               <div class="accordion-content">
-                <p>On Windows, use Command Prompt as Administrator:</p>
+                <p>На Windows используйте Command Prompt от имени администратора:</p>
                 <div class="code-block">cd path\to\cursor-reset-tools
 npm start</div>
-                <p>On macOS/Linux, use sudo:</p>
+                <p>На macOS/Linux используйте sudo:</p>
                 <div class="code-block">cd path/to/cursor-reset-tools
 sudo npm start</div>
               </div>
@@ -291,10 +291,10 @@ sudo npm start</div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Development Mode</h3>
+                <h3>Режим разработки</h3>
               </div>
               <div class="accordion-content">
-                <p>To run in development mode with automatic restart:</p>
+                <p>Для запуска в режиме разработки с автоматической перезагрузкой:</p>
                 <div class="code-block">npm run dev</div>
               </div>
             </div>
@@ -306,7 +306,7 @@ sudo npm start</div>
     <section id="changelog">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-history-line"></i>Changelog</h2>
+          <h2><i class="ri-history-line"></i>История изменений</h2>
         </div>
         <div class="card-body">
           <div class="timeline">
@@ -315,172 +315,172 @@ sudo npm start</div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v2.0.0</span>
-                  <span class="timeline-date">July 2025</span>
+                  <span class="timeline-date">Июль 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Fixed</span> Major improvements to reset machine ID for all platforms</li>
-                    <li><span class="change-type improved">Fixed</span> More robust bypass token limit patching for new Cursor versions</li>
-                    <li><span class="change-type improved">Fixed</span> Disable auto-update now blocks all update channels and URLs</li>
-                    <li><span class="change-type improved">Fixed</span> Pro Conversion + Custom UI now works with latest UI changes</li>
-                    <li><span class="change-type improved">Improved</span> Cross-platform support and error handling</li>
-                    <li><span class="change-type improved">Improved</span> UI/UX for system and Cursor status detection</li>
-                    <li><span class="change-type improved">Improved</span> All features tested and optimized for Cursor 0.49.x</li>
+                    <li><span class="change-type improved">Исправлено</span> Серьёзные улучшения сброса Machine ID для всех платформ</li>
+                    <li><span class="change-type improved">Исправлено</span> Более надёжное патчингование обхода лимита токенов для новых версий Cursor</li>
+                    <li><span class="change-type improved">Исправлено</span> Отключение автообновления теперь блокирует все каналы и URL обновлений</li>
+                    <li><span class="change-type improved">Исправлено</span> Pro конвертация + кастомный UI теперь работают с последними изменениями UI</li>
+                    <li><span class="change-type improved">Улучшено</span> Кроссплатформенная поддержка и обработка ошибок</li>
+                    <li><span class="change-type improved">Улучшено</span> UI/UX для определения статуса системы и Cursor</li>
+                    <li><span class="change-type improved">Улучшено</span> Все функции тестированы и оптимизированы для Cursor 0.49.x</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.9.0</span>
-                  <span class="timeline-date">June 2025</span>
+                  <span class="timeline-date">Июнь 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Fixed</span> Complete machine ID reset to properly bypass device limits</li>
-                    <li><span class="change-type added">Added</span> Enhanced registry updates for Windows with both HKCU and HKLM keys</li>
-                    <li><span class="change-type added">Added</span> macOS keychain credential clearing for complete reset</li>
-                    <li><span class="change-type added">Added</span> Improved Linux support with additional identity file handling</li>
-                    <li><span class="change-type improved">Enhanced</span> SQLite database modifications with trial-related entry deletion</li>
-                    <li><span class="change-type improved">Fixed</span> More robust getMachineId function patching with direct UUID injection</li>
-                    <li><span class="change-type improved">Improved</span> Better error handling and file existence checks</li>
+                    <li><span class="change-type improved">Исправлено</span> Полный сброс Machine ID для правильного обхода ограничений устройства</li>
+                    <li><span class="change-type added">Добавлено</span> Улучшенные обновления реестра для Windows с ключами HKCU и HKLM</li>
+                    <li><span class="change-type added">Добавлено</span> Очистка учётных данных keychain для macOS для полного сброса</li>
+                    <li><span class="change-type added">Добавлено</span> Улучшенная поддержка Linux с дополнительной обработкой файлов идентификации</li>
+                    <li><span class="change-type improved">Улучшено</span> Модификации базы данных SQLite с удалением записей, связанных с пробной версией</li>
+                    <li><span class="change-type improved">Исправлено</span> Более надёжное патчингование функции getMachineId с прямой инъекцией UUID</li>
+                    <li><span class="change-type improved">Улучшено</span> Лучшая обработка ошибок и проверка существования файлов</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.8.0</span>
-                  <span class="timeline-date">June 2025</span>
+                  <span class="timeline-date">Июнь 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type added">Added</span> Windows registry update implementation for complete machine ID reset</li>
-                    <li><span class="change-type added">Added</span> macOS platform UUID update support using plutil</li>
-                    <li><span class="change-type improved">Improved</span> Cross-platform machine ID reset with OS-specific optimizations</li>
-                    <li><span class="change-type improved">Fixed</span> Silent error handling for registry and platform UUID updates</li>
+                    <li><span class="change-type added">Добавлено</span> Реализация обновления реестра Windows для полного сброса Machine ID</li>
+                    <li><span class="change-type added">Добавлено</span> Поддержка обновления platform UUID для macOS с использованием plutil</li>
+                    <li><span class="change-type improved">Улучшено</span> Кроссплатформенный сброс Machine ID с оптимизацией для каждой ОС</li>
+                    <li><span class="change-type improved">Исправлено</span> Тихая обработка ошибок для обновлений реестра и platform UUID</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.7.0</span>
-                  <span class="timeline-date">June 2025</span>
+                  <span class="timeline-date">Июнь 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Enhanced</span> Machine ID reset with improved cryptographic generation</li>
-                    <li><span class="change-type added">Added</span> Windows registry support for more complete reset</li>
-                    <li><span class="change-type improved">Improved</span> Main.js patching to bypass machine ID checks on Cursor 0.49+</li>
-                    <li><span class="change-type improved">Enhanced</span> Disable auto-update functionality with multiple protection layers</li>
-                    <li><span class="change-type improved">Fixed</span> ES modules compatibility issues with clean native methods</li>
-                    <li><span class="change-type improved">Improved</span> Cross-platform file path handling for Windows/macOS/Linux</li>
+                    <li><span class="change-type improved">Улучшено</span> Сброс Machine ID с улучшенной криптографической генерацией</li>
+                    <li><span class="change-type added">Добавлено</span> Поддержка реестра Windows для более полного сброса</li>
+                    <li><span class="change-type improved">Улучшено</span> Патчингование Main.js для обхода проверок Machine ID в Cursor 0.49+</li>
+                    <li><span class="change-type improved">Улучшено</span> Функция отключения автообновления с несколькими уровнями защиты</li>
+                    <li><span class="change-type improved">Исправлено</span> Совместимость с ES модулями с чистыми нативными методами</li>
+                    <li><span class="change-type improved">Улучшено</span> Обработка путей для Windows/macOS/Linux</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.6.0</span>
-                  <span class="timeline-date">May 2025</span>
+                  <span class="timeline-date">Май 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type removed">Removed</span> Atomic Mail functionality completely</li>
-                    <li><span class="change-type improved">Fixed</span> Cross-platform compatibility for Windows, macOS, and Linux features</li>
-                    <li><span class="change-type improved">Improved</span> Modern JavaScript with cleaner code patterns</li>
+                    <li><span class="change-type removed">Удалено</span> Функциональность Atomic Mail полностью</li>
+                    <li><span class="change-type improved">Исправлено</span> Кроссплатформенная совместимость для Windows, macOS и Linux</li>
+                    <li><span class="change-type improved">Улучшено</span> Современный JavaScript с более чистыми паттернами кода</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.5.0</span>
-                  <span class="timeline-date">May 2025</span>
+                  <span class="timeline-date">Май 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Improved</span> Enhanced SQLite database handling for more reliable resets</li>
-                    <li><span class="change-type added">Added</span> Proper backup of all files before modification</li>
-                    <li><span class="change-type improved">Improved</span> Windows registry updates for complete system ID refresh</li>
-                    <li><span class="change-type improved">Fixed</span> Better handling of telemetry IDs across all platforms</li>
-                    <li><span class="change-type improved">Improved</span> getMachineId patching in Cursor 0.49+ versions</li>
-                    <li><span class="change-type improved">Fixed</span> Token limit bypass with multiple pattern detection methods</li>
-                    <li><span class="change-type improved">Fixed</span> Auto-update disabling with proper permissions handling</li>
-                    <li><span class="change-type added">Added</span> Fallback mechanisms for all core functions when primary methods fail</li>
+                    <li><span class="change-type improved">Улучшено</span> Улучшенная обработка базы данных SQLite для более надёжного сброса</li>
+                    <li><span class="change-type added">Добавлено</span> Правильное резервное копирование всех файлов перед модификацией</li>
+                    <li><span class="change-type improved">Улучшено</span> Обновления реестра Windows для полного обновления системного ID</li>
+                    <li><span class="change-type improved">Исправлено</span> Лучшая обработка ID телеметрии на всех платформах</li>
+                    <li><span class="change-type improved">Улучшено</span> Патчингование getMachineId в версиях Cursor 0.49+</li>
+                    <li><span class="change-type improved">Исправлено</span> Обход лимита токенов с несколькими методами обнаружения паттернов</li>
+                    <li><span class="change-type improved">Исправлено</span> Отключение автообновления с правильной обработкой разрешений</li>
+                    <li><span class="change-type added">Добавлено</span> Механизмы возврата для всех основных функций при сбое основных методов</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.4.0</span>
-                  <span class="timeline-date">May 2025</span>
+                  <span class="timeline-date">Май 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type added">Added</span> Bypass token limit feature (experimental - still finding workarounds)</li>
-                    <li><span class="change-type added">Added</span> Disable auto-update feature to prevent automatic updates</li>
-                    <li><span class="change-type added">Added</span> Pro conversion tool for enabling premium features</li>
-                    <li><span class="change-type improved">Fixed</span> MacOS functionality issues across all features</li>
-                    <li><span class="change-type improved">Improved</span> Overall stability and compatibility with latest Cursor versions</li>
+                    <li><span class="change-type added">Добавлено</span> Функция обхода лимита токенов (экспериментально)</li>
+                    <li><span class="change-type added">Добавлено</span> Функция отключения автообновления для предотвращения автоматических обновлений</li>
+                    <li><span class="change-type added">Добавлено</span> Инструмент Pro конвертации для включения премиум функций</li>
+                    <li><span class="change-type improved">Исправлено</span> Кроссплатформенная совместимость для macOS</li>
+                    <li><span class="change-type improved">Улучшено</span> Общая стабильность и совместимость с последними версиями Cursor</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.3.0</span>
-                  <span class="timeline-date">April 2025</span>
+                  <span class="timeline-date">Апрель 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Fixed</span> MacOS reset issue for "Too many free trial accounts" error</li>
-                    <li><span class="change-type improved">Improved</span> MacOS keychain handling for stored credentials removal</li>
-                    <li><span class="change-type added">Added</span> Enhanced cleaning of additional ID files on MacOS</li>
-                    <li><span class="change-type improved">Fixed</span> MacOS defaults reset for Cursor application</li>
-                    <li><span class="change-type improved">Improved</span> Compatibility with Cursor version 0.48.x</li>
+                    <li><span class="change-type improved">Исправлено</span> Проблема сброса macOS для ошибки "Too many free trial accounts"</li>
+                    <li><span class="change-type improved">Улучшено</span> Обработка keychain для macOS для удаления сохранённых учётных данных</li>
+                    <li><span class="change-type added">Добавлено</span> Улучшенная очистка дополнительных файлов ID на macOS</li>
+                    <li><span class="change-type improved">Исправлено</span> Сброс defaults для приложения macOS Cursor</li>
+                    <li><span class="change-type improved">Улучшено</span> Совместимость с Cursor версии 0.48.x</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.2.0</span>
-                  <span class="timeline-date">April 2025</span>
+                  <span class="timeline-date">Апрель 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Fixed</span> Improved machine ID reset method to match cursor-free-vip</li>
-                    <li><span class="change-type improved">Fixed</span> Files are now modified instead of deleted to preserve login status</li>
-                    <li><span class="change-type added">Added</span> Detailed logs in UI showing each step of the reset process</li>
-                    <li><span class="change-type improved">Fixed</span> Added automatic cursor process termination if running</li>
-                    <li><span class="change-type improved">Improved</span> Patching for newer Cursor versions (≥0.45.0)</li>
+                    <li><span class="change-type improved">Улучшено</span> Улучшен метод сброса Machine ID согласно cursor-free-vip</li>
+                    <li><span class="change-type improved">Исправлено</span> Файлы теперь модифицируются вместо удаления для сохранения статуса входа</li>
+                    <li><span class="change-type added">Добавлено</span> Подробные логи в UI, показывающие каждый шаг процесса сброса</li>
+                    <li><span class="change-type improved">Исправлено</span> Автоматическое завершение процесса Cursor при работе</li>
+                    <li><span class="change-type improved">Улучшено</span> Патчингование для новых версий Cursor (≥0.45.0)</li>
                   </ul>
                 </div>
               </div>
@@ -491,31 +491,31 @@ sudo npm start</div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.1.0</span>
-                  <span class="timeline-date">April 2025</span>
+                  <span class="timeline-date">Апрель 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Improved</span> Enhanced UI with modern design</li>
-                    <li><span class="change-type improved">Improved</span> Better cross-platform compatibility</li>
-                    <li><span class="change-type added">Added</span> Comprehensive documentation</li>
+                    <li><span class="change-type improved">Улучшено</span> Улучшенный UI с современным дизайном</li>
+                    <li><span class="change-type improved">Улучшено</span> Лучшая кроссплатформенная совместимость</li>
+                    <li><span class="change-type added">Добавлено</span> Подробная документация</li>
                   </ul>
                 </div>
               </div>
             </div>
-            
+
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.0.0</span>
-                  <span class="timeline-date">April 2025</span>
+                  <span class="timeline-date">Апрель 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type new">New</span> Initial release of Sazumi Cloud</li>
-                    <li><span class="change-type new">New</span> Support for Windows, macOS and Linux</li>
-                    <li><span class="change-type new">New</span> Machine ID reset functionality</li>
-                    <li><span class="change-type new">New</span> System information display</li>
+                    <li><span class="change-type new">Новое</span> Первый релиз Sazumi Cloud</li>
+                    <li><span class="change-type new">Новое</span> Поддержка Windows, macOS и Linux</li>
+                    <li><span class="change-type new">Новое</span> Функция сброса Machine ID</li>
+                    <li><span class="change-type new">Новое</span> Отображение информации о системе</li>
                   </ul>
                 </div>
               </div>
@@ -524,7 +524,7 @@ sudo npm start</div>
         </div>
       </div>
     </section>
-    
+
     <section id="actions">
       <div class="action-buttons">
         <a href="https://github.com/sazumivicky/cursor-reset-tools" target="_blank" class="action-btn github-btn">
@@ -533,20 +533,20 @@ sudo npm start</div>
         </a>
         <a href="https://sociabuzz.com/sazumi/tribe" class="action-btn donate-btn">
           <i class="ri-hand-heart-line"></i>
-          <span>Donate</span>
+          <span>Пожертвовать</span>
         </a>
       </div>
     </section>
-    
+
     <footer>
-      <p>© <span id="current-year"></span> Cursor Reset Tool by <b>Sazumi Cloud</b>. All rights reserved.</p>
-      <p class="text-sm text-gray-400">A product by <b>PT Sazumi Cloud Inc</b>.</p>
+      <p>© <span id="current-year"></span> Cursor Reset Tool от <b>Sazumi Cloud</b>. Все права защищены.</p>
+      <p class="text-sm text-gray-400">Продукт <b>PT Sazumi Cloud Inc</b>.</p>
     </footer>
   </div>
-  
+
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('current-year').textContent = new Date().getFullYear();
   </script>
 </body>
-</html> 
+</html>

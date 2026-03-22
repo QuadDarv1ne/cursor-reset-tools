@@ -124,7 +124,49 @@ export const translations = {
     toastCloseCursor: 'Пожалуйста, закройте Cursor перед сбросом Machine ID',
     toastCloseCursorBypass: 'Пожалуйста, закройте Cursor перед обходом лимита токенов',
     toastCloseCursorUpdate: 'Пожалуйста, закройте Cursor перед отключением автообновления',
-    toastCloseCursorPro: 'Пожалуйста, закройте Cursor перед включением Pro функций'
+    toastCloseCursorPro: 'Пожалуйста, закройте Cursor перед включением Pro функций',
+    
+    // Modal
+    modalDisclaimer: 'Важное предупреждение',
+    modalWarning: 'Внимание: Чрезмерное использование этого инструмента может нарушать условия использования Cursor.',
+    modalAcknowledge: 'Используя этот инструмент, вы признаёте, что:',
+    modalRisk: 'Все действия выполняются на ваш собственный риск',
+    modalNoResponsibility: 'Разработчики Sazumi Cloud не несут ответственности за последствия',
+    modalNotAbuse: 'Этот инструмент не следует использовать слишком часто',
+    modalEducational: 'Предоставлено только для образовательных и исследовательских целей',
+    modalAccept: 'Я понимаю и принимаю',
+    
+    // Header
+    versionLabel: 'v2.0.0',
+    
+    // Features
+    featureRecommended: 'Рекомендуется: Для лучшей совместимости используйте Cursor версии 0.49.x',
+    
+    // System table
+    machineIdExists: 'Machine ID существует',
+    storageExists: 'Storage существует',
+    databaseExists: 'Database существует',
+    appExists: 'App существует',
+    cursorExists: 'Cursor существует',
+    updateExists: 'Update существует',
+    
+    // Warning
+    cursorWarning: 'Внимание: Cursor сейчас запущен. Пожалуйста, закройте его перед использованием функций.',
+    cursorNote: 'Примечание: Убедитесь, что Cursor закрыт перед использованием любых функций.',
+    
+    // Changelog months
+    monthJuly: 'Июль',
+    monthJune: 'Июнь',
+    monthMay: 'Май',
+    monthApril: 'Апрель',
+    
+    // Change types
+    changeImproved: 'Исправлено',
+    changeAdded: 'Добавлено',
+    changeRemoved: 'Удалено',
+    changeNew: 'Новое',
+    changeFixed: 'Исправлено',
+    changeEnhanced: 'Улучшено'
   },
   
   en: {
@@ -247,7 +289,49 @@ export const translations = {
     toastCloseCursor: 'Please close Cursor before resetting machine ID',
     toastCloseCursorBypass: 'Please close Cursor before bypassing token limit',
     toastCloseCursorUpdate: 'Please close Cursor before disabling auto-update',
-    toastCloseCursorPro: 'Please close Cursor before enabling Pro features'
+    toastCloseCursorPro: 'Please close Cursor before enabling Pro features',
+    
+    // Modal
+    modalDisclaimer: 'Important Disclaimer',
+    modalWarning: 'Warning: Excessive use of this tool may violate Cursor\'s terms of service.',
+    modalAcknowledge: 'By using this tool, you acknowledge that:',
+    modalRisk: 'All actions performed are at your own risk',
+    modalNoResponsibility: 'Sazumi Cloud developers are not responsible for any consequences',
+    modalNotAbuse: 'This tool should not be abused frequently',
+    modalEducational: 'This is provided for educational and research purposes only',
+    modalAccept: 'I Understand and Accept',
+    
+    // Header
+    versionLabel: 'v2.0.0',
+    
+    // Features
+    featureRecommended: 'Recommended: For best compatibility, use Cursor version 0.49.x',
+    
+    // System table
+    machineIdExists: 'Machine ID Exists',
+    storageExists: 'Storage Exists',
+    databaseExists: 'Database Exists',
+    appExists: 'App Exists',
+    cursorExists: 'Cursor Exists',
+    updateExists: 'Update Exists',
+    
+    // Warning
+    cursorWarning: 'Warning: Cursor is currently running. Please close it before using any features.',
+    cursorNote: 'Note: Make sure Cursor is closed before using any features.',
+    
+    // Changelog months
+    monthJuly: 'July',
+    monthJune: 'June',
+    monthMay: 'May',
+    monthApril: 'April',
+    
+    // Change types
+    changeImproved: 'Fixed',
+    changeAdded: 'Added',
+    changeRemoved: 'Removed',
+    changeNew: 'New',
+    changeFixed: 'Fixed',
+    changeEnhanced: 'Enhanced'
   },
   
   zh: {
@@ -370,7 +454,49 @@ export const translations = {
     toastCloseCursor: '请在重置 machine ID 之前关闭 Cursor',
     toastCloseCursorBypass: '请在绕过令牌限制之前关闭 Cursor',
     toastCloseCursorUpdate: '请在禁用自动更新之前关闭 Cursor',
-    toastCloseCursorPro: '请在启用 Pro 功能之前关闭 Cursor'
+    toastCloseCursorPro: '请在启用 Pro 功能之前关闭 Cursor',
+    
+    // Modal
+    modalDisclaimer: '重要免责声明',
+    modalWarning: '警告：过度使用此工具可能会违反 Cursor 的服务条款。',
+    modalAcknowledge: '使用此工具，即表示您承认：',
+    modalRisk: '所有操作均由您自行承担风险',
+    modalNoResponsibility: 'Sazumi Cloud 开发者不对任何后果负责',
+    modalNotAbuse: '不应频繁滥用此工具',
+    modalEducational: '本工具仅提供给教育和研究用途',
+    modalAccept: '我理解并接受',
+    
+    // Header
+    versionLabel: 'v2.0.0',
+    
+    // Features
+    featureRecommended: '建议：为了最佳兼容性，请使用 Cursor 版本 0.49.x',
+    
+    // System table
+    machineIdExists: 'Machine ID 存在',
+    storageExists: 'Storage 存在',
+    databaseExists: 'Database 存在',
+    appExists: 'App 存在',
+    cursorExists: 'Cursor 存在',
+    updateExists: 'Update 存在',
+    
+    // Warning
+    cursorWarning: '警告：Cursor 当前正在运行。请在使用任何功能之前关闭它。',
+    cursorNote: '注意：在使用任何功能之前，请确保 Cursor 已关闭。',
+    
+    // Changelog months
+    monthJuly: '七月',
+    monthJune: '六月',
+    monthMay: '五月',
+    monthApril: '四月',
+    
+    // Change types
+    changeImproved: '已修复',
+    changeAdded: '已添加',
+    changeRemoved: '已移除',
+    changeNew: '新的',
+    changeFixed: '已修复',
+    changeEnhanced: '已增强'
   }
 };
 

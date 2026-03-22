@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof t !== 'undefined' ? t('title') : 'Sazumi Cloud - Cursor Reset Tool' %></title>
+  <title><%= typeof t !== 'undefined' ? t('title') : 'Sazumi Cloud' %></title>
   <meta name="description" content="<%= typeof t !== 'undefined' ? t('description') : '' %>">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -44,28 +44,30 @@
     <button class="lang-btn" data-lang="en" title="English">🇬🇧 EN</button>
     <button class="lang-btn" data-lang="zh" title="中文">🇨🇳 中文</button>
   </div>
+
+  <!-- Disclaimer Modal -->
   <div id="disclaimer-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2><i class="ri-alert-line"></i> Важное предупреждение</h2>
+        <h2><i class="ri-alert-line"></i> <%= typeof t !== 'undefined' ? t('modalDisclaimer') : '' %></h2>
         <span class="modal-close">&times;</span>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning">
           <i class="ri-error-warning-line"></i>
-          <strong>Внимание:</strong> Чрезмерное использование этого инструмента может нарушать условия использования Cursor.
+          <strong><%= typeof t !== 'undefined' ? t('modalWarning') : '' %></strong>
         </div>
-        <p>Используя этот инструмент, вы признаёте, что:</p>
+        <p><%= typeof t !== 'undefined' ? t('modalAcknowledge') : '' %></p>
         <ul>
-          <li>Все действия выполняются на ваш собственный риск</li>
-          <li>Разработчики Sazumi Cloud не несут ответственности за последствия</li>
-          <li>Этот инструмент не следует использовать слишком часто</li>
-          <li>Предоставлено только для образовательных и исследовательских целей</li>
+          <li><%= typeof t !== 'undefined' ? t('modalRisk') : '' %></li>
+          <li><%= typeof t !== 'undefined' ? t('modalNoResponsibility') : '' %></li>
+          <li><%= typeof t !== 'undefined' ? t('modalNotAbuse') : '' %></li>
+          <li><%= typeof t !== 'undefined' ? t('modalEducational') : '' %></li>
         </ul>
-        <p>Пожалуйста, используйте ответственно и рассмотрите возможность поддержки Cursor, приобретя лицензию, если вы находите их продукт ценным.</p>
+        <p><%= typeof t !== 'undefined' ? t('disclaimerEducational') : '' %></p>
       </div>
       <div class="modal-footer">
-        <button id="accept-disclaimer" class="btn">Я понимаю и принимаю</button>
+        <button id="accept-disclaimer" class="btn"><%= typeof t !== 'undefined' ? t('modalAccept') : '' %></button>
       </div>
     </div>
   </div>
@@ -73,48 +75,48 @@
   <div class="container">
     <header>
       <h1>Sazumi Cloud</h1>
-      <p>Инструмент сброса Machine ID Cursor</p>
-      <span class="version-label">v2.0.0</span>
+      <p><%= typeof t !== 'undefined' ? t('headerSubtitle') : '' %></p>
+      <span class="version-label"><%= typeof t !== 'undefined' ? t('versionLabel') : '' %></span>
     </header>
 
     <section id="intro">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-file-info-line"></i>Об этом инструменте</h2>
+          <h2><i class="ri-file-info-line"></i><%= typeof t !== 'undefined' ? t('aboutTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div class="alert alert-info" style="margin-bottom:1rem;">
             <i class="ri-information-line"></i>
-            <strong>Рекомендуется:</strong> Для лучшей совместимости используйте <b>Cursor версии 0.49.x</b>.
+            <strong><%= typeof t !== 'undefined' ? t('featureRecommended') : '' %></strong>
           </div>
-          <p>Sazumi Cloud — мощный инструмент для сброса Machine ID Cursor IDE. Это помогает обойти ограничения пробной версии, конвертировать пробную версию в Pro, обойти лимиты токенов и предотвратить автоматические обновления для полного раскрытия возможностей AI Cursor.</p>
+          <p><%= typeof t !== 'undefined' ? t('aboutDescription') : '' %></p>
           <div class="features">
             <div class="feature">
               <i class="ri-shield-check-line"></i>
               <div>
-                <h3>Обход лимита токенов</h3>
-                <p>Удаление ограничений на использование токенов для AI completions</p>
+                <h3><%= typeof t !== 'undefined' ? t('featureTokenBypass') : '' %></h3>
+                <p><%= typeof t !== 'undefined' ? t('featureTokenBypassDesc') : '' %></p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-vip-crown-line"></i>
               <div>
-                <h3>Pro конвертация</h3>
-                <p>Доступ к Pro функциям без подписки и кастомизация UI</p>
+                <h3><%= typeof t !== 'undefined' ? t('featureProConversion') : '' %></h3>
+                <p><%= typeof t !== 'undefined' ? t('featureProConversionDesc') : '' %></p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-restart-line"></i>
               <div>
-                <h3>Сброс Machine ID</h3>
-                <p>Обход ограничения "Слишком много пробных аккаунтов"</p>
+                <h3><%= typeof t !== 'undefined' ? t('featureMachineIdReset') : '' %></h3>
+                <p><%= typeof t !== 'undefined' ? t('featureMachineIdResetDesc') : '' %></p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-shield-flash-line"></i>
               <div>
-                <h3>Блокировка обновлений</h3>
-                <p>Предотвращение автоматических обновлений Cursor, которые могут удалить обходы</p>
+                <h3><%= typeof t !== 'undefined' ? t('featureAutoUpdateBlock') : '' %></h3>
+                <p><%= typeof t !== 'undefined' ? t('featureAutoUpdateBlockDesc') : '' %></p>
               </div>
             </div>
           </div>
@@ -125,40 +127,40 @@
     <main>
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-computer-line"></i>Информация о системе</h2>
+          <h2><i class="ri-computer-line"></i><%= typeof t !== 'undefined' ? t('systemInfoTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div id="system-info">
-            <div class="loading">Загрузка информации о системе</div>
+            <div class="loading"><%= typeof t !== 'undefined' ? t('systemInfoLoading') : '' %></div>
           </div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-apps-line"></i>Статус Cursor</h2>
+          <h2><i class="ri-apps-line"></i><%= typeof t !== 'undefined' ? t('cursorStatusTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div id="cursor-status">
-            <div class="loading">Загрузка информации о Cursor</div>
+            <div class="loading"><%= typeof t !== 'undefined' ? t('cursorStatusLoading') : '' %></div>
           </div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-lock-unlock-line"></i>Сброс Machine ID</h2>
+          <h2><i class="ri-lock-unlock-line"></i><%= typeof t !== 'undefined' ? t('resetTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div class="alert alert-info">
             <i class="ri-information-line"></i>
-            <strong>Важно:</strong> Убедитесь, что Cursor закрыт перед сбросом Machine ID.
+            <strong><%= typeof t !== 'undefined' ? t('resetImportant') : '' %></strong>
           </div>
           <div class="action-grid">
-            <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i>Сбросить Machine ID</button>
-            <button id="bypass-btn" class="btn btn-warning"><i class="ri-shield-flash-line"></i>Обойти лимит токенов</button>
-            <button id="disable-update-btn" class="btn btn-info"><i class="ri-lock-line"></i>Отключить автообновление</button>
-            <button id="pro-convert-btn" class="btn btn-success"><i class="ri-vip-crown-line"></i>Pro версия + Кастомный UI</button>
+            <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i><%= typeof t !== 'undefined' ? t('resetBtn') : '' %></button>
+            <button id="bypass-btn" class="btn btn-warning"><i class="ri-shield-flash-line"></i><%= typeof t !== 'undefined' ? t('bypassBtn') : '' %></button>
+            <button id="disable-update-btn" class="btn btn-info"><i class="ri-lock-line"></i><%= typeof t !== 'undefined' ? t('disableUpdateBtn') : '' %></button>
+            <button id="pro-convert-btn" class="btn btn-success"><i class="ri-vip-crown-line"></i><%= typeof t !== 'undefined' ? t('proConvertBtn') : '' %></button>
           </div>
           <div id="reset-result"></div>
         </div>
@@ -166,32 +168,32 @@
 
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-mail-line"></i>Генератор Email</h2>
+          <h2><i class="ri-mail-line"></i><%= typeof t !== 'undefined' ? t('emailTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div class="alert alert-info">
             <i class="ri-information-line"></i>
-            <strong>Примечание:</strong> При ошибке "too many requests" необходимо сменить IP адрес, включив и выключив мобильные данные.
+            <strong><%= typeof t !== 'undefined' ? t('emailNote') : '' %></strong>
           </div>
           <div class="email-generator-container">
-            <p>Функция генератора email была удалена в этой версии.</p>
-            <p>Пожалуйста, используйте внешний сервис email для проверки.</p>
+            <p><%= typeof t !== 'undefined' ? t('emailRemoved') : '' %></p>
+            <p><%= typeof t !== 'undefined' ? t('emailExternal') : '' %></p>
           </div>
         </div>
       </div>
     </main>
-    
+
     <section id="requirements">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-list-check"></i>Требования</h2>
+          <h2><i class="ri-list-check"></i><%= typeof t !== 'undefined' ? t('requirementsTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <ul class="req-list">
-            <li><i class="ri-checkbox-circle-line"></i>Требуются права администратора для операций с файлами</li>
-            <li><i class="ri-checkbox-circle-line"></i>Cursor должен быть полностью закрыт при сбросе</li>
-            <li><i class="ri-checkbox-circle-line"></i>Подключение к интернету для API вызовов</li>
-            <li><i class="ri-checkbox-circle-line"></i>Совместимость с Windows, macOS и Linux</li>
+            <li><i class="ri-checkbox-circle-line"></i><%= typeof t !== 'undefined' ? t('reqAdmin') : '' %></li>
+            <li><i class="ri-checkbox-circle-line"></i><%= typeof t !== 'undefined' ? t('reqClosed') : '' %></li>
+            <li><i class="ri-checkbox-circle-line"></i><%= typeof t !== 'undefined' ? t('reqInternet') : '' %></li>
+            <li><i class="ri-checkbox-circle-line"></i><%= typeof t !== 'undefined' ? t('reqCompatible') : '' %></li>
           </ul>
         </div>
       </div>
@@ -200,88 +202,74 @@
     <section id="docs">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-question-line"></i>Документация</h2>
+          <h2><i class="ri-question-line"></i><%= typeof t !== 'undefined' ? t('docsTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div class="accordion">
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Как это работает</h3>
+                <h3><%= typeof t !== 'undefined' ? t('docsHowItWorks') : '' %></h3>
               </div>
               <div class="accordion-content">
-                <p>Cursor идентифицирует ваше устройство с помощью уникального ID, хранящегося в определённых местах системы. Этот инструмент работает следующим образом:</p>
-                <ul>
-                  <li><strong>Сброс Machine ID:</strong> Генерирует новый уникальный идентификатор с использованием криптографических методов для обхода ограничений устройства и телеметрии Cursor</li>
-                  <li><strong>Лимиты токенов:</strong> Модифицирует системные файлы и базу данных SQLite для удаления ограничений токенов AI completions</li>
-                  <li><strong>Pro функции:</strong> Изменяет данные аутентификации для включения премиум функций без платной подписки <em>(Примечание: это меняет только внешний вид UI, не фактические Pro функции, так как они работают в облаке, а не локально)</em></li>
-                  <li><strong>Блокировка обновлений:</strong> Реализует многоуровневую защиту от автоматических обновлений Cursor, включая модификацию app-update.yml, файлов блокировщиков и удаление URL эндпоинтов</li>
-                  <li><strong>Очистка хранилища:</strong> Удаляет кэшированные данные, отслеживающие историю использования и лимиты</li>
-                  <li><strong>Кроссплатформенность:</strong> Работает на Windows, macOS и Linux с оптимизацией для каждой платформы</li>
-                </ul>
-                <p>Эти модификации позволяют Cursor считать ваше устройство новым с полными Pro возможностями.</p>
+                <p><%= typeof t !== 'undefined' ? t('aboutDescription') : '' %></p>
               </div>
             </div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Предварительные требования</h3>
+                <h3><%= typeof t !== 'undefined' ? t('docsPrerequisites') : '' %></h3>
               </div>
               <div class="accordion-content">
                 <ul>
-                  <li>Закройте все экземпляры Cursor перед сбросом</li>
-                  <li>Могут потребоваться права администратора</li>
-                  <li>Перезапустите Cursor после сброса для применения изменений</li>
-                  <li><strong>Рекомендуемая версия:</strong> Для оптимальных результатов используйте Cursor версии 0.49.x</li>
+                  <li><%= typeof t !== 'undefined' ? t('reqClosed') : '' %></li>
+                  <li><%= typeof t !== 'undefined' ? t('reqAdmin') : '' %></li>
+                  <li><%= typeof t !== 'undefined' ? t('featureRecommended') : '' %></li>
                 </ul>
               </div>
             </div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Устранение неполадок</h3>
+                <h3><%= typeof t !== 'undefined' ? t('docsTroubleshooting') : '' %></h3>
               </div>
               <div class="accordion-content">
                 <ul>
-                  <li>Если сброс не удаётся, попробуйте запустить приложение от имени администратора</li>
-                  <li>Убедитесь, что Cursor полностью закрыт (проверьте диспетчер задач)</li>
-                  <li>Если проблемы сохраняются, может потребоваться ручное удаление файлов</li>
+                  <li><%= typeof t !== 'undefined' ? t('reqAdmin') : '' %></li>
+                  <li><%= typeof t !== 'undefined' ? t('reqClosed') : '' %></li>
                 </ul>
               </div>
             </div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Рекомендуемые советы</h3>
+                <h3><%= typeof t !== 'undefined' ? t('docsTips') : '' %></h3>
               </div>
               <div class="accordion-content">
-                <p>Для лучших результатов при создании новых аккаунтов Cursor:</p>
-                <ul>
-                  <li><strong>Используйте нашу одноразовую почту:</strong> <a href="https://mail.sazumi.com" target="_blank" style="color: #0000FF;">Sazumi Cloud - Email Disposable</a> хорошо работает с Cursor и не блокируется</li>
-                </ul>
+                <p><a href="https://mail.sazumi.com" target="_blank" style="color: #0000FF;">Sazumi Cloud - Email Disposable</a></p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-    
+
     <section id="installation">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-install-line"></i>Руководство по установке</h2>
+          <h2><i class="ri-install-line"></i><%= typeof t !== 'undefined' ? t('installationTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div class="alert alert-warning">
             <i class="ri-alert-line"></i>
-            <strong>Важно:</strong> Не запускайте и не редактируйте этот код в Cursor IDE. Используйте VS Code или другой редактор кода.
+            <strong><%= typeof t !== 'undefined' ? t('installationWarning') : '' %></strong>
           </div>
 
           <div class="installation-steps">
             <div class="step">
               <div class="step-number">1</div>
               <div class="step-content">
-                <h3>Клонировать репозиторий</h3>
+                <h3><%= typeof t !== 'undefined' ? t('step1Title') : '' %></h3>
                 <div class="code-block">git clone https://github.com/sazumivicky/cursor-reset-tools.git
 cd cursor-reset-tools</div>
               </div>
@@ -290,7 +278,7 @@ cd cursor-reset-tools</div>
             <div class="step">
               <div class="step-number">2</div>
               <div class="step-content">
-                <h3>Установить зависимости</h3>
+                <h3><%= typeof t !== 'undefined' ? t('step2Title') : '' %></h3>
                 <div class="code-block">npm install</div>
               </div>
             </div>
@@ -298,9 +286,9 @@ cd cursor-reset-tools</div>
             <div class="step">
               <div class="step-number">3</div>
               <div class="step-content">
-                <h3>Запустить приложение</h3>
+                <h3><%= typeof t !== 'undefined' ? t('step3Title') : '' %></h3>
                 <div class="code-block">npm start</div>
-                <p>Сервер запустится на <span class="highlight">http://localhost:3000</span></p>
+                <p><%= typeof t !== 'undefined' ? t('serverStart') : '' %> <span class="highlight">http://localhost:3000</span></p>
               </div>
             </div>
           </div>
@@ -309,13 +297,13 @@ cd cursor-reset-tools</div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Запуск от имени администратора</h3>
+                <h3><%= typeof t !== 'undefined' ? t('adminTitle') : '' %></h3>
               </div>
               <div class="accordion-content">
-                <p>На Windows используйте Command Prompt от имени администратора:</p>
+                <p>Windows:</p>
                 <div class="code-block">cd path\to\cursor-reset-tools
 npm start</div>
-                <p>На macOS/Linux используйте sudo:</p>
+                <p>macOS/Linux:</p>
                 <div class="code-block">cd path/to/cursor-reset-tools
 sudo npm start</div>
               </div>
@@ -323,10 +311,9 @@ sudo npm start</div>
             <div class="accordion-item">
               <div class="accordion-header">
                 <i class="ri-arrow-right-s-line"></i>
-                <h3>Режим разработки</h3>
+                <h3><%= typeof t !== 'undefined' ? t('devModeTitle') : '' %></h3>
               </div>
               <div class="accordion-content">
-                <p>Для запуска в режиме разработки с автоматической перезагрузкой:</p>
                 <div class="code-block">npm run dev</div>
               </div>
             </div>
@@ -334,11 +321,11 @@ sudo npm start</div>
         </div>
       </div>
     </section>
-    
+
     <section id="changelog">
       <div class="card">
         <div class="card-header">
-          <h2><i class="ri-history-line"></i>История изменений</h2>
+          <h2><i class="ri-history-line"></i><%= typeof t !== 'undefined' ? t('changelogTitle') : '' %></h2>
         </div>
         <div class="card-body">
           <div class="timeline">
@@ -347,17 +334,17 @@ sudo npm start</div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v2.0.0</span>
-                  <span class="timeline-date">Июль 2025</span>
+                  <span class="timeline-date"><%= typeof t !== 'undefined' ? t('monthJuly') : '' %> 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Исправлено</span> Серьёзные улучшения сброса Machine ID для всех платформ</li>
-                    <li><span class="change-type improved">Исправлено</span> Более надёжное патчингование обхода лимита токенов для новых версий Cursor</li>
-                    <li><span class="change-type improved">Исправлено</span> Отключение автообновления теперь блокирует все каналы и URL обновлений</li>
-                    <li><span class="change-type improved">Исправлено</span> Pro конвертация + кастомный UI теперь работают с последними изменениями UI</li>
-                    <li><span class="change-type improved">Улучшено</span> Кроссплатформенная поддержка и обработка ошибок</li>
-                    <li><span class="change-type improved">Улучшено</span> UI/UX для определения статуса системы и Cursor</li>
-                    <li><span class="change-type improved">Улучшено</span> Все функции тестированы и оптимизированы для Cursor 0.49.x</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> Major improvements to reset machine ID for all platforms</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> More robust bypass token limit patching for new Cursor versions</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> Disable auto-update now blocks all update channels and URLs</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> Pro Conversion + Custom UI now works with latest UI changes</li>
+                    <li><span class="change-type enhanced"><%= typeof t !== 'undefined' ? t('changeEnhanced') : '' %></span> Cross-platform support and error handling</li>
+                    <li><span class="change-type enhanced"><%= typeof t !== 'undefined' ? t('changeEnhanced') : '' %></span> UI/UX for system and Cursor status detection</li>
+                    <li><span class="change-type enhanced"><%= typeof t !== 'undefined' ? t('changeEnhanced') : '' %></span> All features tested and optimized for Cursor 0.49.x</li>
                   </ul>
                 </div>
               </div>
@@ -368,168 +355,17 @@ sudo npm start</div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.9.0</span>
-                  <span class="timeline-date">Июнь 2025</span>
+                  <span class="timeline-date"><%= typeof t !== 'undefined' ? t('monthJune') : '' %> 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type improved">Исправлено</span> Полный сброс Machine ID для правильного обхода ограничений устройства</li>
-                    <li><span class="change-type added">Добавлено</span> Улучшенные обновления реестра для Windows с ключами HKCU и HKLM</li>
-                    <li><span class="change-type added">Добавлено</span> Очистка учётных данных keychain для macOS для полного сброса</li>
-                    <li><span class="change-type added">Добавлено</span> Улучшенная поддержка Linux с дополнительной обработкой файлов идентификации</li>
-                    <li><span class="change-type improved">Улучшено</span> Модификации базы данных SQLite с удалением записей, связанных с пробной версией</li>
-                    <li><span class="change-type improved">Исправлено</span> Более надёжное патчингование функции getMachineId с прямой инъекцией UUID</li>
-                    <li><span class="change-type improved">Улучшено</span> Лучшая обработка ошибок и проверка существования файлов</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.8.0</span>
-                  <span class="timeline-date">Июнь 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type added">Добавлено</span> Реализация обновления реестра Windows для полного сброса Machine ID</li>
-                    <li><span class="change-type added">Добавлено</span> Поддержка обновления platform UUID для macOS с использованием plutil</li>
-                    <li><span class="change-type improved">Улучшено</span> Кроссплатформенный сброс Machine ID с оптимизацией для каждой ОС</li>
-                    <li><span class="change-type improved">Исправлено</span> Тихая обработка ошибок для обновлений реестра и platform UUID</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.7.0</span>
-                  <span class="timeline-date">Июнь 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type improved">Улучшено</span> Сброс Machine ID с улучшенной криптографической генерацией</li>
-                    <li><span class="change-type added">Добавлено</span> Поддержка реестра Windows для более полного сброса</li>
-                    <li><span class="change-type improved">Улучшено</span> Патчингование Main.js для обхода проверок Machine ID в Cursor 0.49+</li>
-                    <li><span class="change-type improved">Улучшено</span> Функция отключения автообновления с несколькими уровнями защиты</li>
-                    <li><span class="change-type improved">Исправлено</span> Совместимость с ES модулями с чистыми нативными методами</li>
-                    <li><span class="change-type improved">Улучшено</span> Обработка путей для Windows/macOS/Linux</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.6.0</span>
-                  <span class="timeline-date">Май 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type removed">Удалено</span> Функциональность Atomic Mail полностью</li>
-                    <li><span class="change-type improved">Исправлено</span> Кроссплатформенная совместимость для Windows, macOS и Linux</li>
-                    <li><span class="change-type improved">Улучшено</span> Современный JavaScript с более чистыми паттернами кода</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.5.0</span>
-                  <span class="timeline-date">Май 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type improved">Улучшено</span> Улучшенная обработка базы данных SQLite для более надёжного сброса</li>
-                    <li><span class="change-type added">Добавлено</span> Правильное резервное копирование всех файлов перед модификацией</li>
-                    <li><span class="change-type improved">Улучшено</span> Обновления реестра Windows для полного обновления системного ID</li>
-                    <li><span class="change-type improved">Исправлено</span> Лучшая обработка ID телеметрии на всех платформах</li>
-                    <li><span class="change-type improved">Улучшено</span> Патчингование getMachineId в версиях Cursor 0.49+</li>
-                    <li><span class="change-type improved">Исправлено</span> Обход лимита токенов с несколькими методами обнаружения паттернов</li>
-                    <li><span class="change-type improved">Исправлено</span> Отключение автообновления с правильной обработкой разрешений</li>
-                    <li><span class="change-type added">Добавлено</span> Механизмы возврата для всех основных функций при сбое основных методов</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.4.0</span>
-                  <span class="timeline-date">Май 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type added">Добавлено</span> Функция обхода лимита токенов (экспериментально)</li>
-                    <li><span class="change-type added">Добавлено</span> Функция отключения автообновления для предотвращения автоматических обновлений</li>
-                    <li><span class="change-type added">Добавлено</span> Инструмент Pro конвертации для включения премиум функций</li>
-                    <li><span class="change-type improved">Исправлено</span> Кроссплатформенная совместимость для macOS</li>
-                    <li><span class="change-type improved">Улучшено</span> Общая стабильность и совместимость с последними версиями Cursor</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.3.0</span>
-                  <span class="timeline-date">Апрель 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type improved">Исправлено</span> Проблема сброса macOS для ошибки "Too many free trial accounts"</li>
-                    <li><span class="change-type improved">Улучшено</span> Обработка keychain для macOS для удаления сохранённых учётных данных</li>
-                    <li><span class="change-type added">Добавлено</span> Улучшенная очистка дополнительных файлов ID на macOS</li>
-                    <li><span class="change-type improved">Исправлено</span> Сброс defaults для приложения macOS Cursor</li>
-                    <li><span class="change-type improved">Улучшено</span> Совместимость с Cursor версии 0.48.x</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.2.0</span>
-                  <span class="timeline-date">Апрель 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type improved">Улучшено</span> Улучшен метод сброса Machine ID согласно cursor-free-vip</li>
-                    <li><span class="change-type improved">Исправлено</span> Файлы теперь модифицируются вместо удаления для сохранения статуса входа</li>
-                    <li><span class="change-type added">Добавлено</span> Подробные логи в UI, показывающие каждый шаг процесса сброса</li>
-                    <li><span class="change-type improved">Исправлено</span> Автоматическое завершение процесса Cursor при работе</li>
-                    <li><span class="change-type improved">Улучшено</span> Патчингование для новых версий Cursor (≥0.45.0)</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div class="version-header">
-                  <span class="version-tag">v1.1.0</span>
-                  <span class="timeline-date">Апрель 2025</span>
-                </div>
-                <div class="timeline-card">
-                  <ul class="version-changes">
-                    <li><span class="change-type improved">Улучшено</span> Улучшенный UI с современным дизайном</li>
-                    <li><span class="change-type improved">Улучшено</span> Лучшая кроссплатформенная совместимость</li>
-                    <li><span class="change-type added">Добавлено</span> Подробная документация</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> Complete machine ID reset to properly bypass device limits</li>
+                    <li><span class="change-type added"><%= typeof t !== 'undefined' ? t('changeAdded') : '' %></span> Enhanced registry updates for Windows with both HKCU and HKLM keys</li>
+                    <li><span class="change-type added"><%= typeof t !== 'undefined' ? t('changeAdded') : '' %></span> macOS keychain credential clearing for complete reset</li>
+                    <li><span class="change-type added"><%= typeof t !== 'undefined' ? t('changeAdded') : '' %></span> Improved Linux support with additional identity file handling</li>
+                    <li><span class="change-type enhanced"><%= typeof t !== 'undefined' ? t('changeEnhanced') : '' %></span> SQLite database modifications with trial-related entry deletion</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> More robust getMachineId function patching with direct UUID injection</li>
+                    <li><span class="change-type improved"><%= typeof t !== 'undefined' ? t('changeImproved') : '' %></span> Better error handling and file existence checks</li>
                   </ul>
                 </div>
               </div>
@@ -540,14 +376,14 @@ sudo npm start</div>
               <div class="timeline-content">
                 <div class="version-header">
                   <span class="version-tag">v1.0.0</span>
-                  <span class="timeline-date">Апрель 2025</span>
+                  <span class="timeline-date"><%= typeof t !== 'undefined' ? t('monthApril') : '' %> 2025</span>
                 </div>
                 <div class="timeline-card">
                   <ul class="version-changes">
-                    <li><span class="change-type new">Новое</span> Первый релиз Sazumi Cloud</li>
-                    <li><span class="change-type new">Новое</span> Поддержка Windows, macOS и Linux</li>
-                    <li><span class="change-type new">Новое</span> Функция сброса Machine ID</li>
-                    <li><span class="change-type new">Новое</span> Отображение информации о системе</li>
+                    <li><span class="change-type new"><%= typeof t !== 'undefined' ? t('changeNew') : '' %></span> Initial release of Sazumi Cloud</li>
+                    <li><span class="change-type new"><%= typeof t !== 'undefined' ? t('changeNew') : '' %></span> Support for Windows, macOS and Linux</li>
+                    <li><span class="change-type new"><%= typeof t !== 'undefined' ? t('changeNew') : '' %></span> Machine ID reset functionality</li>
+                    <li><span class="change-type new"><%= typeof t !== 'undefined' ? t('changeNew') : '' %></span> System information display</li>
                   </ul>
                 </div>
               </div>
@@ -561,18 +397,18 @@ sudo npm start</div>
       <div class="action-buttons">
         <a href="https://github.com/sazumivicky/cursor-reset-tools" target="_blank" class="action-btn github-btn">
           <i class="ri-github-fill"></i>
-          <span>GitHub</span>
+          <span><%= typeof t !== 'undefined' ? t('github') : '' %></span>
         </a>
         <a href="https://sociabuzz.com/sazumi/tribe" class="action-btn donate-btn">
           <i class="ri-hand-heart-line"></i>
-          <span>Пожертвовать</span>
+          <span><%= typeof t !== 'undefined' ? t('donate') : '' %></span>
         </a>
       </div>
     </section>
 
     <footer>
-      <p>© <span id="current-year"></span> Cursor Reset Tool от <b>Sazumi Cloud</b>. Все права защищены.</p>
-      <p class="text-sm text-gray-400">Продукт <b>PT Sazumi Cloud Inc</b>.</p>
+      <p>© <span id="current-year"></span> <%= typeof t !== 'undefined' ? t('footer') : '' %></p>
+      <p class="text-sm text-gray-400"><%= typeof t !== 'undefined' ? t('footerProduct') : '' %></p>
     </footer>
   </div>
 
@@ -581,7 +417,7 @@ sudo npm start</div>
     document.getElementById('current-year').textContent = new Date().getFullYear();
     
     // Language Switcher
-    const currentLang = '<%= typeof lang !== 'undefined' ? lang : 'ru' %>';
+    const currentLang = '<%= lang %>';
     document.querySelectorAll('.lang-btn').forEach(btn => {
       if (btn.dataset.lang === currentLang) {
         btn.classList.add('active');

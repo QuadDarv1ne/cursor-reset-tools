@@ -3,11 +3,27 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import resetRouter from './routes/reset.js';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 const port = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 100, // 100 запросов
+  message: { error: 'Too many requests, please try again later' }
+});
+app.use('/api', limiter);
 
 app.use(cors());
 app.use(express.json());

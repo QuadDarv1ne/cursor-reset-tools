@@ -9,9 +9,14 @@ import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { checkAdminRights, validatePaths, delay } from '../utils/helpers.js';
+import { logger } from '../utils/logger.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
+
+// Инициализация логгера
+logger.init();
 
 const gp = () => {
   const pt = os.platform();
@@ -141,26 +146,42 @@ const um = async (id) => {
 const rm = async () => {
   const logs = [];
   const { mp, sp, dp, ap, cp, pt, dc, cf } = gp();
-  
+
   try {
     logs.push("ℹ️ Checking Config File...");
-    
+
+    // Проверка прав администратора
+    const isAdmin = await checkAdminRights();
+    if (!isAdmin) {
+      logs.push("⚠️ Warning: No administrator privileges, some operations may fail");
+      logger.warn('No admin rights for reset operation');
+    }
+
+    // Валидация путей
+    const validation = validatePaths({ mp, sp, dp });
+    if (!validation.valid) {
+      logs.push(`❌ Missing critical paths: ${validation.missing.join(', ')}`);
+      logger.error(`Missing paths: ${validation.missing.join(', ')}`);
+      return await ld(logs, "Machine ID Reset");
+    }
+
     if (!fs.existsSync(dc)) {
       await fs.ensureDir(dc);
       logs.push("ℹ️ Created config directory");
     }
-    
+
     logs.push("📄 Reading Current Config...");
-    
+
     if (!fs.existsSync(sp)) {
       logs.push("⚠️ Warning: Storage file not found, will create if needed");
     }
-    
+
     if (fs.existsSync(sp)) {
       const bkPath = await bk(sp);
       logs.push(`💾 Creating Config Backup: ${bkPath}`);
+      logger.info(`Backup created: ${bkPath}`);
     }
-    
+
     logs.push("🔄 Generating New Machine ID...");
 
     const newGuid = `{${gm().replace(/-/g, '-').toUpperCase()}}`;
@@ -168,7 +189,7 @@ const rm = async () => {
     const deviceId = uuidv4();
     const sqmId = newGuid;
     const macId = crypto.randomBytes(64).toString('hex');
-    
+
     logs.push("📄 Saving New Config to JSON...");
     
     if (fs.existsSync(sp)) {
@@ -327,6 +348,7 @@ const rm = async () => {
     return await ld(logs, "Machine ID Reset");
   } catch (err) {
     logs.push(`❌ Process Error: ${err.message}`);
+    logger.error(`Reset failed: ${err.message}`, 'reset');
     return await ld(logs, "Machine ID Reset");
   }
 };
@@ -349,18 +371,20 @@ const bt = async () => {
   const logs = [];
   const { dp } = gp();
   const workbenchPath = gw();
-  
+
   try {
     logs.push("ℹ️ Starting token limit bypass...");
-    
+
     if (!fs.existsSync(workbenchPath)) {
       logs.push(`❌ Workbench file not found at: ${workbenchPath}`);
+      logger.error(`Workbench not found: ${workbenchPath}`, 'bypass');
       return await ld(logs, "Bypass Token Limit");
     }
-    
+
     const bkPath = await bk(workbenchPath);
     logs.push(`💾 Created backup: ${bkPath}`);
-    
+    logger.info(`Backup created: ${bkPath}`, 'bypass');
+
     const content = await fs.readFile(workbenchPath, 'utf8');
     
     const patterns = {
@@ -408,6 +432,7 @@ const bt = async () => {
     return await ld(logs, "Bypass Token Limit");
   } catch (err) {
     logs.push(`❌ Token limit bypass error: ${err.message}`);
+    logger.error(`Bypass failed: ${err.message}`, 'bypass');
     return await ld(logs, "Bypass Token Limit");
   }
 };
@@ -545,10 +570,11 @@ const du = async () => {
     }
     
     logs.push("✅ Auto-updates successfully disabled");
-    
+
     return await ld(logs, "Disable Auto-Update");
   } catch (e) {
     logs.push(`❌ Error disabling auto-updates: ${e.message}`);
+    logger.error(`Disable update failed: ${e.message}`, 'disable-update');
     return await ld(logs, "Disable Auto-Update");
   }
 };
@@ -611,6 +637,7 @@ const pc = async () => {
     return await ld(logs, "Pro Conversion + Custom UI");
   } catch (err) {
     logs.push(`❌ Pro conversion error: ${err.message}`);
+    logger.error(`Pro conversion failed: ${err.message}`, 'pro');
     return await ld(logs, "Pro Conversion + Custom UI");
   }
 };

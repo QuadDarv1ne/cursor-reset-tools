@@ -6,7 +6,6 @@ import os from 'os';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import crypto from 'crypto';
-import { execSync } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID } from '../utils/helpers.js';
@@ -26,10 +25,10 @@ const gp = () => {
   const hm = os.homedir();
   const dc = path.join(hm, 'Documents', '.cursor-free-vip');
   const cf = path.join(dc, 'config.ini');
-  
+
   // Используем пути из конфигурации
   const paths = config.platformPaths[pt] || config.platformPaths.win32;
-  
+
   const mp = paths.machineId(hm);
   const sp = paths.storage(hm);
   const dp = paths.database(hm);
@@ -38,17 +37,6 @@ const gp = () => {
   const up = paths.update(hm);
 
   return { mp, sp, dp, ap, cp, up, pt, dc, cf };
-};
-
-const mk = () => {
-  const dt = new Date();
-  const yr = dt.getFullYear();
-  const mn = String(dt.getMonth() + 1).padStart(2, '0');
-  const dy = String(dt.getDate()).padStart(2, '0');
-  const hr = String(dt.getHours()).padStart(2, '0');
-  const mi = String(dt.getMinutes()).padStart(2, '0');
-  const sc = String(dt.getSeconds()).padStart(2, '0');
-  return `${yr}${mn}${dy}_${hr}${mi}${sc}`;
 };
 
 /**
@@ -65,10 +53,6 @@ const bk = async (filePath, operationId = 'default') => {
     logger.error(`Backup error: ${error.message}`, 'backup');
     return null;
   }
-};
-
-const gh = () => {
-  return crypto.randomBytes(16).toString('hex');
 };
 
 const gm = () => {
@@ -346,15 +330,15 @@ const bt = async () => {
     if (fs.existsSync(dp)) {
       logs.push("ℹ️ Updating SQLite database for token limits...");
       await bk(dp);
-      
-      try {
-    const db = await open({
-      filename: dp,
-      driver: sqlite3.Database
-    });
 
-    await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
-    await db.close();
+      try {
+        const db = await open({
+          filename: dp,
+          driver: sqlite3.Database
+        });
+
+        await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
+        await db.close();
         logs.push("✅ SQLite database updated for token limits");
       } catch (err) {
         logs.push(`⚠️ SQLite update error: ${err.message}`);
@@ -389,7 +373,7 @@ const du = async () => {
     try {
       if (pt === 'win32') {
         await execPromise('taskkill /F /IM Cursor.exe /T');
-    } else {
+      } else {
         await execPromise('pkill -f Cursor');
       }
       logs.push("✅ Cursor processes terminated successfully");
@@ -539,15 +523,15 @@ const pc = async () => {
     if (fs.existsSync(dp)) {
       logs.push("ℹ️ Updating SQLite database for Pro features...");
       await bk(dp);
-      
-      try {
-    const db = await open({
-      filename: dp,
-      driver: sqlite3.Database
-    });
 
-    await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
-    await db.close();
+      try {
+        const db = await open({
+          filename: dp,
+          driver: sqlite3.Database
+        });
+
+        await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
+        await db.close();
         logs.push("✅ Pro features enabled in SQLite database");
       } catch (err) {
         logs.push(`⚠️ SQLite update error: ${err.message}`);

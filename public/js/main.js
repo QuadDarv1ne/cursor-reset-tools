@@ -60,12 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (p.isRunning !== undefined) {
         ub(p.isRunning);
 
-        const statusBadge = document.getElementById('cursor-status-badge');
-        if (statusBadge) {
-          statusBadge.className = p.isRunning ? 'badge badge-danger' : 'badge badge-success';
-          statusBadge.textContent = p.isRunning ? 'Запущен' : 'Не запущен';
-        }
-
         const warningMsg = document.getElementById('cursor-warning');
         if (warningMsg) {
           warningMsg.style.display = p.isRunning ? 'block' : 'none';

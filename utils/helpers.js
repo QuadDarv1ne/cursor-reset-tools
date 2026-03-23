@@ -1,5 +1,4 @@
 import os from 'os';
-import { execSync } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import fs from 'fs-extra';
@@ -52,14 +51,14 @@ export const validatePaths = (paths) => {
 
 /**
  * Проверка существования файла с таймаутом
- * @param {string} filePath 
+ * @param {string} filePath
  * @param {number} timeout - мс
  * @returns {Promise<boolean>}
  */
 export const checkFileExists = async (filePath, timeout = 5000) => {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(false), timeout);
-    
+
     fs.access(filePath, fs.constants.F_OK, (err) => {
       clearTimeout(timer);
       resolve(!err);
@@ -68,21 +67,8 @@ export const checkFileExists = async (filePath, timeout = 5000) => {
 };
 
 /**
- * Форматирование размера файла
- * @param {number} bytes 
- * @returns {string}
- */
-export const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-};
-
-/**
  * Задержка в мс
- * @param {number} ms 
+ * @param {number} ms
  * @returns {Promise<void>}
  */
 export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));

@@ -273,6 +273,48 @@
       </div>
     </div>
 
+    <!-- Smart Bypass -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-brain-line"></i> Smart Bypass</h2>
+        <span id="smart-status" class="status-badge status-success" style="margin-left: auto;">
+          <i class="ri-wifi-line"></i> WebSocket подключен
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="grid-3" id="smart-methods">
+          <div class="stat-card">
+            <div class="stat-value" id="method-direct">--</div>
+            <div class="stat-label">Прямое подключение</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="method-doh">--</div>
+            <div class="stat-label">DNS over HTTPS</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="method-proxy">--</div>
+            <div class="stat-label">Прокси</div>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong>Лучший метод:</strong> <span id="best-method" style="color: #667eea;">--</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary btn-sm" onclick="testBypass()">
+                <i class="ri-test-tube-line"></i> Тест
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="applyBestBypass()">
+                <i class="ri-play-circle-line"></i> Применить
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="smart-recommendations" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+
     <!-- Auto Bypass -->
     <div class="card">
       <div class="card-header">
@@ -310,6 +352,7 @@
 
   <script>
     const API_BASE = '/api';
+    const wsPort = <%= typeof wsPort !== 'undefined' ? wsPort : 3001 %>;
     let logBuffer = [];
 
     function log(message, type = 'info') {
@@ -630,12 +673,212 @@
       }
     }
 
+    // Smart Bypass
+    let ws = null;
+
+    function initWebSocket() {
+      const wsUrl = `ws://localhost:${typeof wsPort !== 'undefined' ? wsPort : 3001}/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        log('WebSocket подключен', 'success');
+        updateWebSocketStatus(true);
+        // Запрос статуса
+        ws.send(JSON.stringify({ type: 'request_status' }));
+      };
+
+      ws.onclose = () => {
+        log('WebSocket отключен, переподключение...', 'error');
+        updateWebSocketStatus(false);
+        setTimeout(initWebSocket, 3000);
+      };
+
+      ws.onerror = (error) => {
+        log(`WebSocket ошибка: ${error.message}`, 'error');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleWebSocketMessage(data);
+        } catch (error) {
+          log(`Ошибка парсинга WebSocket: ${error.message}`, 'error');
+        }
+      };
+    }
+
+    function updateWebSocketStatus(connected) {
+      const status = document.getElementById('smart-status');
+      if (connected) {
+        status.className = 'status-badge status-success';
+        status.innerHTML = '<i class="ri-wifi-line"></i> WebSocket подключен';
+      } else {
+        status.className = 'status-badge status-error';
+        status.innerHTML = '<i class="ri-wifi-off-line"></i> Отключен';
+      }
+    }
+
+    function handleWebSocketMessage(data) {
+      switch (data.type) {
+        case 'welcome':
+          log(`Подключен к серверу: ${data.clientId}`, 'success');
+          break;
+        case 'status':
+        case 'heartbeat':
+          updateSmartBypassUI(data.data);
+          break;
+        case 'bypass_test_result':
+          displayBypassTestResult(data.result, data.best);
+          break;
+        case 'bypass_applied':
+          log(`Smart Bypass применен: ${data.result.method}`, 'success');
+          break;
+        case 'server_restart':
+          log(`Сервер перезапущен на порту ${data.newPort}`, 'warning');
+          break;
+      }
+    }
+
+    function updateSmartBypassUI(data) {
+      if (!data || !data.bypass) return;
+
+      const methods = data.bypass.methods || {};
+
+      // Обновление весов методов
+      const directEl = document.getElementById('method-direct');
+      const dohEl = document.getElementById('method-doh');
+      const proxyEl = document.getElementById('method-proxy');
+
+      if (directEl) {
+        directEl.textContent = methods.direct?.weight > 0 ? `✓ ${methods.direct.weight}%` : '✗';
+        directEl.style.color = methods.direct?.weight > 0 ? '#10b981' : '#ef4444';
+      }
+
+      if (dohEl) {
+        dohEl.textContent = methods.doh?.weight > 0 ? `✓ ${methods.doh.weight}%` : '✗';
+        dohEl.style.color = methods.doh?.weight > 0 ? '#10b981' : '#ef4444';
+      }
+
+      if (proxyEl) {
+        proxyEl.textContent = methods.proxy?.weight > 0 ? `✓ ${methods.proxy.weight}%` : '✗';
+        proxyEl.style.color = methods.proxy?.weight > 0 ? '#10b981' : '#ef4444';
+      }
+
+      // Лучший метод
+      const bestEl = document.getElementById('best-method');
+      if (bestEl && data.bypass.bestMethod) {
+        const methodNames = {
+          direct: 'Прямое подключение',
+          doh: 'DNS over HTTPS',
+          proxy: 'Прокси',
+          dns: 'Смена DNS',
+          vpn: 'VPN'
+        };
+        bestEl.textContent = methodNames[data.bypass.bestMethod] || data.bypass.bestMethod;
+      }
+
+      // Рекомендации
+      const recContainer = document.getElementById('smart-recommendations');
+      if (recContainer && data.bypass.recommendations?.length > 0) {
+        recContainer.innerHTML = data.bypass.recommendations.map(r =>
+          `<div class="status-badge status-warning" style="display: inline-block; margin: 4px;">
+            ⚠️ ${r.title}
+          </div>`
+        ).join('');
+      } else if (recContainer) {
+        recContainer.innerHTML = '<span class="status-badge status-success">✓ Нет рекомендаций</span>';
+      }
+    }
+
+    async function testBypass() {
+      log('Тестирование методов обхода...', 'info');
+      const btn = event.target.closest('button');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('loading');
+      }
+
+      try {
+        const result = await api('/smart/test', { method: 'POST' });
+        if (result.success) {
+          displayBypassTestResult(result.result, result.best);
+          log(`Тест завершен. Лучший метод: ${result.best}`, 'success');
+        }
+      } catch (error) {
+        log(`Ошибка теста: ${error.message}`, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      }
+    }
+
+    function displayBypassTestResult(result, best) {
+      const methods = {
+        direct: result.direct,
+        doh: result.doh,
+        proxy: result.proxy,
+        dns: result.dns
+      };
+
+      const methodNames = {
+        direct: 'Прямое',
+        doh: 'DoH',
+        proxy: 'Прокси',
+        dns: 'DNS'
+      };
+
+      // Обновление UI
+      for (const [key, value] of Object.entries(methods)) {
+        const el = document.getElementById(`method-${key}`);
+        if (el) {
+          el.textContent = value?.success ? '✓' : '✗';
+          el.style.color = value?.success ? '#10b981' : '#ef4444';
+        }
+      }
+
+      // Лучший метод
+      const bestEl = document.getElementById('best-method');
+      if (bestEl) {
+        bestEl.textContent = methodNames[best] || best;
+      }
+    }
+
+    async function applyBestBypass() {
+      log('Применение лучшего метода...', 'info');
+      const btn = event.target.closest('button');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('loading');
+      }
+
+      try {
+        const result = await api('/smart/apply', { method: 'POST' });
+        if (result.success) {
+          log(`Применено: ${result.result.method}`, 'success');
+          // Обновление статуса через WebSocket
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'request_status' }));
+          }
+        }
+      } catch (error) {
+        log(`Ошибка: ${error.message}`, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      }
+    }
+
     // Initial load
     document.addEventListener('DOMContentLoaded', () => {
       checkMonitor();
       loadProxyList();
       loadDNS();
       loadFingerprint();
+      initWebSocket();
       log('Bypass Tools загружен', 'success');
     });
   </script>

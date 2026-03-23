@@ -96,7 +96,7 @@ For best results when creating new Cursor accounts:
 - **Backend**: Node.js, Express
 - **Frontend**: HTML, CSS, JavaScript
 - **Template Engine**: EJS
-- **Utilities**: uuid, fs-extra, node-machine-id, node-fetch, user-agents
+- **Utilities**: uuid, fs-extra, node-fetch, sqlite, sqlite3
 
 ## ⚠️ Disclaimer
 

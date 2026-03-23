@@ -3,6 +3,8 @@ import { execSync } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import fs from 'fs-extra';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { config } from './config.js';
 
 const execPromise = promisify(exec);
@@ -123,7 +125,7 @@ export const isCursorVersionSupported = (version) => {
 
 /**
  * Проверка процесса Cursor с таймаутом
- * @param {string} platform 
+ * @param {string} platform
  * @param {number} timeout - мс
  * @returns {Promise<boolean>}
  */
@@ -147,10 +149,82 @@ export const checkCursorProcess = async (platform, timeout = config.timeouts.pro
 
     return await Promise.race([
       checkPromise,
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Process check timeout')), timeout)
       )
     ]);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Очистка ключей Keychain на macOS
+ * @returns {Promise<boolean>}
+ */
+export const clearKeychain = async () => {
+  if (os.platform() !== 'darwin') return false;
+
+  try {
+    await execPromise('security delete-generic-password -s "Cursor" -a "token" 2>/dev/null');
+    await execPromise('security delete-generic-password -s "Cursor" -a "refreshToken" 2>/dev/null');
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Обновление реестра Windows
+ * @param {string} newGuid - Новый GUID
+ * @returns {Promise<boolean>}
+ */
+export const updateWindowsRegistry = async (newGuid) => {
+  if (os.platform() !== 'win32') return false;
+
+  try {
+    const cmds = [
+      `REG ADD HKCU\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
+      `REG ADD HKCU\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
+      `REG ADD HKCU\\Software\\Cursor /v MachineId /t REG_SZ /d ${newGuid} /f /reg:64`
+    ];
+
+    for (const cmd of cmds) {
+      try {
+        await execPromise(cmd);
+      } catch (e) {
+        // Игнорируем ошибки для отдельных команд
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Обновление платформенных UUID на macOS
+ * @param {string} id - Новый UUID
+ * @returns {Promise<boolean>}
+ */
+export const updateMacOSPlatformUUID = async (id) => {
+  if (os.platform() !== 'darwin') return false;
+
+  try {
+    const p = '/Library/Preferences/SystemConfiguration/com.apple.platform.uuid.plist';
+    const hp = path.join(os.homedir(), p);
+
+    try {
+      await execPromise(`defaults write ${hp} "UUID" "${id}"`);
+      await execPromise(`sudo defaults write ${p} "UUID" "${id}"`);
+      return true;
+    } catch {
+      // Игнорируем ошибки
+    }
+
+    return false;
   } catch {
     return false;
   }

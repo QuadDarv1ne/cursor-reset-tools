@@ -47,7 +47,6 @@ app.get('/', (req, res) => {
     const translations = getTranslations(validLang);
     return translations[key] || translations.en[key] || key;
   };
-  console.log(`Rendering with lang=${validLang}, t=${typeof t}`);
   res.render('index', { lang: validLang, t });
 });
 

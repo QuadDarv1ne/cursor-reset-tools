@@ -407,27 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 500);
 });
 
-function copyToClipboard(e) {
-  const targetId = e.currentTarget.dataset.target;
-  const textToCopy = document.getElementById(targetId).textContent;
-  const textArea = document.createElement('textarea');
-
-  textArea.value = textToCopy;
-  document.body.appendChild(textArea);
-  textArea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textArea);
-
-  const originalHtml = e.currentTarget.innerHTML;
-  e.currentTarget.innerHTML = '<i class="ri-check-line"></i>';
-  document.getElementById(targetId).classList.add('copied');
-
-  setTimeout(() => {
-    e.currentTarget.innerHTML = originalHtml;
-    document.getElementById(targetId).classList.remove('copied');
-  }, 1500);
-}
-
 function showToast(message, type = 'info') {
   const toastContainer = document.querySelector('.toast-container') || (() => {
     const container = document.createElement('div');

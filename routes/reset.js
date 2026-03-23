@@ -9,7 +9,7 @@ import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess } from '../utils/helpers.js';
+import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 import { globalCache } from '../utils/cache.js';
@@ -77,60 +77,6 @@ const gm = () => {
 
 const cs = (seed) => {
   return crypto.createHash('sha256').update(seed).digest('hex');
-};
-
-const kc = async () => {
-  if (os.platform() !== 'darwin') return false;
-  
-  try {
-    await execPromise('security delete-generic-password -s "Cursor" -a "token" 2>/dev/null');
-    await execPromise('security delete-generic-password -s "Cursor" -a "refreshToken" 2>/dev/null');
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-const wu = async (newGuid) => {
-  if (os.platform() !== 'win32') return false;
-  
-  try {
-    const cmds = [
-      `REG ADD HKCU\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
-      `REG ADD HKCU\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
-      `REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
-      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
-      `REG ADD HKCU\\Software\\Cursor /v MachineId /t REG_SZ /d ${newGuid} /f /reg:64`
-    ];
-    
-    for (const cmd of cmds) {
-      try {
-        await execPromise(cmd);
-      } catch (e) {}
-    }
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-const um = async (id) => {
-  if (os.platform() !== 'darwin') return false;
-  
-  try {
-    const p = '/Library/Preferences/SystemConfiguration/com.apple.platform.uuid.plist';
-    const hp = path.join(os.homedir(), p);
-    
-    try {
-      await execPromise(`defaults write ${hp} "UUID" "${id}"`);
-      await execPromise(`sudo defaults write ${p} "UUID" "${id}"`);
-      return true;
-    } catch (e) {}
-
-    return false;
-  } catch (e) {
-    return false;
-  }
 };
 
 const rm = async () => {
@@ -308,23 +254,23 @@ const rm = async () => {
     
     if (pt === 'win32') {
       try {
-        const wr = await wu(newGuid);
+        const wr = await updateWindowsRegistry(newGuid);
         if (wr) {
           logs.push("✅ Windows Machine GUID Updated Successfully");
           logs.push(`ℹ️ New Machine ID: ${newGuid}`);
           logs.push("✅ Windows Machine ID Updated Successfully");
-          }
-        } catch (err) {
+        }
+      } catch (err) {
         logs.push(`⚠️ Windows Registry Update Error: ${err.message}`);
       }
     } else if (pt === 'darwin') {
       try {
-        const mr = await um(macId);
+        const mr = await updateMacOSPlatformUUID(macId);
         if (mr) {
           logs.push("✅ macOS Platform UUID Updated Successfully");
         }
-        
-        const kr = await kc();
+
+        const kr = await clearKeychain();
         if (kr) {
           logs.push("✅ macOS Keychain Cleared Successfully");
         }
@@ -357,17 +303,8 @@ const rm = async () => {
 };
 
 const gw = () => {
-  const { ap, pt } = gp();
-  
-  if (pt === 'win32') {
-    return path.join(ap, 'out', 'vs', 'workbench', 'workbench.desktop.main.js');
-  } else if (pt === 'darwin') {
-    return path.join(ap, 'out', 'vs', 'workbench', 'workbench.desktop.main.js');
-  } else if (pt === 'linux') {
-    return path.join(ap, 'out', 'vs', 'workbench', 'workbench.desktop.main.js');
-  }
-  
-  return '';
+  const { ap } = gp();
+  return path.join(ap, 'out', 'vs', 'workbench', 'workbench.desktop.main.js');
 };
 
 const bt = async () => {
@@ -471,10 +408,10 @@ const du = async () => {
     
     logs.push(`🔄 Removing updater directory: ${updaterPath}`);
     if (fs.existsSync(updaterPath)) {
-    try {
+      try {
         if (fs.statSync(updaterPath).isDirectory()) {
           await fs.rm(updaterPath, { recursive: true, force: true });
-      } else {
+        } else {
           await fs.unlink(updaterPath);
         }
         logs.push("✅ Updater directory successfully removed");
@@ -484,7 +421,7 @@ const du = async () => {
     } else {
       logs.push("ℹ️ Updater directory not found, creating blocker file");
     }
-    
+
     if (!up) {
       logs.push("⚠️ Update.yml path not found for this platform");
     } else {
@@ -493,8 +430,8 @@ const du = async () => {
         if (fs.existsSync(up)) {
           await bk(up);
           await fs.writeFile(up, '', 'utf8');
-        logs.push("✅ Update.yml file successfully cleared");
-    } else {
+          logs.push("✅ Update.yml file successfully cleared");
+        } else {
           logs.push("ℹ️ Update.yml file not found, creating new one");
           await fs.ensureDir(path.dirname(up));
         }

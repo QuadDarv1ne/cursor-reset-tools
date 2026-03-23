@@ -11,7 +11,11 @@ import { globalEmailManager } from './emailManager.js';
 import { globalMonitorManager } from './monitorManager.js';
 import { globalVPNManager } from './vpnManager.js';
 import { globalCursorRegistrar } from './cursorRegistrar.js';
+import { globalUpdater } from './updater.js';
+import { globalBypassServer } from '../server/bypassServer.js';
 import { logger } from './logger.js';
+import fs from 'fs-extra';
+import path from 'path';
 import os from 'os';
 
 /**
@@ -149,6 +153,50 @@ export const CLI_COMMANDS = {
     description: 'Текущая сессия',
     usage: 'cursor:session',
     handler: handleCursorSession
+  },
+  
+  // Bypass Server команды
+  'server:start': {
+    description: 'Запустить Bypass Server',
+    usage: 'server:start [--port 3001]',
+    handler: handleServerStart
+  },
+  'server:status': {
+    description: 'Статус сервера',
+    usage: 'server:status',
+    handler: handleServerStatus
+  },
+  'server:stop': {
+    description: 'Остановить сервер',
+    usage: 'server:stop',
+    handler: handleServerStop
+  },
+  
+  // Updater команды
+  'updater:check': {
+    description: 'Проверить обновления',
+    usage: 'updater:check',
+    handler: handleUpdaterCheck
+  },
+  'updater:download': {
+    description: 'Скачать обновление',
+    usage: 'updater:download',
+    handler: handleUpdaterDownload
+  },
+  'updater:install': {
+    description: 'Установить обновление',
+    usage: 'updater:install',
+    handler: handleUpdaterInstall
+  },
+  'updater:auto': {
+    description: 'Авто-обновление',
+    usage: 'updater:auto',
+    handler: handleUpdaterAuto
+  },
+  'updater:status': {
+    description: 'Статус обновлений',
+    usage: 'updater:status',
+    handler: handleUpdaterStatus
   },
 
   // DNS команды
@@ -665,6 +713,151 @@ async function handleCursorSession() {
   console.log(`  Авторизовано: ${session.authenticated ? 'Да' : 'Нет'}`);
 }
 
+// Bypass Server обработчики
+async function handleServerStart(args) {
+  const { flags } = args;
+  const port = flags.port ? parseInt(flags.port) : 3001;
+  
+  output(`Запуск Bypass Server на порту ${port}...`, 'process');
+  
+  try {
+    process.env.BYPASS_PORT = port;
+    await globalBypassServer.init();
+    await globalBypassServer.start();
+    
+    output(`Bypass Server запущен`, 'success');
+    output(`HTTP: http://localhost:${port}`, 'info');
+    output(`WebSocket: ws://localhost:${port}/ws`, 'info');
+    output('Нажмите Ctrl+C для остановки', 'info');
+  } catch (error) {
+    output(`Ошибка запуска: ${error.message}`, 'error');
+  }
+}
+
+async function handleServerStatus() {
+  output('Проверка статуса сервера...', 'process');
+  const stats = globalBypassServer.getStats();
+  
+  output('Статус Bypass Server:', 'info');
+  console.log(`  Активных клиентов: ${stats.activeClients}`);
+  console.log(`  Всего запросов: ${stats.totalRequests}`);
+  console.log(`  Проксировано байт: ${stats.proxiedBytes}`);
+  console.log(`  Время работы: ${Math.round(stats.uptime / 1000)}с`);
+}
+
+async function handleServerStop() {
+  output('Остановка Bypass Server...', 'process');
+  await globalBypassServer.stop();
+  output('Сервер остановлен', 'success');
+}
+
+// Updater обработчики
+async function handleUpdaterCheck() {
+  output('Проверка обновлений...', 'process');
+  
+  try {
+    const result = await globalUpdater.checkForUpdates();
+    
+    if (result.updateAvailable) {
+      output(`Доступно обновление: ${result.currentVersion} → ${result.latestVersion}`, 'success');
+      output(`Описание: ${result.info?.name || ''}`, 'info');
+      console.log(result.info?.description?.substring(0, 200) + '...');
+    } else {
+      output('Обновлений нет. У вас последняя версия.', 'success');
+    }
+  } catch (error) {
+    output(`Ошибка проверки: ${error.message}`, 'error');
+  }
+}
+
+async function handleUpdaterDownload() {
+  output('Проверка обновлений...', 'process');
+  
+  try {
+    await globalUpdater.checkForUpdates();
+    
+    if (!globalUpdater.updateAvailable) {
+      output('Обновлений нет', 'info');
+      return;
+    }
+    
+    const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
+    output(`Загрузка обновления ${globalUpdater.latestVersion}...`, 'process');
+    
+    await globalUpdater.downloadUpdate(downloadPath);
+    
+    output(`Загрузка завершена: ${downloadPath}`, 'success');
+  } catch (error) {
+    output(`Ошибка загрузки: ${error.message}`, 'error');
+  }
+}
+
+async function handleUpdaterInstall() {
+  output('Установка обновления...', 'process');
+  
+  try {
+    await globalUpdater.checkForUpdates();
+    
+    if (!globalUpdater.updateAvailable) {
+      output('Обновлений нет', 'info');
+      return;
+    }
+    
+    const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
+    
+    // Проверка наличия загруженного файла
+    if (!await fs.pathExists(downloadPath)) {
+      output('Файл обновления не найден. Сначала выполните download.', 'warning');
+      return;
+    }
+    
+    await globalUpdater.installUpdate(downloadPath);
+    
+    output(`Обновление ${globalUpdater.latestVersion} установлено!`, 'success');
+    output('Перезапустите приложение для применения обновлений.', 'info');
+  } catch (error) {
+    output(`Ошибка установки: ${error.message}`, 'error');
+  }
+}
+
+async function handleUpdaterAuto() {
+  output('Авто-обновление...', 'process');
+  
+  try {
+    const result = await globalUpdater.autoUpdate({
+      downloadPath: path.join(process.cwd(), 'updates', 'update.zip'),
+      install: true
+    });
+    
+    if (result.updated) {
+      output(`Обновление до ${result.version} завершено!`, 'success');
+      if (result.requiresRestart) {
+        output('Требуется перезапуск приложения.', 'info');
+      }
+    } else if (result.downloadAvailable) {
+      output(`Обновление ${result.version} доступно для загрузки.`, 'info');
+    } else {
+      output(result.reason || 'Обновлений нет', 'info');
+    }
+  } catch (error) {
+    output(`Ошибка: ${error.message}`, 'error');
+  }
+}
+
+async function handleUpdaterStatus() {
+  const status = globalUpdater.getStatus();
+  
+  output('Статус обновлений:', 'info');
+  console.log(`  Текущая версия: ${status.currentVersion}`);
+  console.log(`  Последняя версия: ${status.latestVersion || 'Неизвестно'}`);
+  console.log(`  Доступно обновление: ${status.updateAvailable ? 'Да' : 'Нет'}`);
+  console.log(`  Загрузка: ${status.isDownloading ? 'В процессе...' : 'Нет'}`);
+  console.log(`  Установка: ${status.isInstalling ? 'В процессе...' : 'Нет'}`);
+  if (status.isDownloading) {
+    console.log(`  Прогресс: ${status.downloadProgress}%`);
+  }
+}
+
 async function handleDNSSet(args) {
   const { params } = args;
   
@@ -1014,6 +1207,8 @@ async function handleHelp(args) {
     'Proxy Database': ['proxy-db:init', 'proxy-db:list', 'proxy-db:stats', 'proxy-db:refresh', 'proxy-db:check', 'proxy-db:random', 'proxy-db:countries', 'proxy-db:auto'],
     'VPN': ['vpn:init', 'vpn:status', 'vpn:quick', 'vpn:disconnect', 'vpn:configs'],
     'Cursor': ['cursor:register', 'cursor:auto-register', 'cursor:signin', 'cursor:profile', 'cursor:subscription', 'cursor:signout', 'cursor:session'],
+    'Server': ['server:start', 'server:status', 'server:stop'],
+    'Updater': ['updater:check', 'updater:download', 'updater:install', 'updater:auto', 'updater:status'],
     'DNS': ['dns:set', 'dns:current', 'dns:restore', 'dns:flush'],
     'IP': ['ip:check', 'ip:history'],
     'Fingerprint': ['fingerprint:reset', 'fingerprint:mac', 'fingerprint:hostname', 'fingerprint:info'],

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bypass Tools - Cursor Reset Tools</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Google Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-header h2 { font-size: 18px; font-weight: 500; margin: 0; }
+    .card-body { padding: 20px; }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+    .btn-success { background: #10b981; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-warning { background: #f59e0b; color: white; }
+    .btn-secondary { background: #6b7280; color: white; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-success { background: #d1fae5; color: #065f46; }
+    .status-error { background: #fee2e2; color: #991b1b; }
+    .status-warning { background: #fef3c7; color: #92400e; }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #374151; }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .input-group input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+    .log-output {
+      background: #1f2937;
+      color: #10b981;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .stat-card {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value { font-size: 24px; font-weight: 700; color: #667eea; }
+    .stat-label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+    .proxy-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .proxy-item.current { border-color: #10b981; background: #d1fae5; }
+    .loading { opacity: 0.6; pointer-events: none; }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header style="text-align: center; color: white; margin-bottom: 30px;">
+      <h1 style="font-size: 32px; margin-bottom: 8px;">🛡️ Bypass Tools</h1>
+      <p style="opacity: 0.9;">Инструменты для обхода региональных ограничений Cursor</p>
+      <a href="/" style="color: white; text-decoration: underline; font-size: 14px;">← На главную</a>
+    </header>
+
+    <!-- Monitor Status -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-radar-line"></i> Статус Cursor API</h2>
+        <button class="btn btn-secondary btn-sm" onclick="checkMonitor()" style="margin-left: auto;">
+          <i class="ri-refresh-line"></i> Обновить
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="monitor-status" class="grid-3">
+          <div class="stat-card">
+            <div class="stat-value" id="cursor-status">--</div>
+            <div class="stat-label">Cursor API</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ip-address">--</div>
+            <div class="stat-label">Ваш IP</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ip-country">--</div>
+            <div class="stat-label">Страна</div>
+          </div>
+        </div>
+        <div id="monitor-recommendations" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Proxy Manager -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-global-line"></i> Proxy Manager</h2>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <label>Добавить прокси</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="proxy-url" placeholder="host:port или user:pass@host:port">
+              <select id="proxy-protocol" style="width: 100px;">
+                <option value="socks5">SOCKS5</option>
+                <option value="http">HTTP</option>
+              </select>
+              <button class="btn btn-primary" onclick="addProxy()">
+                <i class="ri-add-line"></i>
+              </button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button class="btn btn-success" onclick="checkProxies()">
+              <i class="ri-checkbox-circle-line"></i> Проверить
+            </button>
+            <button class="btn btn-warning" onclick="rotateProxy()">
+              <i class="ri-shuffle-line"></i> Ротация
+            </button>
+            <button class="btn btn-danger" onclick="clearProxy()">
+              <i class="ri-delete-bin-line"></i> Очистить
+            </button>
+          </div>
+          <div id="proxy-list"></div>
+        </div>
+      </div>
+
+      <!-- DNS Manager -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-server-line"></i> DNS Manager</h2>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <label>Текущий DNS</label>
+            <div id="current-dns" class="stat-card" style="text-align: left; margin-bottom: 16px;">
+              <div class="stat-value" id="dns-primary">--</div>
+              <div class="stat-label" id="dns-secondary">--</div>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Выбрать DNS провайдер</label>
+            <select id="dns-provider">
+              <option value="cloudflare">Cloudflare (1.1.1.1)</option>
+              <option value="google">Google (8.8.8.8)</option>
+              <option value="quad9">Quad9 (9.9.9.9)</option>
+              <option value="opendns">OpenDNS</option>
+              <option value="adguard">AdGuard DNS</option>
+              <option value="auto">Автоматически (DHCP)</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary" onclick="setDNS()">
+              <i class="ri-check-line"></i> Установить
+            </button>
+            <button class="btn btn-secondary" onclick="restoreDNS()">
+              <i class="ri-reply-line"></i> Восстановить
+            </button>
+            <button class="btn btn-secondary" onclick="flushDNS()">
+              <i class="ri-broom-line"></i> Очистить кэш
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fingerprint -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-fingerprint-line"></i> Fingerprint</h2>
+        </div>
+        <div class="card-body">
+          <div id="fingerprint-info" class="stat-card" style="text-align: left; margin-bottom: 16px;">
+            <div><strong>Hostname:</strong> <span id="fp-hostname">--</span></div>
+            <div><strong>MAC адресов:</strong> <span id="fp-mac-count">--</span></div>
+            <div><strong>Платформа:</strong> <span id="fp-platform">--</span></div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="resetFingerprint()">
+              <i class="ri-restart-line"></i> Полный сброс
+            </button>
+            <button class="btn btn-warning" onclick="changeMAC()">
+              <i class="ri-network-line"></i> Сменить MAC
+            </button>
+            <button class="btn btn-warning" onclick="changeHostname()">
+              <i class="ri-edit-line"></i> Сменить hostname
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-mail-line"></i> Временный Email</h2>
+        </div>
+        <div class="card-body">
+          <div id="email-session" class="stat-card" style="text-align: left; margin-bottom: 16px;">
+            <div><strong>Email:</strong> <span id="email-address">Не создан</span></div>
+            <div><strong>Сервис:</strong> <span id="email-service">--</span></div>
+          </div>
+          <div class="input-group">
+            <label>Сервис</label>
+            <select id="email-service-select">
+              <option value="guerrillamail">Guerrilla Mail</option>
+              <option value="tempmail">Temp Mail</option>
+              <option value="mailinator">Mailinator</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="createEmail()">
+              <i class="ri-add-circle-line"></i> Создать
+            </button>
+            <button class="btn btn-success" onclick="checkEmail()">
+              <i class="ri-inbox-line"></i> Проверить
+            </button>
+            <button class="btn btn-warning" onclick="waitForCursorEmail()">
+              <i class="ri-time-line"></i> Ждать Cursor
+            </button>
+          </div>
+          <div id="email-messages" style="margin-top: 16px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto Bypass -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-rocket-line"></i> Авто-обход</h2>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom: 16px; color: #6b7280;">
+          Автоматическая смена IP, DNS и fingerprint для обхода блокировок Cursor
+        </p>
+        <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+          <label><input type="checkbox" id="bypass-proxy" checked> Сменить прокси</label>
+          <label><input type="checkbox" id="bypass-dns" checked> Сменить DNS</label>
+          <label><input type="checkbox" id="bypass-fingerprint"> Сменить fingerprint</label>
+        </div>
+        <button class="btn btn-primary" onclick="autoBypass()" id="btn-auto-bypass">
+          <i class="ri-play-circle-line"></i> Запустить авто-обход
+        </button>
+        <div id="bypass-result" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+
+    <!-- Log Output -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-terminal-box-line"></i> Лог операций</h2>
+        <button class="btn btn-secondary btn-sm" onclick="clearLog()" style="margin-left: auto;">
+          <i class="ri-delete-bin-line"></i> Очистить
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="log-output" class="log-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let logBuffer = [];
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+      logBuffer.push(`[${timestamp}] ${icon} ${message}`);
+      renderLog();
+    }
+
+    function renderLog() {
+      const output = document.getElementById('log-output');
+      output.innerHTML = logBuffer.join('\n');
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearLog() {
+      logBuffer = [];
+      renderLog();
+    }
+
+    async function api(endpoint, options = {}) {
+      try {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...options.headers }
+        });
+        return await response.json();
+      } catch (error) {
+        log(`API error: ${error.message}`, 'error');
+        return { error: error.message };
+      }
+    }
+
+    // Monitor
+    async function checkMonitor() {
+      log('Проверка статуса Cursor...');
+      const result = await api('/monitor/check');
+      
+      if (result.success) {
+        document.getElementById('cursor-status').innerHTML = 
+          result.cursorAvailable 
+            ? '<span class="status-badge status-success">Доступен</span>'
+            : '<span class="status-badge status-error">Заблокирован</span>';
+        
+        document.getElementById('ip-address').textContent = result.ip?.ip || '--';
+        document.getElementById('ip-country').textContent = 
+          `${result.ip?.country || '--'} (${result.ip?.countryCode || '--'})`;
+        
+        const recContainer = document.getElementById('monitor-recommendations');
+        if (result.recommendations?.length > 0) {
+          recContainer.innerHTML = result.recommendations.map(r => 
+            `<div class="status-badge status-warning" style="display: inline-block; margin: 4px;">⚠️ ${r.message}</div>`
+          ).join('');
+        } else {
+          recContainer.innerHTML = '<span class="status-badge status-success">✓ Нет рекомендаций</span>';
+        }
+        
+        log(`Cursor: ${result.cursorAvailable ? 'доступен' : 'заблокирован'}`, 
+            result.cursorAvailable ? 'success' : 'error');
+      }
+    }
+
+    // Proxy
+    async function addProxy() {
+      const url = document.getElementById('proxy-url').value;
+      const protocol = document.getElementById('proxy-protocol').value;
+      
+      if (!url) { log('Введите URL прокси', 'error'); return; }
+      
+      log(`Добавление прокси: ${url} (${protocol})`);
+      const result = await api('/proxy/add', {
+        method: 'POST',
+        body: JSON.stringify({ url, protocol })
+      });
+      
+      if (result.success) {
+        log('Прокси добавлен', 'success');
+        document.getElementById('proxy-url').value = '';
+        loadProxyList();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function loadProxyList() {
+      const result = await api('/proxy/list');
+      if (result.success) {
+        const container = document.getElementById('proxy-list');
+        if (result.proxies.length === 0) {
+          container.innerHTML = '<p style="color: #6b7280;">Список прокси пуст</p>';
+        } else {
+          container.innerHTML = result.proxies.map((p, i) => `
+            <div class="proxy-item ${p.url === result.stats.currentProxy ? 'current' : ''}">
+              <div>
+                <strong>${p.url}</strong>
+                <span class="status-badge ${p.working ? 'status-success' : 'status-error'}">
+                  ${p.working ? '✓' : '✗'}
+                </span>
+              </div>
+              ${p.url === result.stats.currentProxy ? '<span class="status-badge status-success">Текущий</span>' : ''}
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    async function checkProxies() {
+      log('Проверка всех прокси...');
+      const result = await api('/proxy/check', { method: 'POST' });
+      if (result.success) {
+        log(`Проверено: ${result.working.length} рабочих, ${result.failed.length} нерабочих`, 
+            result.working.length > 0 ? 'success' : 'error');
+        loadProxyList();
+      }
+    }
+
+    async function rotateProxy() {
+      log('Ротация прокси...');
+      const result = await api('/proxy/rotate', { method: 'POST' });
+      if (result.success) {
+        log(`Прокси сменён: ${result.proxy.url}`, 'success');
+        loadProxyList();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function clearProxy() {
+      log('Очистка прокси...');
+      await api('/proxy/clear', { method: 'DELETE' });
+      log('Прокси очищен', 'success');
+      loadProxyList();
+    }
+
+    // DNS
+    async function loadDNS() {
+      const result = await api('/dns/current');
+      if (result.success) {
+        document.getElementById('dns-primary').textContent = result.dns.primary || '--';
+        document.getElementById('dns-secondary').textContent = `Вторичный: ${result.dns.secondary || '--'}`;
+      }
+    }
+
+    async function setDNS() {
+      const provider = document.getElementById('dns-provider').value;
+      log(`Установка DNS: ${provider}`);
+      const result = await api('/dns/set', {
+        method: 'POST',
+        body: JSON.stringify({ provider })
+      });
+      if (result.success) {
+        log(`DNS установлен: ${result.provider.name}`, 'success');
+        loadDNS();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function restoreDNS() {
+      log('Восстановление DNS...');
+      const result = await api('/dns/restore', { method: 'POST' });
+      if (result.success) {
+        log('DNS восстановлен', 'success');
+        loadDNS();
+      }
+    }
+
+    async function flushDNS() {
+      log('Очистка DNS кэша...');
+      const result = await api('/dns/flush', { method: 'POST' });
+      if (result.success) {
+        log('DNS кэш очищен', 'success');
+      }
+    }
+
+    // Fingerprint
+    async function loadFingerprint() {
+      const result = await api('/fingerprint/info');
+      if (result.success) {
+        document.getElementById('fp-hostname').textContent = result.info.info?.hostname || '--';
+        document.getElementById('fp-mac-count').textContent = result.info.info?.macAddresses?.length || '--';
+        document.getElementById('fp-platform').textContent = result.info.info?.platform || '--';
+      }
+    }
+
+    async function resetFingerprint() {
+      log('Сброс fingerprint...');
+      const result = await api('/fingerprint/reset', {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      if (result.success) {
+        log('Fingerprint сброшен', 'success');
+        loadFingerprint();
+      }
+    }
+
+    async function changeMAC() {
+      log('Смена MAC адресов...');
+      const result = await api('/fingerprint/mac', { method: 'POST' });
+      if (result.success) {
+        log(`Изменено: ${result.result.success}/${result.result.total}`, 'success');
+      }
+    }
+
+    async function changeHostname() {
+      const newName = prompt('Введите новый hostname:');
+      if (!newName) return;
+      
+      log(`Смена hostname: ${newName}`);
+      const result = await api('/fingerprint/hostname', {
+        method: 'POST',
+        body: JSON.stringify({ name: newName })
+      });
+      if (result.success) {
+        log('Hostname изменён', 'success');
+        loadFingerprint();
+      }
+    }
+
+    // Email
+    async function createEmail() {
+      const service = document.getElementById('email-service-select').value;
+      log(`Создание email (${service})...`);
+      const result = await api('/email/create', {
+        method: 'POST',
+        body: JSON.stringify({ service })
+      });
+      if (result.success) {
+        log(`Email: ${result.email}`, 'success');
+        document.getElementById('email-address').textContent = result.email;
+        document.getElementById('email-service').textContent = result.service;
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function checkEmail() {
+      log('Проверка почты...');
+      const result = await api('/email/messages');
+      if (result.success) {
+        const container = document.getElementById('email-messages');
+        if (result.messages.length === 0) {
+          container.innerHTML = '<p style="color: #6b7280;">Сообщений нет</p>';
+        } else {
+          container.innerHTML = result.messages.map(m => `
+            <div style="padding: 8px; border-bottom: 1px solid #e5e7eb;">
+              <strong>${m.subject || 'Без темы'}</strong><br>
+              <small>От: ${m.from}</small>
+            </div>
+          `).join('');
+        }
+        log(`Сообщений: ${result.messages.length}`, 'success');
+      }
+    }
+
+    async function waitForCursorEmail() {
+      log('Ожидание письма от Cursor...');
+      const result = await api('/email/wait', {
+        method: 'POST',
+        body: JSON.stringify({ timeout: 120000 })
+      });
+      if (result.success) {
+        log(`Письмо получено: ${result.message.subject}`, 'success');
+        if (result.code) log(`Код: ${result.code}`, 'success');
+      } else {
+        log('Письмо не получено (timeout)', 'error');
+      }
+    }
+
+    // Auto Bypass
+    async function autoBypass() {
+      const btn = document.getElementById('btn-auto-bypass');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      
+      log('Запуск авто-обхода...');
+      
+      const result = await api('/bypass/auto', {
+        method: 'POST',
+        body: JSON.stringify({
+          changeProxy: document.getElementById('bypass-proxy').checked,
+          changeDNS: document.getElementById('bypass-dns').checked,
+          changeFingerprint: document.getElementById('bypass-fingerprint').checked
+        })
+      });
+      
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      
+      if (result.success) {
+        log('Авто-обход завершён', 'success');
+        
+        const container = document.getElementById('bypass-result');
+        container.innerHTML = `
+          <div class="grid-3">
+            <div class="stat-card">
+              <div class="stat-value">${result.ipChanged ? '✓' : '✗'}</div>
+              <div class="stat-label">IP изменён</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${result.dns?.success ? '✓' : '✗'}</div>
+              <div class="stat-label">DNS изменён</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${result.cursorAvailable ? '✓' : '✗'}</div>
+              <div class="stat-label">Cursor доступен</div>
+            </div>
+          </div>
+        `;
+        
+        loadProxyList();
+        loadDNS();
+        loadFingerprint();
+        checkMonitor();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      checkMonitor();
+      loadProxyList();
+      loadDNS();
+      loadFingerprint();
+      log('Bypass Tools загружен', 'success');
+    });
+  </script>
+</body>
+</html>

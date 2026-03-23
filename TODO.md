@@ -43,7 +43,14 @@
 
 ## 🔧 Улучшения (новые)
 
-- [ ] Добавить CLI режим для headless использования
+- [x] CLI режим для headless использования
+- [x] Прокси-менеджер (SOCKS5/HTTP)
+- [x] DNS менеджер с ротацией
+- [x] IP менеджер с детектом блокировок
+- [x] Fingerprint обход (MAC, hostname)
+- [x] Email интеграция для регистрации
+- [x] Мониторинг статуса Cursor API
+- [x] Web UI для bypass инструментов
 - [ ] GUI приложение через Electron
 - [ ] Автообновление приложения
 - [ ] Поддержка дополнительных платформ (FreeBSD)
@@ -66,6 +73,16 @@
 - [x] getCursorVersion + isCursorVersionSupported
 - [x] Откат изменений при ошибке (rollback)
 - [x] Переключатель языков в UI
+- [x] utils/proxyManager.js - прокси менеджер
+- [x] utils/dnsManager.js - DNS менеджер
+- [x] utils/ipManager.js - IP менеджер
+- [x] utils/fingerprintManager.js - fingerprint обход
+- [x] utils/emailManager.js - email интеграция
+- [x] utils/monitorManager.js - мониторинг
+- [x] utils/cliManager.js - CLI режим
+- [x] cli.js - headless CLI утилита
+- [x] views/bypass.ejs - Web UI для bypass инструментов
+- [x] docs/BYPASS_RU.md - документация
 
 ---
 

@@ -706,4 +706,681 @@ rt.get('/paths', async (req, res) => {
   }
 });
 
+// =========================================
+// Новые API endpoints для обхода блокировок
+// =========================================
+
+import { globalProxyManager } from '../utils/proxyManager.js';
+import { globalProxyDatabase } from '../utils/proxyDatabase.js';
+import { globalDNSManager, DNS_SERVERS } from '../utils/dnsManager.js';
+import { globalIPManager } from '../utils/ipManager.js';
+import { globalFingerprintManager } from '../utils/fingerprintManager.js';
+import { globalEmailManager } from '../utils/emailManager.js';
+import { globalMonitorManager } from '../utils/monitorManager.js';
+import { globalVPNManager } from '../utils/vpnManager.js';
+import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
+
+/**
+ * Proxy API
+ */
+rt.post('/proxy/add', (req, res) => {
+  try {
+    const { url, protocol = 'socks5' } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'Proxy URL is required' });
+    }
+    
+    globalProxyManager.addProxy(url, protocol);
+    res.json({ success: true, message: 'Proxy added' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/proxy/list', (req, res) => {
+  try {
+    const proxies = globalProxyManager.getProxyList();
+    const stats = globalProxyManager.getStats();
+    res.json({ success: true, proxies, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy/check', async (req, res) => {
+  try {
+    const result = await globalProxyManager.checkAllProxies();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy/rotate', (req, res) => {
+  try {
+    const proxy = globalProxyManager.rotateProxy();
+    if (proxy) {
+      res.json({ success: true, proxy });
+    } else {
+      res.status(400).json({ error: 'No working proxies available' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.delete('/proxy/clear', (req, res) => {
+  try {
+    globalProxyManager.clearProxy();
+    res.json({ success: true, message: 'Proxy cleared' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Proxy Database API
+ */
+rt.get('/proxy-db/info', async (req, res) => {
+  try {
+    const info = globalProxyDatabase.getInfo();
+    res.json({ success: true, info });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/proxy-db/list', async (req, res) => {
+  try {
+    const { protocol, country, workingOnly, limit } = req.query;
+    const proxies = globalProxyDatabase.getProxies({
+      protocol,
+      country,
+      workingOnly: workingOnly === 'true',
+      limit: parseInt(limit) || 100
+    });
+    res.json({ success: true, proxies });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/proxy-db/stats', async (req, res) => {
+  try {
+    const stats = globalProxyDatabase.getStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/proxy-db/countries', async (req, res) => {
+  try {
+    const countries = globalProxyDatabase.getAvailableCountries();
+    res.json({ success: true, countries });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy-db/refresh', async (req, res) => {
+  try {
+    await globalProxyDatabase.refresh();
+    res.json({ success: true, message: 'Proxy database refreshed' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy-db/check', async (req, res) => {
+  try {
+    const { concurrency = 5 } = req.body;
+    const result = await globalProxyDatabase.checkAllProxies(concurrency);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy-db/auto-update', async (req, res) => {
+  try {
+    const { enable, interval = 300000 } = req.body;
+    if (enable) {
+      globalProxyDatabase.enableAutoUpdate(interval);
+      res.json({ success: true, message: 'Auto-update enabled' });
+    } else {
+      globalProxyDatabase.disableAutoUpdate();
+      res.json({ success: true, message: 'Auto-update disabled' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/proxy-db/random', async (req, res) => {
+  try {
+    const { protocol } = req.query;
+    const proxy = globalProxyDatabase.getRandomWorking(protocol);
+    if (proxy) {
+      res.json({ success: true, proxy });
+    } else {
+      res.status(404).json({ error: 'No working proxies found' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy-db/import', async (req, res) => {
+  try {
+    const { filePath, defaultProtocol = 'socks5' } = req.body;
+    const count = await globalProxyDatabase.importFromFile(filePath, defaultProtocol);
+    res.json({ success: true, imported: count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/proxy-db/export', async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    const success = await globalProxyDatabase.exportToFile(filePath);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.delete('/proxy-db/cleanup', async (req, res) => {
+  try {
+    const { maxFailures = 3 } = req.body;
+    const removed = globalProxyDatabase.cleanupFailed(maxFailures);
+    res.json({ success: true, removed });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DNS API
+ */
+rt.get('/dns/current', async (req, res) => {
+  try {
+    const dns = await globalDNSManager.getCurrentDNS();
+    const config = globalDNSManager.getConfig();
+    res.json({ success: true, dns, config });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/dns/set', async (req, res) => {
+  try {
+    const { provider } = req.body;
+    
+    if (!provider || !DNS_SERVERS[provider]) {
+      return res.status(400).json({ error: 'Invalid DNS provider' });
+    }
+    
+    const success = await globalDNSManager.setDNS(provider);
+    res.json({ success, provider: DNS_SERVERS[provider] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/dns/restore', async (req, res) => {
+  try {
+    const success = await globalDNSManager.restoreDNS();
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/dns/flush', async (req, res) => {
+  try {
+    const success = await globalDNSManager.flushDNSCache();
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/dns/providers', (req, res) => {
+  try {
+    const providers = globalDNSManager.getAvailableProviders();
+    res.json({ success: true, providers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * IP API
+ */
+rt.get('/ip/check', async (req, res) => {
+  try {
+    const { details = false } = req.query;
+    const ipData = await globalIPManager.getCurrentIP({ includeDetails: details === 'true' });
+    const blocks = await globalIPManager.detectBlocks();
+    res.json({ success: true, ip: ipData, blocks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/ip/history', (req, res) => {
+  try {
+    const history = globalIPManager.getIPHistory();
+    res.json({ success: true, history });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Fingerprint API
+ */
+rt.get('/fingerprint/info', async (req, res) => {
+  try {
+    const info = await globalFingerprintManager.getFingerprintInfo();
+    res.json({ success: true, info });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/fingerprint/reset', async (req, res) => {
+  try {
+    const { changeMAC = true, changeHostname = true, flushDNS = true } = req.body;
+    const result = await globalFingerprintManager.resetFingerprint({ changeMAC, changeHostname, flushDNS });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/fingerprint/mac', async (req, res) => {
+  try {
+    const result = await globalFingerprintManager.changeAllMAC();
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/fingerprint/hostname', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const success = name 
+      ? await globalFingerprintManager.setHostname(name)
+      : await globalFingerprintManager.changeHostname();
+    res.json({ success: true, hostname: globalFingerprintManager.getHostname() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Email API
+ */
+rt.get('/email/session', (req, res) => {
+  try {
+    const session = globalEmailManager.getSessionInfo();
+    res.json({ success: true, session });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/email/create', async (req, res) => {
+  try {
+    const { service = 'guerrillamail' } = req.body;
+    const result = await globalEmailManager.createEmail(service);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/email/messages', async (req, res) => {
+  try {
+    const messages = await globalEmailManager.getMessages();
+    res.json({ success: true, messages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/email/wait', async (req, res) => {
+  try {
+    const { subjectContains = 'cursor', timeout = 120000 } = req.body;
+    const message = await globalEmailManager.waitForMessage({ subjectContains, timeout });
+    
+    if (message) {
+      const code = globalEmailManager.extractVerificationCode(message.body);
+      const link = globalEmailManager.extractVerificationLink(message.body);
+      res.json({ success: true, message, code, link });
+    } else {
+      res.status(408).json({ error: 'Timeout waiting for message' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/email/services', (req, res) => {
+  try {
+    const services = globalEmailManager.getAvailableServices();
+    res.json({ success: true, services });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Monitor API
+ */
+rt.get('/monitor/check', async (req, res) => {
+  try {
+    const report = await globalMonitorManager.fullCheck();
+    res.json({ success: true, ...report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/monitor/status', (req, res) => {
+  try {
+    const status = globalMonitorManager.getCurrentStatus();
+    const stats = globalMonitorManager.getStats();
+    res.json({ success: true, status, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/monitor/start', (req, res) => {
+  try {
+    const { interval = 60000 } = req.body;
+    globalMonitorManager.startMonitoring(interval);
+    res.json({ success: true, message: 'Monitoring started' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/monitor/stop', (req, res) => {
+  try {
+    globalMonitorManager.stopMonitoring();
+    res.json({ success: true, message: 'Monitoring stopped' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Combined bypass API
+ */
+rt.post('/bypass/auto', async (req, res) => {
+  try {
+    const { 
+      changeProxy = true, 
+      changeDNS = true, 
+      changeFingerprint = false 
+    } = req.body;
+    
+    const results = {
+      proxy: null,
+      dns: null,
+      fingerprint: null,
+      ipBefore: null,
+      ipAfter: null
+    };
+    
+    // Проверка IP до изменений
+    results.ipBefore = await globalIPManager.getCurrentIP();
+    
+    // Смена прокси
+    if (changeProxy) {
+      const proxy = globalProxyManager.rotateProxy();
+      if (proxy) {
+        results.proxy = { success: true, proxy: proxy.url };
+      } else {
+        results.proxy = { success: false, error: 'No working proxies' };
+      }
+    }
+    
+    // Смена DNS
+    if (changeDNS) {
+      const dnsSuccess = await globalDNSManager.setDNS('cloudflare');
+      results.dns = { success: dnsSuccess };
+    }
+    
+    // Смена fingerprint
+    if (changeFingerprint) {
+      const fpResult = await globalFingerprintManager.resetFingerprint();
+      results.fingerprint = fpResult;
+    }
+    
+    // Проверка IP после изменений
+    results.ipAfter = await globalIPManager.getCurrentIP({ useCache: false });
+    results.ipChanged = results.ipBefore?.ip !== results.ipAfter?.ip;
+
+    // Проверка доступности Cursor
+    const cursorAvailable = await globalMonitorManager.isCursorAvailable();
+    results.cursorAvailable = cursorAvailable;
+
+    res.json({ success: true, ...results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * VPN API
+ */
+rt.get('/vpn/init', async (req, res) => {
+  try {
+    const result = await globalVPNManager.init();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/vpn/status', async (req, res) => {
+  try {
+    const status = await globalVPNManager.getStatus();
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/vpn/configs', async (req, res) => {
+  try {
+    const configs = await globalVPNManager.getConfigs();
+    res.json({ success: true, configs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/wireguard/create', async (req, res) => {
+  try {
+    const { name, privateKey, address, dns, peers } = req.body;
+    const configFile = globalVPNManager.createWireGuardConfig({
+      name, privateKey, address, dns, peers
+    });
+    res.json({ success: true, configFile });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/wireguard/connect', async (req, res) => {
+  try {
+    const { tunnelName } = req.body;
+    const success = await globalVPNManager.connectWireGuard(tunnelName);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/wireguard/disconnect', async (req, res) => {
+  try {
+    const { tunnelName } = req.body;
+    const success = await globalVPNManager.disconnectWireGuard(tunnelName);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/openvpn/create', async (req, res) => {
+  try {
+    const { name, remote, port, proto, ca, cert, key, tlsAuth } = req.body;
+    const configFile = globalVPNManager.createOpenVPNConfig({
+      name, remote, port, proto, ca, cert, key, tlsAuth
+    });
+    res.json({ success: true, configFile });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/openvpn/connect', async (req, res) => {
+  try {
+    const { configFile, authUserPass } = req.body;
+    const result = await globalVPNManager.connectOpenVPN(configFile, { authUserPass });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/disconnect', async (req, res) => {
+  try {
+    const success = await globalVPNManager.disconnect();
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/vpn/quick-connect', async (req, res) => {
+  try {
+    const result = await globalVPNManager.quickConnect();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.delete('/vpn/config/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const success = await globalVPNManager.deleteConfig(name);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Cursor Registrar API
+ */
+rt.get('/cursor/session', (req, res) => {
+  try {
+    const session = globalCursorRegistrar.getSession();
+    res.json({ success: true, session });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/cursor/register', async (req, res) => {
+  try {
+    const { emailService = 'guerrillamail', autoVerify = true, timeout = 120000 } = req.body;
+    const result = await globalCursorRegistrar.register({
+      emailService, autoVerify, timeout
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/cursor/auto-register', async (req, res) => {
+  try {
+    const { emailService = 'guerrillamail', checkProStatus = true, timeout = 180000 } = req.body;
+    const result = await globalCursorRegistrar.autoRegister({
+      emailService, checkProStatus, timeout
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/cursor/signin', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const result = await globalCursorRegistrar.signIn(email, code);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/cursor/profile', async (req, res) => {
+  try {
+    const result = await globalCursorRegistrar.getUserProfile();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/cursor/subscription', async (req, res) => {
+  try {
+    const result = await globalCursorRegistrar.getSubscriptionStatus();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/cursor/signout', async (req, res) => {
+  try {
+    const result = await globalCursorRegistrar.signOut();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/cursor/set-token', (req, res) => {
+  try {
+    const { token } = req.body;
+    globalCursorRegistrar.setToken(token);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.delete('/cursor/clear', (req, res) => {
+  try {
+    globalCursorRegistrar.clear();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default rt;

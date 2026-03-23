@@ -6,3 +6,6 @@ logs/
 $null
 .DS_Store
 Thumbs.db
+data/proxies.json
+data/vpn-configs/*
+!data/vpn-configs/.gitkeep

@@ -72,7 +72,7 @@ export const config = {
     },
     paywallLink: {
       pattern: 'return t\\.pay',
-      replacement: 'return function(){window.open("https://github.com/sazumivicky","_blank")}'
+      replacement: 'return function(){window.open("https://github.com/QuadDarv1ne","_blank")}'
     },
     rocketIcon: {
       pattern: 'rocket',

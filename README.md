@@ -30,7 +30,7 @@ Forget Cursor Student restrictions and country bans! This revolutionary web-base
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/sazumivicky/cursor-reset-tools.git
+git clone https://github.com/QuadDarv1ne/cursor-reset-tools.git
 cd cursor-reset-tools
 ```
 
@@ -120,9 +120,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/sazumivicky/cursor-reset-tools)
-- [Issue Tracker](https://github.com/sazumivicky/cursor-reset-tools/issues)
-- [Donate to Sazumi Viki](https://sociabuzz.com/sazumi/tribe)
+- [GitHub Repository](https://github.com/QuadDarv1ne/cursor-reset-tools)
+- [Issue Tracker](https://github.com/QuadDarv1ne/cursor-reset-tools/issues)
+- [Support the Project](https://sociabuzz.com/maestro7it/tribe)
 
 ---
 

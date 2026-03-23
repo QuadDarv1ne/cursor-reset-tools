@@ -1,12 +1,18 @@
 {
     "name": "cursor-reset-tools",
-    "version": "2.0.0",
+    "version": "2.2.0",
     "description": "this is a tool to reset the machine id of cursor",
     "main": "app.js",
     "type": "module",
+    "bin": {
+        "cursor-reset": "./cli.js"
+    },
     "scripts": {
         "start": "node app.js",
         "dev": "nodemon app.js",
+        "cli": "node cli.js",
+        "server": "node server/bypassServer.js",
+        "update": "node cli.js updater:check",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
         "lint": "eslint ."
     },
@@ -17,10 +23,15 @@
         "express-rate-limit": "^7.5.1",
         "fs-extra": "^11.1.1",
         "helmet": "^7.2.0",
+        "hpagent": "^1.2.0",
+        "http-proxy-agent": "^8.0.0",
+        "http-proxy-middleware": "^3.0.5",
         "node-fetch": "^3.3.2",
+        "socks-proxy-agent": "^9.0.0",
         "sqlite": "^5.1.1",
         "sqlite3": "^5.1.7",
-        "uuid": "^9.0.0"
+        "uuid": "^9.0.0",
+        "ws": "^8.20.0"
     },
     "devDependencies": {
         "nodemon": "^2.0.22"

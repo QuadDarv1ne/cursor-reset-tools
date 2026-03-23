@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (donateBtn) {
       donateBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        window.open('https://sociabuzz.com/sazumi/tribe', '_blank');
+        window.open('https://sociabuzz.com/maestro7it/tribe', '_blank');
       });
     }
   };

@@ -50,6 +50,11 @@ app.get('/', (req, res) => {
   res.render('index', { lang: validLang, t });
 });
 
+// Страница Bypass Tools
+app.get('/bypass', (req, res) => {
+  res.render('bypass');
+});
+
 app.use('/api', resetRouter);
 
 app.listen(port, () => {

@@ -41,7 +41,7 @@
 export const PATTERNS = {
   url: /^(https?|socks5?):\/\/[^\s/$.?#].[^\s]*$/i,
   ip: /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^([a-fA-F0-9:]+)$/,
-  domain: /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/,
+  domain: /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/,
   email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
   uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   hex: /^[0-9a-fA-F]+$/,
@@ -101,6 +101,9 @@ export function sanitizePath(path) {
 
   // Нормализуем слеши
   sanitized = sanitized.replace(/\\/g, '/');
+
+  // Удаляем начальные слеши (после удаления ..)
+  sanitized = sanitized.replace(/^\/+/, '');
 
   return sanitized.trim();
 }

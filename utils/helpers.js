@@ -5,8 +5,66 @@ import fs from 'fs-extra';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from './config.js';
+import { logger } from './logger.js';
 
 const execPromise = promisify(exec);
+
+/**
+ * Retry конфигурация
+ */
+export const RETRY_CONFIG = {
+  maxAttempts: 3,
+  baseDelay: 1000,
+  maxDelay: 10000,
+  exponential: true
+};
+
+/**
+ * Выполнение операции с retry logic
+ * @param {Function} operation - Асинхронная операция
+ * @param {Object} options - Опции retry
+ * @returns {Promise<any>}
+ */
+export const withRetry = async (operation, options = {}) => {
+  const {
+    maxAttempts = RETRY_CONFIG.maxAttempts,
+    baseDelay = RETRY_CONFIG.baseDelay,
+    maxDelay = RETRY_CONFIG.maxDelay,
+    exponential = RETRY_CONFIG.exponential,
+    onRetry
+  } = options;
+
+  let lastError;
+  let attempt = 0;
+
+  while (attempt < maxAttempts) {
+    try {
+      attempt++;
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt >= maxAttempts) {
+        logger.error(`Operation failed after ${attempt} attempts: ${error.message}`, 'retry');
+        break;
+      }
+
+      const delayTime = exponential
+        ? Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay)
+        : baseDelay;
+
+      logger.debug(`Attempt ${attempt} failed, retrying in ${delayTime}ms...`, 'retry');
+
+      if (onRetry) {
+        await onRetry(error, attempt, delayTime);
+      }
+
+      await delay(delayTime);
+    }
+  }
+
+  throw lastError;
+};
 
 /**
  * Проверка прав администратора

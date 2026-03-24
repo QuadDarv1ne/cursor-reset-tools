@@ -51,22 +51,24 @@
 - [x] Email интеграция для регистрации
 - [x] Мониторинг статуса Cursor API
 - [x] Web UI для bypass инструментов
+- [x] Автообновление приложения (utils/updater.js)
 - [ ] GUI приложение через Electron
-- [ ] Автообновление приложения
+- [ ] Интеграция автообновления в app.js
 - [ ] Поддержка дополнительных платформ (FreeBSD)
-- [ ] Улучшить обработку ошибок с retry logic
+- [x] Улучшить обработку ошибок с retry logic (utils/helpers.js - withRetry)
 - [ ] Добавить метрики использования (опционально, с согласия)
 
 ## ✅ Готово
 
 - [x] Перевод интерфейса на русский
 - [x] Обновление main.js с русскими сообщениями
-- [x] utils/helpers.js - валидация, проверка админа
+- [x] utils/helpers.js - валидация, проверка админа, retry logic
 - [x] utils/logger.js - логирование в файл
 - [x] utils/config.js - конфигурация и паттерны
 - [x] utils/cache.js - кэширование с TTL
 - [x] utils/rollback.js - BackupManager для отката
 - [x] utils/i18n.js - поддержка 3 языков (RU, EN, ZH)
+- [x] utils/updater.js - автообновление приложения
 - [x] Обновление routes/reset.js с логированием
 - [x] helmet + rate limiting в app.js
 - [x] checkCursorProcess с таймаутом

@@ -72,8 +72,13 @@ export const withRetry = async (operation, options = {}) => {
  */
 export const checkAdminRights = async () => {
   try {
-    if (os.platform() === 'win32') {
+    const platform = os.platform();
+    if (platform === 'win32') {
       await execPromise('net session');
+      return true;
+    }
+    if (platform === 'freebsd') {
+      await execPromise('sudo -v');
       return true;
     }
     return os.userInfo().uid === 0;

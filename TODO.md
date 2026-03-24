@@ -54,7 +54,7 @@
 - [x] Автообновление приложения (utils/updater.js)
 - [x] Интеграция автообновления в app.js (API endpoints + check при старте)
 - [ ] GUI приложение через Electron (опционально)
-- [ ] Поддержка дополнительных платформ (FreeBSD) (опционально)
+- [x] Поддержка дополнительных платформ (FreeBSD) - utils/config.js, utils/helpers.js
 - [x] Улучшить обработку ошибок с retry logic (utils/helpers.js - withRetry)
 - [x] Добавить метрики использования (опционально, с согласия) - utils/metricsManager.js
 
@@ -63,7 +63,7 @@
 - **Версия:** 2.2.0
 - **Статус:** ✅ Стабильная версия
 - **Тесты:** Unit + Integration (18 API тестов)
-- **Платформы:** Windows, macOS, Linux
+- **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 
 ---

@@ -7,7 +7,6 @@
  *   node scripts/check-i18n.js --verbose
  */
 
-import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -48,28 +47,9 @@ async function loadTranslations() {
 }
 
 /**
- * Получить все ключи из объекта (рекурсивно для плоской структуры)
- */
-function getKeys(obj, prefix = '') {
-  const keys = [];
-
-  for (const [key, value] of Object.entries(obj)) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      keys.push(...getKeys(value, fullKey));
-    } else {
-      keys.push(fullKey);
-    }
-  }
-
-  return keys;
-}
-
-/**
  * Получить вложенные ключи для объекта
  */
-function getNestedKeys(obj, prefix = '') {
+function getNestedKeys(obj, _prefix = '') {
   const keys = new Set();
 
   for (const [key, value] of Object.entries(obj)) {

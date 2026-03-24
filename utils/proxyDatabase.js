@@ -444,7 +444,7 @@ export class ProxyDatabase {
         })
       );
 
-      results.forEach((result, index) => {
+      results.forEach((result, _index) => {
         if (result.status === 'fulfilled') {
           checked.push(result.value.proxy.url);
           if (result.value.isWorking) {

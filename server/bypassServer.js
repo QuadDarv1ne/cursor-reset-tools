@@ -10,7 +10,6 @@ import cors from 'cors';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { logger } from '../utils/logger.js';
 import { globalProxyDatabase } from '../utils/proxyDatabase.js';
-import { globalProxyManager } from '../utils/proxyManager.js';
 
 /**
  * Конфигурация сервера
@@ -199,7 +198,7 @@ export class BypassServer {
    * Настройка WebSocket
    */
   setupWebSocket() {
-    this.wss.on('connection', (ws, req) => {
+    this.wss.on('connection', (ws, _req) => {
       const clientId = this.generateClientId();
 
       logger.info(`Client connected: ${clientId}`, 'bypass-server');
@@ -349,7 +348,7 @@ export class BypassServer {
       target: 'http://localhost:3000',
       changeOrigin: true,
       timeout: CONFIG.proxyTimeout,
-      onProxyReq: (proxyReq, req, res) => {
+      onProxyReq: (_proxyReq, _req, _res) => {
         this.stats.totalRequests++;
       }
     }));

@@ -137,14 +137,14 @@ app.get('/api/smart/status', (req, res) => {
 app.post('/api/smart/test', async (req, res) => {
   try {
     const result = await globalSmartBypassManager.testAllMethods();
-    res.json({
+    return res.json({
       success: true,
       result,
       best: globalSmartBypassManager.getBestMethod(),
       recommendations: globalSmartBypassManager.getRecommendations()
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -152,13 +152,13 @@ app.post('/api/smart/test', async (req, res) => {
 app.post('/api/smart/apply', async (req, res) => {
   try {
     const result = await globalSmartBypassManager.applyBestMethod();
-    res.json({
+    return res.json({
       success: true,
       result,
       best: globalSmartBypassManager.getBestMethod()
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -170,9 +170,9 @@ app.get('/api/doh/resolve', async (req, res) => {
       return res.status(400).json({ error: 'Domain required' });
     }
     const result = await globalDoHManager.resolve(domain, provider);
-    res.json({ success: true, result });
+    return res.json({ success: true, result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -180,9 +180,9 @@ app.get('/api/doh/resolve', async (req, res) => {
 app.get('/api/doh/providers', async (req, res) => {
   try {
     const providers = await globalDoHManager.getAvailableProviders();
-    res.json({ success: true, providers });
+    return res.json({ success: true, providers });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -202,18 +202,18 @@ app.get('/bypass', (req, res) => {
 app.get('/api/updater/status', async (req, res) => {
   try {
     const status = globalUpdater.getStatus();
-    res.json({ success: true, ...status });
+    return res.json({ success: true, ...status });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.get('/api/updater/check', async (req, res) => {
   try {
     const result = await globalUpdater.checkForUpdates();
-    res.json({ success: true, ...result });
+    return res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -221,9 +221,9 @@ app.get('/api/updater/download', async (req, res) => {
   try {
     const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
     await globalUpdater.downloadUpdate(downloadPath);
-    res.json({ success: true, message: 'Update downloaded', path: downloadPath });
+    return res.json({ success: true, message: 'Update downloaded', path: downloadPath });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -231,9 +231,9 @@ app.post('/api/updater/install', async (req, res) => {
   try {
     const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
     const result = await globalUpdater.installUpdate(downloadPath);
-    res.json({ success: result, message: 'Update installed successfully' });
+    return res.json({ success: result, message: 'Update installed successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -241,45 +241,45 @@ app.post('/api/updater/install', async (req, res) => {
 app.get('/api/metrics/status', async (req, res) => {
   try {
     const status = globalMetricsManager.getStatus();
-    res.json({ success: true, ...status });
+    return res.json({ success: true, ...status });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.post('/api/metrics/enable', async (req, res) => {
   try {
     await globalMetricsManager.setEnabled(true);
-    res.json({ success: true, message: 'Metrics enabled' });
+    return res.json({ success: true, message: 'Metrics enabled' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.post('/api/metrics/disable', async (req, res) => {
   try {
     await globalMetricsManager.setEnabled(false);
-    res.json({ success: true, message: 'Metrics disabled' });
+    return res.json({ success: true, message: 'Metrics disabled' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.get('/api/metrics/export', async (req, res) => {
   try {
     const data = await globalMetricsManager.export();
-    res.json({ success: true, ...data });
+    return res.json({ success: true, ...data });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.delete('/api/metrics/clear', async (req, res) => {
   try {
     await globalMetricsManager.clear();
-    res.json({ success: true, message: 'Metrics cleared' });
+    return res.json({ success: true, message: 'Metrics cleared' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -303,7 +303,7 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Dynamic error handling
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   logger.error(`Request error: ${err.message}`, 'app');
   res.status(err.status || 500).json({
     success: false,

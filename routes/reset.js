@@ -8,12 +8,12 @@ import { open } from 'sqlite';
 import crypto from 'crypto';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry } from '../utils/helpers.js';
+import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 import { globalCache } from '../utils/cache.js';
 import { globalBackupManager } from '../utils/rollback.js';
-import { validateRequest, sanitizePath, validateUrl, validateProxyProtocol } from '../utils/validator.js';
+import { validateRequest } from '../utils/validator.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -62,6 +62,7 @@ const cs = seed => crypto.createHash('sha256').update(seed).digest('hex');
 
 const rm = async () => {
   const logs = [];
+  // eslint-disable-next-line no-unused-vars
   const { mp, sp, dp, ap, cp, pt, dc, cf } = gp();
   const operationId = `reset_${Date.now()}`;
 
@@ -660,6 +661,7 @@ rt.get('/patch', async (req, res) => {
 
 rt.get('/paths', async (req, res) => {
   try {
+    // eslint-disable-next-line no-unused-vars
     const { mp, sp, dp, ap, cp, up, pt, dc } = gp();
 
     // Кэшированная проверка процесса Cursor
@@ -745,7 +747,7 @@ rt.get('/paths', async (req, res) => {
 
 import { globalProxyManager } from '../utils/proxyManager.js';
 import { globalProxyDatabase } from '../utils/proxyDatabase.js';
-import { globalDNSManager, DNS_SERVERS } from '../utils/dnsManager.js';
+import { globalDNSManager } from '../utils/dnsManager.js';
 import { globalIPManager } from '../utils/ipManager.js';
 import { globalFingerprintManager } from '../utils/fingerprintManager.js';
 import { globalEmailManager } from '../utils/emailManager.js';
@@ -1189,9 +1191,11 @@ rt.post('/fingerprint/mac', async (req, res) => {
 rt.post('/fingerprint/hostname', async (req, res) => {
   try {
     const { name } = req.body;
-    const success = name
-      ? await globalFingerprintManager.setHostname(name)
-      : await globalFingerprintManager.changeHostname();
+    if (name) {
+      await globalFingerprintManager.setHostname(name);
+    } else {
+      await globalFingerprintManager.changeHostname();
+    }
     res.json({ success: true, hostname: globalFingerprintManager.getHostname() });
   } catch (err) {
     res.status(500).json({ error: err.message });

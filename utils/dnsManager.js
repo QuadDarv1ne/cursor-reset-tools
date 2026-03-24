@@ -273,9 +273,7 @@ export class DNSManager {
   async _setMacOSDNS(dnsConfig) {
     try {
       // Получение активного сетевого интерфейса
-      const { stdout } = await execPromise('route -n get default 2>/dev/null | grep interface');
-      const interfaceMatch = stdout.match(/interface:\s*(\w+)/);
-      const interfaceName = interfaceMatch ? interfaceMatch[1] : 'en0';
+      await execPromise('route -n get default 2>/dev/null | grep interface');
 
       // Создание конфигурационного файла DNS
       const fs = await import('fs-extra');

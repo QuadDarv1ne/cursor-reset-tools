@@ -160,7 +160,6 @@ export const getCursorVersion = async appPath => {
 export const isCursorVersionSupported = version => {
   if (!version) {return false;}
 
-  const supported = config.supportedCursorVersions;
   const minVersion = config.minCursorVersion;
 
   // Проверка по семверу (упрощённо)

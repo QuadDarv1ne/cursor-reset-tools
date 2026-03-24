@@ -46,7 +46,7 @@ export const PATTERNS = {
   uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   hex: /^[0-9a-fA-F]+$/,
   base64: /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/,
-  path: /^[a-zA-Z0-9\/\\._\-:]+$/,
+  path: /^[a-zA-Z0-9/\\._\-:]+$/,
   alphanumeric: /^[a-zA-Z0-9]+$/,
   alphanumericDash: /^[a-zA-Z0-9-]+$/,
   safeString: /^[a-zA-Z0-9\s._\-@]+$/

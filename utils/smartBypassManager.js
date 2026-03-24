@@ -9,7 +9,6 @@ import { globalMonitorManager } from './monitorManager.js';
 import { globalProxyManager } from './proxyManager.js';
 import { globalDNSManager } from './dnsManager.js';
 import { globalDoHManager } from './dohManager.js';
-import { globalFingerprintManager } from './fingerprintManager.js';
 
 class SmartBypassManager {
   constructor() {

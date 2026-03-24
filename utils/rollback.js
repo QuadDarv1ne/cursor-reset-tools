@@ -60,7 +60,8 @@ export class BackupManager {
   async restore(filePath) {
     try {
       // Ищем бэкап для этого файла
-      for (const [opId, backups] of this.backups.entries()) {
+      for (const entry of this.backups.entries()) {
+        const backups = entry[1];
         const backupInfo = backups.find(b => b.original === filePath);
 
         if (backupInfo && await fs.pathExists(backupInfo.backup)) {

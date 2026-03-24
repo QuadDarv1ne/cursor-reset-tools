@@ -4,7 +4,6 @@
  */
 
 import { WebSocketServer } from 'ws';
-import http from 'http';
 import { logger } from './logger.js';
 import { globalMonitorManager } from './monitorManager.js';
 import { globalIPManager } from './ipManager.js';
@@ -51,7 +50,7 @@ class WSServer {
   /**
    * Обработка подключения
    */
-  handleConnection(ws, req) {
+  handleConnection(ws, _req) {
     // Проверка на максимальное количество клиентов
     if (this.clients.size >= this.maxClients) {
       logger.warn('Maximum WebSocket clients reached, rejecting connection', 'websocket');
@@ -102,7 +101,7 @@ class WSServer {
     });
 
     // Отключение
-    ws.on('close', (code, reason) => {
+    ws.on('close', (code, _reason) => {
       logger.debug(`Client disconnected: ${clientId} (code: ${code})`, 'websocket');
       this.handleDisconnect(clientId);
     });
@@ -384,7 +383,7 @@ class WSServer {
     }
 
     // Очистка всех таймеров клиентов
-    for (const [clientId, client] of this.clients) {
+    for (const client of this.clients.values()) {
       if (client.timeoutId) {
         clearTimeout(client.timeoutId);
       }

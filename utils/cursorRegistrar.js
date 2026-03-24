@@ -3,7 +3,6 @@
  * Полная автоматизация: email → регистрация → подтверждение → вход
  */
 
-import fetch from 'node-fetch';
 import { logger } from './logger.js';
 import { globalEmailManager } from './emailManager.js';
 import { globalProxyManager } from './proxyManager.js';

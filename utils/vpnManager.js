@@ -130,7 +130,6 @@ export class VPNManager {
       }
     }
 
-    const configDir = VPN_CONFIG.wireguard.configDir[this.platform];
     const configFile = path.join(this.configPath, `${name}.conf`);
 
     fs.writeFileSync(configFile, wgConfig);
@@ -287,7 +286,7 @@ export class VPNManager {
       const command = `"${binary}" ${args.join(' ')}`;
 
       // Запуск в фоне
-      exec(command, (error, stdout, stderr) => {
+      exec(command, error => {
         if (error) {
           logger.error(`OpenVPN error: ${error.message}`, 'vpn');
         }

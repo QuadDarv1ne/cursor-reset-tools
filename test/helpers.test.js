@@ -26,10 +26,17 @@ describe('helpers.js', () => {
 
   describe('withRetry', () => {
     it('должен успешно выполнять операцию с первой попытки', async () => {
-      const operation = jest.fn().mockResolvedValue('success');
+      const mockFn = {
+        fn: async () => 'success',
+        mock: { calls: [] }
+      };
+      const operation = async () => {
+        mockFn.mock.calls.push([]);
+        return mockFn.fn();
+      };
       const result = await withRetry(operation, { maxAttempts: 3 });
       expect(result).toBe('success');
-      expect(operation).toHaveBeenCalledTimes(1);
+      expect(mockFn.mock.calls.length).toBe(1);
     });
 
     it('должен повторять операцию при ошибке', async () => {

@@ -16,6 +16,7 @@ import { globalDoHManager } from './utils/dohManager.js';
 import { globalSmartBypassManager } from './utils/smartBypassManager.js';
 import { globalWSServer } from './utils/websocketServer.js';
 import { globalUpdater } from './utils/updater.js';
+import { globalMetricsManager } from './utils/metricsManager.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -237,6 +238,52 @@ app.post('/api/updater/install', async (req, res) => {
   }
 });
 
+// Metrics API endpoints
+app.get('/api/metrics/status', async (req, res) => {
+  try {
+    const status = globalMetricsManager.getStatus();
+    res.json({ success: true, ...status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/metrics/enable', async (req, res) => {
+  try {
+    await globalMetricsManager.setEnabled(true);
+    res.json({ success: true, message: 'Metrics enabled' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/metrics/disable', async (req, res) => {
+  try {
+    await globalMetricsManager.setEnabled(false);
+    res.json({ success: true, message: 'Metrics disabled' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/metrics/export', async (req, res) => {
+  try {
+    const data = await globalMetricsManager.export();
+    res.json({ success: true, ...data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/metrics/clear', async (req, res) => {
+  try {
+    await globalMetricsManager.clear();
+    res.json({ success: true, message: 'Metrics cleared' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.use('/api', resetRouter);
 
 // Graceful shutdown
@@ -283,6 +330,7 @@ const startServer = async () => {
     await globalMonitorManager.init();
     await globalFingerprintManager.init();
     await globalProxyDatabase.init();
+    await globalMetricsManager.init();
 
     // Запуск авто-мониторинга
     globalMonitorManager.enableAutoCheck(60000);

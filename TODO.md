@@ -56,7 +56,7 @@
 - [ ] GUI приложение через Electron
 - [ ] Поддержка дополнительных платформ (FreeBSD)
 - [x] Улучшить обработку ошибок с retry logic (utils/helpers.js - withRetry)
-- [ ] Добавить метрики использования (опционально, с согласия)
+- [x] Добавить метрики использования (опционально, с согласия) - utils/metricsManager.js
 
 ## ✅ Готово
 
@@ -69,6 +69,7 @@
 - [x] utils/rollback.js - BackupManager для отката
 - [x] utils/i18n.js - поддержка 3 языков (RU, EN, ZH)
 - [x] utils/updater.js - автообновление приложения
+- [x] utils/metricsManager.js - метрики использования
 - [x] test/helpers.test.js - unit-тесты для helpers
 - [x] test/api.test.js - интеграционные тесты API
 - [x] Обновление routes/reset.js с логированием

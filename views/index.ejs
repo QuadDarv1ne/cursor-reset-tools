@@ -184,6 +184,33 @@
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-terminal-box-line"></i><%= typeof t !== 'undefined' ? t('liveLogsTitle') : '' %></h2>
+          <div class="card-header-actions">
+            <span id="ws-status" class="ws-status disconnected">
+              <i class="ri-wifi-off-line"></i><%= typeof t !== 'undefined' ? t('wsDisconnected') : '' %>
+            </span>
+            <button id="clear-logs-btn" class="btn btn-sm btn-outline">
+              <i class="ri-delete-bin-line"></i><%= typeof t !== 'undefined' ? t('clearLogs') : '' %>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="live-logs" class="live-logs">
+            <div class="log-entry log-info">
+              <span class="log-time">[--:--:--]</span>
+              <i class="ri-information-line"></i>
+              <span class="log-message"><%= typeof t !== 'undefined' ? t('logsInitializing') : '' %></span>
+            </div>
+          </div>
+          <div class="alert alert-info mt-3">
+            <i class="ri-information-line"></i>
+            <strong><%= typeof t !== 'undefined' ? t('logsNote') : '' %></strong>
+          </div>
+        </div>
+      </div>
     </main>
 
     <section id="requirements">

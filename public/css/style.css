@@ -1432,4 +1432,199 @@ tr:nth-child(even) {
   margin-bottom: 0;
   font-size: 0.9rem;
   opacity: 0.8;
+}
+
+/* Live Logs Panel */
+.live-logs {
+  background: #1e1e1e;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-color) #1e1e1e;
+  border: 1px solid var(--border-color);
+}
+
+.live-logs::-webkit-scrollbar {
+  width: 8px;
+}
+
+.live-logs::-webkit-scrollbar-track {
+  background: #2d2d2d;
+  border-radius: 4px;
+}
+
+.live-logs::-webkit-scrollbar-thumb {
+  background-color: var(--accent-color);
+  border-radius: 4px;
+}
+
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #2d2d2d;
+  animation: logFadeIn 0.3s ease;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+@keyframes logFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.log-entry i {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.log-time {
+  color: #808080;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.log-message {
+  color: #d4d4d4;
+  word-break: break-word;
+}
+
+.log-info {
+  color: #569cd6;
+}
+
+.log-info i {
+  color: #569cd6;
+}
+
+.log-success {
+  color: #6a9955;
+}
+
+.log-success i {
+  color: #6a9955;
+}
+
+.log-warning {
+  color: #dcdcaa;
+}
+
+.log-warning i {
+  color: #dcdcaa;
+}
+
+.log-error {
+  color: #f44747;
+}
+
+.log-error i {
+  color: #f44747;
+}
+
+.log-system {
+  color: #c586c0;
+}
+
+.log-system i {
+  color: #c586c0;
+}
+
+/* WebSocket Status Indicator */
+.ws-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.ws-status.connected {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.ws-status.connected i {
+  color: #4caf50;
+  animation: pulse-signal 2s infinite;
+}
+
+@keyframes pulse-signal {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.ws-status.disconnected {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.ws-status.disconnected i {
+  color: #f44336;
+}
+
+/* Card Header Actions */
+.card-header-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+}
+
+.btn-outline:hover {
+  background: var(--accent-color);
+  color: white;
+}
+
+/* Responsive adjustments for logs panel */
+@media (max-width: 768px) {
+  .card-header-actions {
+    position: static;
+    margin-top: 10px;
+    justify-content: flex-end;
+  }
+
+  .live-logs {
+    max-height: 300px;
+    font-size: 0.8rem;
+  }
+
+  .log-time {
+    font-size: 0.7rem;
+  }
 } 

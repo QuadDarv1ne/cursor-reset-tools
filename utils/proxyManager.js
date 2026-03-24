@@ -113,7 +113,7 @@ export class ProxyManager {
    */
   async checkProxy(proxyUrl, protocol) {
     const agent = this._createAgentForUrl(proxyUrl, protocol);
-    
+
     if (!agent) {
       return false;
     }
@@ -172,7 +172,7 @@ export class ProxyManager {
 
     for (const proxy of this.proxyList) {
       const isWorking = await this.checkProxy(proxy.url, proxy.protocol);
-      
+
       if (isWorking) {
         working.push(proxy);
         proxy.failed = false;
@@ -194,7 +194,7 @@ export class ProxyManager {
    */
   rotateProxy() {
     const working = this.workingProxies.filter(p => !p.failed);
-    
+
     if (working.length === 0) {
       logger.warn('No working proxies available', 'proxy');
       return null;
@@ -202,7 +202,7 @@ export class ProxyManager {
 
     this.rotationIndex = (this.rotationIndex + 1) % working.length;
     this.currentProxy = working[this.rotationIndex];
-    
+
     logger.info(`Rotated to proxy: ${this.currentProxy.url}`, 'proxy');
     return this.currentProxy;
   }
@@ -279,7 +279,7 @@ export class ProxyManager {
     this.proxyList = this.proxyList.filter(p => !p.failed);
     this.workingProxies = this.workingProxies.filter(p => !p.failed);
     this.failedProxies.clear();
-    
+
     const removed = initialLength - this.proxyList.length;
     if (removed > 0) {
       logger.info(`Cleaned up ${removed} failed proxies`, 'proxy');
@@ -292,13 +292,11 @@ export class ProxyManager {
    */
   getFetch() {
     const agent = this.createAgent();
-    
-    return async (url, options = {}) => {
-      return fetch(url, {
-        ...options,
-        agent: agent || undefined
-      });
-    };
+
+    return async (url, options = {}) => fetch(url, {
+      ...options,
+      agent: agent || undefined
+    });
   }
 
   /**
@@ -311,7 +309,7 @@ export class ProxyManager {
       const fs = await import('fs-extra');
       const content = await fs.readFile(filePath, 'utf8');
       const lines = content.split('\n').filter(line => line.trim());
-      
+
       lines.forEach(line => {
         const trimmed = line.trim();
         if (trimmed && !trimmed.startsWith('#')) {
@@ -319,7 +317,7 @@ export class ProxyManager {
           const parts = trimmed.split(':');
           if (parts.length >= 2) {
             let proxyUrl, protocol;
-            
+
             // Если первая часть - протокол
             if (['socks5', 'socks4', 'http', 'https'].includes(parts[0])) {
               protocol = parts[0];
@@ -328,12 +326,12 @@ export class ProxyManager {
               protocol = defaultProtocol;
               proxyUrl = trimmed;
             }
-            
+
             this.addProxy(proxyUrl, protocol);
           }
         }
       });
-      
+
       logger.info(`Loaded proxies from ${filePath}`, 'proxy');
     } catch (error) {
       logger.error(`Failed to load proxies from file: ${error.message}`, 'proxy');
@@ -352,7 +350,7 @@ export class ProxyManager {
         const url = p.url.replace(/^[a-z]+:\/\//, '');
         return `${p.protocol}:${url}`;
       }).join('\n');
-      
+
       await fs.writeFile(filePath, content, 'utf8');
       logger.info(`Saved ${this.proxyList.length} proxies to ${filePath}`, 'proxy');
     } catch (error) {

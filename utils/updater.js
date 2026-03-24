@@ -51,13 +51,13 @@ export class Updater {
    */
   async checkForUpdates() {
     logger.info('Checking for updates...', 'updater');
-    
+
     try {
       const releaseData = await this.fetchLatestRelease();
-      
+
       this.latestVersion = releaseData.tag_name?.replace('v', '') || null;
       this.updateAvailable = this.compareVersions(this.latestVersion, this.currentVersion) > 0;
-      
+
       if (this.updateAvailable) {
         this.updateInfo = {
           currentVersion: this.currentVersion,
@@ -69,19 +69,19 @@ export class Updater {
           tarballUrl: releaseData.tarball_url,
           assets: releaseData.assets || []
         };
-        
+
         logger.info(`Update available: ${this.currentVersion} → ${this.latestVersion}`, 'updater');
       } else {
         logger.info('No updates available', 'updater');
       }
-      
+
       return {
         updateAvailable: this.updateAvailable,
         currentVersion: this.currentVersion,
         latestVersion: this.latestVersion,
         info: this.updateInfo
       };
-      
+
     } catch (error) {
       logger.error(`Update check failed: ${error.message}`, 'updater');
       throw error;
@@ -105,13 +105,13 @@ export class Updater {
         timeout: UPDATER_CONFIG.timeout
       };
 
-      const req = https.get(options, (res) => {
+      const req = https.get(options, res => {
         let data = '';
-        
-        res.on('data', (chunk) => {
+
+        res.on('data', chunk => {
           data += chunk;
         });
-        
+
         res.on('end', () => {
           try {
             resolve(JSON.parse(data));
@@ -138,15 +138,15 @@ export class Updater {
   compareVersions(v1, v2) {
     const parts1 = v1.split('.').map(Number);
     const parts2 = v2.split('.').map(Number);
-    
+
     for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
       const num1 = parts1[i] || 0;
       const num2 = parts2[i] || 0;
-      
-      if (num1 > num2) return 1;
-      if (num1 < num2) return -1;
+
+      if (num1 > num2) {return 1;}
+      if (num1 < num2) {return -1;}
     }
-    
+
     return 0;
   }
 
@@ -166,18 +166,18 @@ export class Updater {
 
     try {
       await fs.ensureDir(path.dirname(downloadPath));
-      
+
       return new Promise((resolve, reject) => {
         const url = this.updateInfo.downloadUrl;
         const file = fs.createWriteStream(downloadPath);
-        
+
         const get = url.startsWith('https') ? https : http;
-        
-        get(url, (res) => {
+
+        get(url, res => {
           const totalSize = parseInt(res.headers['content-length'], 10);
           let downloadedSize = 0;
 
-          res.on('data', (chunk) => {
+          res.on('data', chunk => {
             downloadedSize += chunk.length;
             this.downloadProgress = Math.round((downloadedSize / totalSize) * 100);
             logger.debug(`Download progress: ${this.downloadProgress}%`, 'updater');
@@ -191,13 +191,13 @@ export class Updater {
             logger.info(`Download complete: ${downloadPath}`, 'updater');
             resolve(downloadPath);
           });
-        }).on('error', (error) => {
+        }).on('error', error => {
           fs.unlink(downloadPath, () => {});
           this.isDownloading = false;
           reject(error);
         });
       });
-      
+
     } catch (error) {
       this.isDownloading = false;
       logger.error(`Download failed: ${error.message}`, 'updater');
@@ -233,16 +233,16 @@ export class Updater {
 
       this.isInstalling = false;
       logger.info(`Update ${this.latestVersion} installed successfully`, 'updater');
-      
+
       return true;
-      
+
     } catch (error) {
       this.isInstalling = false;
       logger.error(`Installation failed: ${error.message}`, 'updater');
-      
+
       // Попытка отката
       await this.restoreFromBackup();
-      
+
       throw error;
     }
   }
@@ -266,7 +266,7 @@ export class Updater {
     for (const file of filesToBackup) {
       const src = path.join(process.cwd(), file);
       const dest = path.join(backupPath, file);
-      
+
       if (await fs.pathExists(src)) {
         await fs.copy(src, dest);
       }
@@ -280,7 +280,7 @@ export class Updater {
    */
   async extractArchive(archivePath, extractDir) {
     const platform = os.platform();
-    
+
     if (platform === 'win32') {
       // Windows - используем PowerShell
       await execPromise(
@@ -304,7 +304,7 @@ export class Updater {
   async copyNewFiles(extractDir) {
     // Поиск извлечённой директории (GitHub добавляет префикс)
     const entries = await fs.readdir(extractDir);
-    const sourceDir = entries.find(entry => entry.includes('cursor-reset-tools')) 
+    const sourceDir = entries.find(entry => entry.includes('cursor-reset-tools'))
       ? path.join(extractDir, entries.find(e => e.includes('cursor-reset-tools')))
       : extractDir;
 
@@ -322,7 +322,7 @@ export class Updater {
     for (const file of filesToCopy) {
       const src = path.join(sourceDir, file);
       const dest = path.join(process.cwd(), file);
-      
+
       if (await fs.pathExists(src)) {
         await fs.copy(src, dest, { overwrite: true });
         logger.debug(`Copied: ${file}`, 'updater');
@@ -336,11 +336,11 @@ export class Updater {
   async updatePackageVersion() {
     const packagePath = path.join(process.cwd(), 'package.json');
     const packageData = await fs.readJson(packagePath);
-    
+
     packageData.version = this.latestVersion;
-    
+
     await fs.writeJson(packagePath, packageData, { spaces: 2 });
-    
+
     logger.info(`package.json updated to ${this.latestVersion}`, 'updater');
   }
 
@@ -349,16 +349,16 @@ export class Updater {
    */
   async restoreFromBackup() {
     logger.info('Restoring from backup...', 'updater');
-    
+
     const backups = await fs.readdir(UPDATER_CONFIG.backupDir);
-    
+
     if (backups.length === 0) {
       logger.error('No backups available', 'updater');
       return false;
     }
 
     const latestBackup = path.join(UPDATER_CONFIG.backupDir, backups[backups.length - 1]);
-    
+
     const filesToRestore = [
       'app.js',
       'routes',
@@ -371,7 +371,7 @@ export class Updater {
     for (const file of filesToRestore) {
       const src = path.join(latestBackup, file);
       const dest = path.join(process.cwd(), file);
-      
+
       if (await fs.pathExists(src)) {
         await fs.copy(src, dest, { overwrite: true });
       }
@@ -386,14 +386,14 @@ export class Updater {
    * @param {Object} options - Опции
    */
   async autoUpdate(options = {}) {
-    const { 
+    const {
       downloadPath = path.join(process.cwd(), 'updates', 'update.zip'),
-      install = true 
+      install = true
     } = options;
 
     try {
       const checkResult = await this.checkForUpdates();
-      
+
       if (!checkResult.updateAvailable) {
         return { updated: false, reason: 'No updates available' };
       }
@@ -401,24 +401,24 @@ export class Updater {
       if (install) {
         await this.downloadUpdate(downloadPath);
         await this.installUpdate(downloadPath);
-        
-        return { 
-          updated: true, 
+
+        return {
+          updated: true,
           version: this.latestVersion,
           requiresRestart: true
         };
-      } else {
-        return { 
-          updated: false, 
-          downloadAvailable: true,
-          version: this.latestVersion
-        };
       }
-      
+      return {
+        updated: false,
+        downloadAvailable: true,
+        version: this.latestVersion
+      };
+
+
     } catch (error) {
-      return { 
-        updated: false, 
-        error: error.message 
+      return {
+        updated: false,
+        error: error.message
       };
     }
   }

@@ -10,24 +10,37 @@ import { globalMonitorManager } from './monitorManager.js';
 import { globalIPManager } from './ipManager.js';
 import { globalSmartBypassManager } from './smartBypassManager.js';
 
+/**
+ * Конфигурация WebSocket сервера
+ */
+const WS_CONFIG = {
+  maxClients: 100, // Максимальное количество клиентов
+  clientTimeout: 300000, // Таймаут неактивности (5 минут)
+  pingInterval: 30000, // Интервал ping (30 секунд)
+  maxMessageSize: 1024 * 1024, // Максимальный размер сообщения (1MB)
+  maxSubscriptions: 10 // Максимум подписок на клиента
+};
+
 class WSServer {
   constructor() {
     this.wss = null;
     this.clients = new Map();
     this.broadcastInterval = null;
+    this.pingInterval = null;
+    this.maxClients = WS_CONFIG.maxClients;
   }
 
   /**
    * Инициализация WebSocket сервера
    */
   init(server, port = 3001) {
-    this.wss = new WebSocketServer({ 
+    this.wss = new WebSocketServer({
       server,
       path: '/ws'
     });
 
     this.wss.on('connection', (ws, req) => this.handleConnection(ws, req));
-    this.wss.on('error', (error) => logger.error(`WS error: ${error.message}`, 'websocket'));
+    this.wss.on('error', error => logger.error(`WS error: ${error.message}`, 'websocket'));
 
     // Авто-вещание статуса
     this.startBroadcast();
@@ -39,42 +52,77 @@ class WSServer {
    * Обработка подключения
    */
   handleConnection(ws, req) {
+    // Проверка на максимальное количество клиентов
+    if (this.clients.size >= this.maxClients) {
+      logger.warn('Maximum WebSocket clients reached, rejecting connection', 'websocket');
+      ws.close(1013, 'Server is at capacity');
+      return;
+    }
+
     const clientId = this.generateClientId();
-    
+    const connectedAt = Date.now();
+
     this.clients.set(clientId, {
       ws,
-      connectedAt: Date.now(),
+      connectedAt,
+      lastActivity: connectedAt,
       subscriptions: new Set(['status']),
-      pingPong: { isAlive: true, lastPing: Date.now() }
+      pingPong: { isAlive: true, lastPing: Date.now() },
+      messageCount: 0,
+      bytesReceived: 0
     });
 
-    logger.debug(`Client connected: ${clientId}`, 'websocket');
+    logger.debug(`Client connected: ${clientId} (total: ${this.clients.size})`, 'websocket');
 
     // Приветствие
     this.send(clientId, {
       type: 'welcome',
       clientId,
       timestamp: Date.now(),
-      message: 'Connected to Cursor Reset Tools'
+      message: 'Connected to Cursor Reset Tools',
+      serverInfo: {
+        maxClients: this.maxClients,
+        currentClients: this.clients.size
+      }
     });
 
     // Отправка текущего статуса
     this.sendStatus(clientId);
 
     // Обработка сообщений
-    ws.on('message', (message) => this.handleMessage(clientId, message));
+    ws.on('message', message => this.handleMessage(clientId, message));
 
     // Pong
     ws.on('pong', () => {
       const client = this.clients.get(clientId);
       if (client) {
         client.pingPong.isAlive = true;
+        client.pingPong.lastPong = Date.now();
       }
     });
 
     // Отключение
-    ws.on('close', () => this.handleDisconnect(clientId));
-    ws.on('error', (error) => logger.error(`WS client error (${clientId}): ${error.message}`, 'websocket'));
+    ws.on('close', (code, reason) => {
+      logger.debug(`Client disconnected: ${clientId} (code: ${code})`, 'websocket');
+      this.handleDisconnect(clientId);
+    });
+
+    ws.on('error', error => logger.error(`WS client error (${clientId}): ${error.message}`, 'websocket'));
+
+    // Установка таймаута для неактивных соединений
+    const timeoutId = setTimeout(() => {
+      const client = this.clients.get(clientId);
+      if (client && Date.now() - client.lastActivity > WS_CONFIG.clientTimeout) {
+        logger.debug(`Client ${clientId} timed out due to inactivity`, 'websocket');
+        ws.close(1001, 'Client inactive');
+      }
+    }, WS_CONFIG.clientTimeout);
+
+    // Сохраняем ID таймера для очистки
+    const client = this.clients.get(clientId);
+    if (client) {
+      client.timeoutId = timeoutId;
+    }
   }
 
   /**
@@ -82,13 +130,47 @@ class WSServer {
    */
   async handleMessage(clientId, data) {
     try {
-      const message = JSON.parse(data.toString());
       const client = this.clients.get(clientId);
+      if (!client) {return;}
 
-      if (!client) return;
+      // Проверка размера сообщения
+      const dataSize = Buffer.byteLength(data, 'utf8');
+      if (dataSize > WS_CONFIG.maxMessageSize) {
+        logger.warn(`Client ${clientId} sent message exceeding size limit`, 'websocket');
+        this.send(clientId, {
+          type: 'error',
+          message: 'Message too large'
+        });
+        return;
+      }
+
+      // Обновление статистики
+      client.lastActivity = Date.now();
+      client.messageCount++;
+      client.bytesReceived += dataSize;
+
+      // Проверка на спам (более 100 сообщений в секунду)
+      if (client.messageCount > 100) {
+        const timeSinceStart = Date.now() - client.connectedAt;
+        if (timeSinceStart < 1000) {
+          logger.warn(`Client ${clientId} flooding detected`, 'websocket');
+          client.ws.close(1008, 'Message rate exceeded');
+          return;
+        }
+      }
+
+      const message = JSON.parse(data.toString());
 
       switch (message.type) {
         case 'subscribe':
+          // Проверка на максимальное количество подписок
+          if (client.subscriptions.size >= WS_CONFIG.maxSubscriptions) {
+            this.send(clientId, {
+              type: 'error',
+              message: 'Maximum subscriptions reached'
+            });
+            return;
+          }
           client.subscriptions.add(message.channel);
           this.send(clientId, {
             type: 'subscribed',
@@ -104,7 +186,7 @@ class WSServer {
           this.send(clientId, {
             type: 'pong',
             timestamp: Date.now(),
-            latency: Date.now() - message.timestamp
+            latency: Date.now() - (message.timestamp || Date.now())
           });
           break;
 
@@ -136,7 +218,11 @@ class WSServer {
           });
       }
     } catch (error) {
-      logger.error(`Message handling error: ${error.message}`, 'websocket');
+      logger.error(`Message handling error (${clientId}): ${error.message}`, 'websocket');
+      this.send(clientId, {
+        type: 'error',
+        message: 'Invalid message format'
+      });
     }
   }
 
@@ -144,8 +230,15 @@ class WSServer {
    * Обработка отключения
    */
   handleDisconnect(clientId) {
+    const client = this.clients.get(clientId);
+
+    // Очистка таймера таймаута
+    if (client && client.timeoutId) {
+      clearTimeout(client.timeoutId);
+    }
+
     this.clients.delete(clientId);
-    logger.debug(`Client disconnected: ${clientId}`, 'websocket');
+    logger.debug(`Client disconnected: ${clientId} (remaining: ${this.clients.size})`, 'websocket');
   }
 
   /**
@@ -225,15 +318,44 @@ class WSServer {
    * Проверка живых клиентов
    */
   checkAliveClients() {
+    const now = Date.now();
+    const toRemove = [];
+
     for (const [clientId, client] of this.clients) {
+      // Проверка на таймаут неактивности
+      const idleTime = now - client.lastActivity;
+      if (idleTime > WS_CONFIG.clientTimeout) {
+        logger.debug(`Client ${clientId} idle timeout (${idleTime}ms)`, 'websocket');
+        toRemove.push(clientId);
+        continue;
+      }
+
+      // Проверка ping/pong
       if (!client.pingPong.isAlive) {
+        logger.debug(`Client ${clientId} no pong response`, 'websocket');
+        toRemove.push(clientId);
+        continue;
+      }
+
+      // Сброс флага и отправка ping
+      client.pingPong.isAlive = false;
+      client.ws.ping();
+    }
+
+    // Удаление неактивных клиентов
+    for (const clientId of toRemove) {
+      const client = this.clients.get(clientId);
+      if (client) {
+        if (client.timeoutId) {
+          clearTimeout(client.timeoutId);
+        }
         client.ws.terminate();
         this.clients.delete(clientId);
-        logger.debug(`Client terminated (no pong): ${clientId}`, 'websocket');
-      } else {
-        client.pingPong.isAlive = false;
-        client.ws.ping();
       }
+    }
+
+    if (toRemove.length > 0) {
+      logger.debug(`Removed ${toRemove.length} inactive clients`, 'websocket');
     }
   }
 
@@ -248,11 +370,22 @@ class WSServer {
    * Остановка сервера
    */
   stop() {
+    // Остановка интервалов
     if (this.broadcastInterval) {
       clearInterval(this.broadcastInterval);
+      this.broadcastInterval = null;
     }
 
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+
+    // Очистка всех таймеров клиентов
     for (const [clientId, client] of this.clients) {
+      if (client.timeoutId) {
+        clearTimeout(client.timeoutId);
+      }
       client.ws.close();
     }
 

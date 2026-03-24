@@ -1,0 +1,9 @@
+node_modules/
+logs/
+data/
+dist/
+build/
+coverage/
+*.min.js
+public/js/vendor/
+updates/

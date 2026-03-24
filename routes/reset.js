@@ -8,11 +8,12 @@ import { open } from 'sqlite';
 import crypto from 'crypto';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID } from '../utils/helpers.js';
+import { checkAdminRights, validatePaths, delay, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 import { globalCache } from '../utils/cache.js';
 import { globalBackupManager } from '../utils/rollback.js';
+import { validateRequest, sanitizePath, validateUrl, validateProxyProtocol } from '../utils/validator.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -55,26 +56,22 @@ const bk = async (filePath, operationId = 'default') => {
   }
 };
 
-const gm = () => {
-  return uuidv4().toUpperCase();
-};
+const gm = () => uuidv4().toUpperCase();
 
-const cs = (seed) => {
-  return crypto.createHash('sha256').update(seed).digest('hex');
-};
+const cs = seed => crypto.createHash('sha256').update(seed).digest('hex');
 
 const rm = async () => {
   const logs = [];
   const { mp, sp, dp, ap, cp, pt, dc, cf } = gp();
-  const operationId = 'reset_' + Date.now();
+  const operationId = `reset_${Date.now()}`;
 
   try {
-    logs.push("ℹ️ Checking Config File...");
+    logs.push('ℹ️ Checking Config File...');
 
     // Проверка прав администратора
     const isAdmin = await checkAdminRights();
     if (!isAdmin) {
-      logs.push("⚠️ Warning: No administrator privileges, some operations may fail");
+      logs.push('⚠️ Warning: No administrator privileges, some operations may fail');
       logger.warn('No admin rights for reset operation');
     }
 
@@ -83,30 +80,41 @@ const rm = async () => {
     if (!validation.valid) {
       logs.push(`❌ Missing critical paths: ${validation.missing.join(', ')}`);
       logger.error(`Missing paths: ${validation.missing.join(', ')}`);
-      return await ld(logs, "Machine ID Reset");
+      return ld(logs, 'Machine ID Reset');
     }
 
     if (!fs.existsSync(dc)) {
       await fs.ensureDir(dc);
-      logs.push("ℹ️ Created config directory");
+      logs.push('ℹ️ Created config directory');
     }
 
-    logs.push("📄 Reading Current Config...");
+    logs.push('📄 Reading Current Config...');
 
     if (!fs.existsSync(sp)) {
-      logs.push("⚠️ Warning: Storage file not found, will create if needed");
+      logs.push('⚠️ Warning: Storage file not found, will create if needed');
     }
 
-    // Создаём бэкапы всех файлов перед модификацией
+    // Создаём бэкапы всех файлов перед модификацией (ПАРАЛЛЕЛЬНО)
     const filesToBackup = [sp, dp, mp, cp].filter(f => f && fs.existsSync(f));
-    for (const file of filesToBackup) {
-      const bkPath = await bk(file, operationId);
-      if (bkPath) {
-        logs.push(`💾 Backup: ${path.basename(bkPath)}`);
+    if (filesToBackup.length > 0) {
+      logs.push(`📦 Creating ${filesToBackup.length} backups in parallel...`);
+      const backupResults = await Promise.allSettled(
+        filesToBackup.map(file => bk(file, operationId))
+      );
+
+      for (let i = 0; i < backupResults.length; i++) {
+        const result = backupResults[i];
+        const file = filesToBackup[i];
+        if (result.status === 'fulfilled' && result.value) {
+          logs.push(`💾 Backup: ${path.basename(result.value)} (${path.basename(file)})`);
+        } else if (result.status === 'rejected') {
+          logs.push(`⚠️ Backup failed: ${path.basename(file)} - ${result.reason?.message || 'Unknown error'}`);
+          logger.warn(`Backup failed for ${file}: ${result.reason?.message}`, 'backup');
+        }
       }
     }
 
-    logs.push("🔄 Generating New Machine ID...");
+    logs.push('🔄 Generating New Machine ID...');
 
     const newGuid = `{${gm().replace(/-/g, '-').toUpperCase()}}`;
     const machId = uuidv4();
@@ -114,19 +122,22 @@ const rm = async () => {
     const sqmId = newGuid;
     const macId = crypto.randomBytes(64).toString('hex');
 
-    logs.push("📄 Saving New Config to JSON...");
-    
-    if (fs.existsSync(sp)) {
-      try {
-        const storageData = JSON.parse(await fs.readFile(sp, 'utf8'));
-        storageData['update.mode'] = 'none';
-        storageData['serviceMachineId'] = deviceId;
-        storageData['telemetry.devDeviceId'] = deviceId;
-        storageData['telemetry.macMachineId'] = macId;
-        storageData['telemetry.machineId'] = cs(machId);
-        storageData['telemetry.sqmId'] = sqmId;
-        await fs.writeFile(sp, JSON.stringify(storageData, null, 2));
-      } catch (err) {
+    logs.push('📄 Saving New Config to JSON...');
+
+    // TOCTOU FIX: Прямая обработка ошибок вместо existsSync
+    try {
+      const storageData = JSON.parse(await fs.readFile(sp, 'utf8'));
+      storageData['update.mode'] = 'none';
+      storageData.serviceMachineId = deviceId;
+      storageData['telemetry.devDeviceId'] = deviceId;
+      storageData['telemetry.macMachineId'] = macId;
+      storageData['telemetry.machineId'] = cs(machId);
+      storageData['telemetry.sqmId'] = sqmId;
+      await fs.writeFile(sp, JSON.stringify(storageData, null, 2));
+      logs.push('✅ Storage file updated');
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        // Файл не существует - создаём новый
         const newStorageData = {
           'update.mode': 'none',
           'serviceMachineId': deviceId,
@@ -135,114 +146,132 @@ const rm = async () => {
           'telemetry.machineId': cs(machId),
           'telemetry.sqmId': sqmId
         };
+        await fs.ensureDir(path.dirname(sp));
         await fs.writeFile(sp, JSON.stringify(newStorageData, null, 2));
+        logs.push('✅ Storage file created');
+      } else {
+        logs.push(`⚠️ Storage file error: ${err.message}`);
+        logger.warn(`Storage error: ${err.message}`, 'reset');
       }
-    } else {
-      const newStorageData = {
-        'update.mode': 'none',
-        'serviceMachineId': deviceId,
-        'telemetry.devDeviceId': deviceId,
-        'telemetry.macMachineId': macId,
-        'telemetry.machineId': cs(machId),
-        'telemetry.sqmId': sqmId
-      };
-      await fs.ensureDir(path.dirname(sp));
-      await fs.writeFile(sp, JSON.stringify(newStorageData, null, 2));
     }
-    
-    logs.push("ℹ️ Updating SQLite Database...");
-    
+
+    logs.push('ℹ️ Updating SQLite Database...');
+
     const newIds = {
-      "telemetry.devDeviceId": deviceId,
-      "telemetry.macMachineId": macId,
-      "telemetry.machineId": cs(machId),
-      "telemetry.sqmId": sqmId,
-      "storage.serviceMachineId": deviceId
+      'telemetry.devDeviceId': deviceId,
+      'telemetry.macMachineId': macId,
+      'telemetry.machineId': cs(machId),
+      'telemetry.sqmId': sqmId,
+      'storage.serviceMachineId': deviceId
     };
 
     if (fs.existsSync(dp)) {
       await bk(dp);
-      
+
       try {
-        const db = await open({
-          filename: dp,
-          driver: sqlite3.Database
-        });
-        
-        await db.exec(`
-          CREATE TABLE IF NOT EXISTS ItemTable (
-            key TEXT PRIMARY KEY,
-            value TEXT
-          )
-        `);
-        
+        // RETRY LOGIC: Открытие БД с повторными попытками
+        const db = await withRetry(
+          () => open({
+            filename: dp,
+            driver: sqlite3.Database
+          }),
+          { maxAttempts: 3, baseDelay: 500 }
+        );
+
+        // RETRY LOGIC: Создание таблицы с индексами
+        await withRetry(
+          () => db.exec(`
+            CREATE TABLE IF NOT EXISTS ItemTable (
+              key TEXT PRIMARY KEY,
+              value TEXT
+            )
+          `),
+          { maxAttempts: 2 }
+        );
+
+        // Добавляем индексы для ускорения поиска по ключам
+        await withRetry(
+          () => db.exec(`
+            CREATE INDEX IF NOT EXISTS idx_key_prefix ON ItemTable(key);
+            CREATE INDEX IF NOT EXISTS idx_cursor_keys ON ItemTable(key) WHERE key LIKE '%cursor%';
+            CREATE INDEX IF NOT EXISTS idx_telemetry_keys ON ItemTable(key) WHERE key LIKE '%telemetry%';
+          `),
+          { maxAttempts: 2 }
+        );
+
         for (const [key, value] of Object.entries(newIds)) {
           await db.run(`
-            INSERT OR REPLACE INTO ItemTable (key, value) 
+            INSERT OR REPLACE INTO ItemTable (key, value)
             VALUES (?, ?)
           `, [key, JSON.stringify(value)]);
           logs.push(`ℹ️ Updating Key-Value Pair: ${key}`);
         }
-        
+
         await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
         await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
         await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.lastUpdateCheck%'`);
         await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.trialStartTime%'`);
         await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.trialEndTime%'`);
-        
+
         await db.close();
-        logs.push("✅ SQLite Database Updated Successfully");
+        logs.push('✅ SQLite Database Updated Successfully');
       } catch (err) {
         logs.push(`⚠️ SQLite Update Error: ${err.message}`);
       }
     } else {
-      logs.push("⚠️ SQLite Database not found, skipping database updates");
+      logs.push('⚠️ SQLite Database not found, skipping database updates');
     }
-    
-    logs.push("ℹ️ Updating System IDs...");
-    
-    if (fs.existsSync(mp)) {
+
+    logs.push('ℹ️ Updating System IDs...');
+
+    // TOCTOU FIX: Machine ID file
+    try {
       await bk(mp);
       await fs.writeFile(mp, machId);
-      logs.push("✅ Machine ID File Updated");
-    } else {
-      await fs.ensureDir(path.dirname(mp));
-      await fs.writeFile(mp, machId);
-      logs.push("✅ Machine ID File Created");
+      logs.push('✅ Machine ID File Updated');
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        await fs.ensureDir(path.dirname(mp));
+        await fs.writeFile(mp, machId);
+        logs.push('✅ Machine ID File Created');
+      } else {
+        logs.push(`⚠️ Machine ID error: ${err.message}`);
+      }
     }
-    
-    if (fs.existsSync(cp)) {
+
+    // TOCTOU FIX: Cursor.json file
+    try {
       await bk(cp);
-      try {
-        const cursorData = JSON.parse(await fs.readFile(cp, 'utf8'));
-        if (cursorData) {
-          if (cursorData.global && cursorData.global.usage) {
-            cursorData.global.usage.sessionCount = 0;
-            cursorData.global.usage.tokenCount = 0;
-          } else {
-            cursorData.global = {
-              usage: {
-                sessionCount: 0,
-                tokenCount: 0
-              }
-            };
-          }
-          cursorData.tier = "pro";
-          await fs.writeFile(cp, JSON.stringify(cursorData, null, 2));
-          logs.push("✅ Cursor.json Updated Successfully");
+      const cursorData = JSON.parse(await fs.readFile(cp, 'utf8'));
+      if (cursorData) {
+        if (cursorData.global && cursorData.global.usage) {
+          cursorData.global.usage.sessionCount = 0;
+          cursorData.global.usage.tokenCount = 0;
+        } else {
+          cursorData.global = {
+            usage: {
+              sessionCount: 0,
+              tokenCount: 0
+            }
+          };
         }
-      } catch (err) {
+        cursorData.tier = 'pro';
+        await fs.writeFile(cp, JSON.stringify(cursorData, null, 2));
+        logs.push('✅ Cursor.json Updated Successfully');
+      }
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
         logs.push(`⚠️ Cursor.json Update Error: ${err.message}`);
       }
     }
-    
+
     if (pt === 'win32') {
       try {
         const wr = await updateWindowsRegistry(newGuid);
         if (wr) {
-          logs.push("✅ Windows Machine GUID Updated Successfully");
+          logs.push('✅ Windows Machine GUID Updated Successfully');
           logs.push(`ℹ️ New Machine ID: ${newGuid}`);
-          logs.push("✅ Windows Machine ID Updated Successfully");
+          logs.push('✅ Windows Machine ID Updated Successfully');
         }
       } catch (err) {
         logs.push(`⚠️ Windows Registry Update Error: ${err.message}`);
@@ -251,29 +280,29 @@ const rm = async () => {
       try {
         const mr = await updateMacOSPlatformUUID(macId);
         if (mr) {
-          logs.push("✅ macOS Platform UUID Updated Successfully");
+          logs.push('✅ macOS Platform UUID Updated Successfully');
         }
 
         const kr = await clearKeychain();
         if (kr) {
-          logs.push("✅ macOS Keychain Cleared Successfully");
+          logs.push('✅ macOS Keychain Cleared Successfully');
         }
       } catch (err) {
         logs.push(`⚠️ macOS Update Error: ${err.message}`);
       }
     }
-    
-    logs.push("✅ Machine ID Reset Successfully");
-    logs.push("\nℹ️ New IDs:");
+
+    logs.push('✅ Machine ID Reset Successfully');
+    logs.push('\nℹ️ New IDs:');
     for (const [key, value] of Object.entries(newIds)) {
       logs.push(`ℹ️ ${key}: ${value}`);
     }
-    
-    return await ld(logs, "Machine ID Reset");
+
+    return ld(logs, 'Machine ID Reset');
   } catch (err) {
     logs.push(`❌ Process Error: ${err.message}`);
     logger.error(`Reset failed: ${err.message}`, 'reset');
-    
+
     // Откат изменений при ошибке
     logger.info('Attempting rollback...', 'rollback');
     const rollbackResult = await globalBackupManager.rollback(operationId);
@@ -281,8 +310,8 @@ const rm = async () => {
       logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored, ${rollbackResult.failed} failed`);
       logger.info(`Rollback completed: ${rollbackResult.restored} restored, ${rollbackResult.failed} failed`, 'rollback');
     }
-    
-    return await ld(logs, "Machine ID Reset");
+
+    return ld(logs, 'Machine ID Reset');
   }
 };
 
@@ -295,15 +324,15 @@ const bt = async () => {
   const logs = [];
   const { dp } = gp();
   const workbenchPath = gw();
-  const operationId = 'bypass_' + Date.now();
+  const operationId = `bypass_${Date.now()}`;
 
   try {
-    logs.push("ℹ️ Starting token limit bypass...");
+    logs.push('ℹ️ Starting token limit bypass...');
 
     if (!fs.existsSync(workbenchPath)) {
       logs.push(`❌ Workbench file not found at: ${workbenchPath}`);
       logger.error(`Workbench not found: ${workbenchPath}`, 'bypass');
-      return await ld(logs, "Bypass Token Limit");
+      return ld(logs, 'Bypass Token Limit');
     }
 
     const bkPath = await bk(workbenchPath, operationId);
@@ -325,10 +354,10 @@ const bt = async () => {
     }
 
     await fs.writeFile(workbenchPath, modified);
-    logs.push("✅ Workbench file modified successfully");
-    
+    logs.push('✅ Workbench file modified successfully');
+
     if (fs.existsSync(dp)) {
-      logs.push("ℹ️ Updating SQLite database for token limits...");
+      logs.push('ℹ️ Updating SQLite database for token limits...');
       await bk(dp);
 
       try {
@@ -339,48 +368,48 @@ const bt = async () => {
 
         await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
         await db.close();
-        logs.push("✅ SQLite database updated for token limits");
+        logs.push('✅ SQLite database updated for token limits');
       } catch (err) {
         logs.push(`⚠️ SQLite update error: ${err.message}`);
       }
     }
-    
-    logs.push("✅ Token limit bypass completed successfully");
-    return await ld(logs, "Bypass Token Limit");
+
+    logs.push('✅ Token limit bypass completed successfully');
+    return ld(logs, 'Bypass Token Limit');
   } catch (err) {
     logs.push(`❌ Token limit bypass error: ${err.message}`);
     logger.error(`Bypass failed: ${err.message}`, 'bypass');
-    
+
     // Откат изменений при ошибке
     const rollbackResult = await globalBackupManager.rollback(operationId);
     if (rollbackResult.restored > 0) {
       logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored`);
     }
-    
-    return await ld(logs, "Bypass Token Limit");
+
+    return ld(logs, 'Bypass Token Limit');
   }
 };
 
 const du = async () => {
   const { ap, pt, up } = gp();
   const logs = [];
-  const operationId = 'disable_update_' + Date.now();
+  const operationId = `disable_update_${Date.now()}`;
 
   try {
-    logs.push("ℹ️ Starting auto-update disabling process...");
-    
-    logs.push("🔄 Terminating any running Cursor processes...");
+    logs.push('ℹ️ Starting auto-update disabling process...');
+
+    logs.push('🔄 Terminating any running Cursor processes...');
     try {
       if (pt === 'win32') {
         await execPromise('taskkill /F /IM Cursor.exe /T');
       } else {
         await execPromise('pkill -f Cursor');
       }
-      logs.push("✅ Cursor processes terminated successfully");
+      logs.push('✅ Cursor processes terminated successfully');
     } catch (e) {
-      logs.push("ℹ️ No running Cursor processes found");
+      logs.push('ℹ️ No running Cursor processes found');
     }
-    
+
     let updaterPath;
     if (pt === 'win32') {
       updaterPath = path.join(os.homedir(), 'AppData', 'Local', 'cursor-updater');
@@ -389,7 +418,7 @@ const du = async () => {
     } else if (pt === 'linux') {
       updaterPath = path.join(os.homedir(), '.config', 'cursor-updater');
     }
-    
+
     logs.push(`🔄 Removing updater directory: ${updaterPath}`);
     if (fs.existsSync(updaterPath)) {
       try {
@@ -398,38 +427,38 @@ const du = async () => {
         } else {
           await fs.unlink(updaterPath);
         }
-        logs.push("✅ Updater directory successfully removed");
+        logs.push('✅ Updater directory successfully removed');
       } catch (e) {
         logs.push(`⚠️ Updater directory is locked, skipping removal: ${e.message}`);
       }
     } else {
-      logs.push("ℹ️ Updater directory not found, creating blocker file");
+      logs.push('ℹ️ Updater directory not found, creating blocker file');
     }
 
     if (!up) {
-      logs.push("⚠️ Update.yml path not found for this platform");
+      logs.push('⚠️ Update.yml path not found for this platform');
     } else {
       logs.push(`🔄 Clearing update.yml file: ${up}`);
       try {
         if (fs.existsSync(up)) {
           await bk(up);
           await fs.writeFile(up, '', 'utf8');
-          logs.push("✅ Update.yml file successfully cleared");
+          logs.push('✅ Update.yml file successfully cleared');
         } else {
-          logs.push("ℹ️ Update.yml file not found, creating new one");
+          logs.push('ℹ️ Update.yml file not found, creating new one');
           await fs.ensureDir(path.dirname(up));
         }
       } catch (e) {
         logs.push(`⚠️ Failed to clear update.yml file: ${e.message}`);
       }
     }
-    
-    logs.push("🔄 Creating blocker files to prevent auto-updates...");
-    
+
+    logs.push('🔄 Creating blocker files to prevent auto-updates...');
+
     try {
       await fs.ensureDir(path.dirname(updaterPath));
       await fs.writeFile(updaterPath, '', 'utf8');
-      
+
       if (pt === 'win32') {
         try {
           await execPromise(`attrib +r "${updaterPath}"`);
@@ -443,16 +472,16 @@ const du = async () => {
           logs.push(`⚠️ Failed to set updater file permissions: ${e.message}`);
         }
       }
-      logs.push("✅ Updater blocker file created successfully");
+      logs.push('✅ Updater blocker file created successfully');
     } catch (e) {
       logs.push(`⚠️ Failed to create updater blocker file: ${e.message}`);
     }
-    
+
     if (up) {
       try {
         await fs.ensureDir(path.dirname(up));
         await fs.writeFile(up, '# This file is locked to prevent auto-updates\nversion: 0.0.0\n', 'utf8');
-        
+
         if (pt === 'win32') {
           try {
             await execPromise(`attrib +r "${up}"`);
@@ -466,48 +495,48 @@ const du = async () => {
             logs.push(`⚠️ Failed to set update.yml permissions: ${e.message}`);
           }
         }
-        logs.push("✅ Update.yml blocker file created successfully");
+        logs.push('✅ Update.yml blocker file created successfully');
       } catch (e) {
         logs.push(`⚠️ Failed to create update.yml blocker file: ${e.message}`);
       }
     }
-    
+
     const pj = path.join(ap, 'product.json');
     if (fs.existsSync(pj)) {
       logs.push(`🔄 Modifying product.json to remove update URLs: ${pj}`);
       try {
         const bkPath = await bk(pj);
         logs.push(`💾 Created backup: ${bkPath}`);
-        
+
         let content = await fs.readFile(pj, 'utf8');
-        
+
         content = content.replace(/https:\/\/api2\.cursor\.sh\/aiserver\.v1\.AuthService\/DownloadUpdate/g, '')
           .replace(/https:\/\/api2\.cursor\.sh\/updates/g, '')
           .replace(/http:\/\/cursorapi\.com\/updates/g, '');
-          
+
         await fs.writeFile(pj, content, 'utf8');
-        logs.push("✅ Update URLs successfully removed from product.json");
+        logs.push('✅ Update URLs successfully removed from product.json');
       } catch (e) {
         logs.push(`⚠️ Failed to modify product.json: ${e.message}`);
       }
     } else {
       logs.push(`⚠️ Product.json not found at: ${pj}`);
     }
-    
-    logs.push("✅ Auto-updates successfully disabled");
 
-    return await ld(logs, "Disable Auto-Update");
+    logs.push('✅ Auto-updates successfully disabled');
+
+    return ld(logs, 'Disable Auto-Update');
   } catch (e) {
     logs.push(`❌ Error disabling auto-updates: ${e.message}`);
     logger.error(`Disable update failed: ${e.message}`, 'disable-update');
-    
+
     // Откат изменений при ошибке
     const rollbackResult = await globalBackupManager.rollback(operationId);
     if (rollbackResult.restored > 0) {
       logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored`);
     }
-    
-    return await ld(logs, "Disable Auto-Update");
+
+    return ld(logs, 'Disable Auto-Update');
   }
 };
 
@@ -515,13 +544,13 @@ const pc = async () => {
   const logs = [];
   const { dp } = gp();
   const workbenchPath = gw();
-  const operationId = 'pro_conversion_' + Date.now();
+  const operationId = `pro_conversion_${Date.now()}`;
 
   try {
-    logs.push("ℹ️ Starting Pro conversion...");
-    
+    logs.push('ℹ️ Starting Pro conversion...');
+
     if (fs.existsSync(dp)) {
-      logs.push("ℹ️ Updating SQLite database for Pro features...");
+      logs.push('ℹ️ Updating SQLite database for Pro features...');
       await bk(dp);
 
       try {
@@ -532,16 +561,16 @@ const pc = async () => {
 
         await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
         await db.close();
-        logs.push("✅ Pro features enabled in SQLite database");
+        logs.push('✅ Pro features enabled in SQLite database');
       } catch (err) {
         logs.push(`⚠️ SQLite update error: ${err.message}`);
       }
     } else {
-      logs.push("⚠️ SQLite database not found, skipping database update");
+      logs.push('⚠️ SQLite database not found, skipping database update');
     }
-    
+
     if (fs.existsSync(workbenchPath)) {
-      logs.push("ℹ️ Modifying workbench file for Pro UI...");
+      logs.push('ℹ️ Modifying workbench file for Pro UI...');
       const bkPath = await bk(workbenchPath);
       logs.push(`💾 Created backup: ${bkPath}`);
 
@@ -549,7 +578,7 @@ const pc = async () => {
 
       // Комбинируем паттерны для Pro конвертации
       let modified = content;
-      
+
       // Применяем паттерны для Pro UI
       for (const [key, { pattern, replacement }] of Object.entries(config.proConversionPatterns)) {
         try {
@@ -562,40 +591,40 @@ const pc = async () => {
       }
 
       await fs.writeFile(workbenchPath, modified);
-      logs.push("✅ Workbench file modified for Pro UI");
+      logs.push('✅ Workbench file modified for Pro UI');
     } else {
       logs.push(`⚠️ Workbench file not found at: ${workbenchPath}`);
     }
-    
-    logs.push("✅ Pro conversion completed successfully");
-    return await ld(logs, "Pro Conversion + Custom UI");
+
+    logs.push('✅ Pro conversion completed successfully');
+    return ld(logs, 'Pro Conversion + Custom UI');
   } catch (err) {
     logs.push(`❌ Pro conversion error: ${err.message}`);
     logger.error(`Pro conversion failed: ${err.message}`, 'pro');
-    
+
     // Откат изменений при ошибке
     const rollbackResult = await globalBackupManager.rollback(operationId);
     if (rollbackResult.restored > 0) {
       logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored`);
     }
-    
-    return await ld(logs, "Pro Conversion + Custom UI");
+
+    return ld(logs, 'Pro Conversion + Custom UI');
   }
 };
 
 const ld = async (logs, toolName) => {
-  const hd = "==================================================";
+  const hd = '==================================================';
   const t1 = `🔄 Cursor ${toolName} Tool`;
-  
-  let lg = [];
+
+  const lg = [];
   lg.push(hd);
   lg.push(t1);
   lg.push(hd);
-  
+
   logs.forEach(l => {
     lg.push(l);
   });
-  
+
   return lg.join('\n');
 };
 
@@ -612,7 +641,7 @@ rt.get('/patch', async (req, res) => {
   try {
     const action = req.query.action || 'bypass';
     let result;
-    
+
     if (action === 'bypass') {
       result = await bt();
     } else if (action === 'disable') {
@@ -622,7 +651,7 @@ rt.get('/patch', async (req, res) => {
     } else {
       result = await bt();
     }
-    
+
     res.json({ success: true, log: result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -635,7 +664,7 @@ rt.get('/paths', async (req, res) => {
 
     // Кэшированная проверка процесса Cursor
     const cacheKey = `cursor_running_${pt}`;
-    let isRunning = await globalCache.getOrCompute(
+    const isRunning = await globalCache.getOrCompute(
       cacheKey,
       () => checkCursorProcess(pt),
       2000 // 2 секунды кэш
@@ -674,13 +703,13 @@ rt.get('/paths', async (req, res) => {
         const data = await fs.readFile(sp, 'utf8');
         const json = JSON.parse(data);
         info.storage = {
-          machineId: json['telemetry.machineId'] || json['serviceMachineId'],
+          machineId: json['telemetry.machineId'] || json.serviceMachineId,
           devDeviceId: json['telemetry.devDeviceId'],
           tier: json['cursor.tier'] || 'unknown'
         };
       } catch (e) {}
     }
-    
+
     if (fs.existsSync(dp)) {
       try {
         const db = await open({
@@ -699,8 +728,8 @@ rt.get('/paths', async (req, res) => {
         await db.close();
       } catch (e) {}
     }
-  
-  res.json(info);
+
+    res.json(info);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -727,16 +756,32 @@ import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
  */
 rt.post('/proxy/add', (req, res) => {
   try {
-    const { url, protocol = 'socks5' } = req.body;
-    
-    if (!url) {
-      return res.status(400).json({ error: 'Proxy URL is required' });
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      url: {
+        type: 'url',
+        required: true,
+        requiredMessage: 'Proxy URL is required'
+      },
+      protocol: {
+        type: 'proxyProtocol',
+        default: 'socks5'
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
     }
-    
+
+    const { url, protocol } = validation.data;
     globalProxyManager.addProxy(url, protocol);
-    res.json({ success: true, message: 'Proxy added' });
+    res.json({ success: true, message: 'Proxy added', proxy: { url, protocol } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Proxy add error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -837,26 +882,67 @@ rt.post('/proxy-db/refresh', async (req, res) => {
 
 rt.post('/proxy-db/check', async (req, res) => {
   try {
-    const { concurrency = 5 } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      concurrency: {
+        type: 'number',
+        min: 1,
+        max: 50,
+        integer: true,
+        default: 5
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { concurrency } = validation.data;
     const result = await globalProxyDatabase.checkAllProxies(concurrency);
     res.json({ success: true, ...result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Proxy check error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 rt.post('/proxy-db/auto-update', async (req, res) => {
   try {
-    const { enable, interval = 300000 } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      enable: {
+        type: 'boolean',
+        required: true
+      },
+      interval: {
+        type: 'number',
+        min: 60000,
+        max: 86400000,
+        default: 300000
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { enable, interval } = validation.data;
     if (enable) {
       globalProxyDatabase.enableAutoUpdate(interval);
-      res.json({ success: true, message: 'Auto-update enabled' });
+      res.json({ success: true, message: 'Auto-update enabled', interval });
     } else {
       globalProxyDatabase.disableAutoUpdate();
       res.json({ success: true, message: 'Auto-update disabled' });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Proxy auto-update error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -876,11 +962,33 @@ rt.get('/proxy-db/random', async (req, res) => {
 
 rt.post('/proxy-db/import', async (req, res) => {
   try {
-    const { filePath, defaultProtocol = 'socks5' } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      filePath: {
+        type: 'string',
+        required: true,
+        sanitize: 'path',
+        requiredMessage: 'File path is required'
+      },
+      defaultProtocol: {
+        type: 'proxyProtocol',
+        default: 'socks5'
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { filePath, defaultProtocol } = validation.data;
     const count = await globalProxyDatabase.importFromFile(filePath, defaultProtocol);
     res.json({ success: true, imported: count });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Proxy import error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -896,11 +1004,30 @@ rt.post('/proxy-db/export', async (req, res) => {
 
 rt.delete('/proxy-db/cleanup', async (req, res) => {
   try {
-    const { maxFailures = 3 } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      maxFailures: {
+        type: 'number',
+        min: 1,
+        max: 100,
+        integer: true,
+        default: 3
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { maxFailures } = validation.data;
     const removed = globalProxyDatabase.cleanupFailed(maxFailures);
     res.json({ success: true, removed });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Proxy cleanup error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -919,16 +1046,34 @@ rt.get('/dns/current', async (req, res) => {
 
 rt.post('/dns/set', async (req, res) => {
   try {
-    const { provider } = req.body;
-    
-    if (!provider || !DNS_SERVERS[provider]) {
-      return res.status(400).json({ error: 'Invalid DNS provider' });
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      provider: {
+        type: 'string',
+        required: true,
+        validate: value => {
+          const { DNS_SERVERS } = require('../utils/dnsManager.js');
+          if (!DNS_SERVERS[value]) {
+            return { valid: false, error: `Invalid DNS provider. Available: ${Object.keys(DNS_SERVERS).join(', ')}` };
+          }
+          return { valid: true };
+        }
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
     }
-    
+
+    const { provider } = validation.data;
     const success = await globalDNSManager.setDNS(provider);
-    res.json({ success, provider: DNS_SERVERS[provider] });
+    res.json({ success, provider });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`DNS set error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -996,11 +1141,35 @@ rt.get('/fingerprint/info', async (req, res) => {
 
 rt.post('/fingerprint/reset', async (req, res) => {
   try {
-    const { changeMAC = true, changeHostname = true, flushDNS = true } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      changeMAC: {
+        type: 'boolean',
+        default: true
+      },
+      changeHostname: {
+        type: 'boolean',
+        default: true
+      },
+      flushDNS: {
+        type: 'boolean',
+        default: true
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { changeMAC, changeHostname, flushDNS } = validation.data;
     const result = await globalFingerprintManager.resetFingerprint({ changeMAC, changeHostname, flushDNS });
     res.json({ success: true, result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Fingerprint reset error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1016,7 +1185,7 @@ rt.post('/fingerprint/mac', async (req, res) => {
 rt.post('/fingerprint/hostname', async (req, res) => {
   try {
     const { name } = req.body;
-    const success = name 
+    const success = name
       ? await globalFingerprintManager.setHostname(name)
       : await globalFingerprintManager.changeHostname();
     res.json({ success: true, hostname: globalFingerprintManager.getHostname() });
@@ -1039,11 +1208,34 @@ rt.get('/email/session', (req, res) => {
 
 rt.post('/email/create', async (req, res) => {
   try {
-    const { service = 'guerrillamail' } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      service: {
+        type: 'string',
+        default: 'guerrillamail',
+        validate: value => {
+          const validServices = ['guerrillamail', 'tempmail', 'maildrop'];
+          if (!validServices.includes(value)) {
+            return { valid: false, error: `Invalid service. Available: ${validServices.join(', ')}` };
+          }
+          return { valid: true };
+        }
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { service } = validation.data;
     const result = await globalEmailManager.createEmail(service);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Email create error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1058,9 +1250,31 @@ rt.get('/email/messages', async (req, res) => {
 
 rt.post('/email/wait', async (req, res) => {
   try {
-    const { subjectContains = 'cursor', timeout = 120000 } = req.body;
+    // Валидация входных данных
+    const validation = validateRequest(req.body, {
+      subjectContains: {
+        type: 'string',
+        default: 'cursor',
+        maxLength: 100
+      },
+      timeout: {
+        type: 'number',
+        min: 5000,
+        max: 600000,
+        default: 120000
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors
+      });
+    }
+
+    const { subjectContains, timeout } = validation.data;
     const message = await globalEmailManager.waitForMessage({ subjectContains, timeout });
-    
+
     if (message) {
       const code = globalEmailManager.extractVerificationCode(message.body);
       const link = globalEmailManager.extractVerificationLink(message.body);
@@ -1069,7 +1283,8 @@ rt.post('/email/wait', async (req, res) => {
       res.status(408).json({ error: 'Timeout waiting for message' });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Email wait error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1128,12 +1343,12 @@ rt.post('/monitor/stop', (req, res) => {
  */
 rt.post('/bypass/auto', async (req, res) => {
   try {
-    const { 
-      changeProxy = true, 
-      changeDNS = true, 
-      changeFingerprint = false 
+    const {
+      changeProxy = true,
+      changeDNS = true,
+      changeFingerprint = false
     } = req.body;
-    
+
     const results = {
       proxy: null,
       dns: null,
@@ -1141,10 +1356,10 @@ rt.post('/bypass/auto', async (req, res) => {
       ipBefore: null,
       ipAfter: null
     };
-    
+
     // Проверка IP до изменений
     results.ipBefore = await globalIPManager.getCurrentIP();
-    
+
     // Смена прокси
     if (changeProxy) {
       const proxy = globalProxyManager.rotateProxy();
@@ -1154,19 +1369,19 @@ rt.post('/bypass/auto', async (req, res) => {
         results.proxy = { success: false, error: 'No working proxies' };
       }
     }
-    
+
     // Смена DNS
     if (changeDNS) {
       const dnsSuccess = await globalDNSManager.setDNS('cloudflare');
       results.dns = { success: dnsSuccess };
     }
-    
+
     // Смена fingerprint
     if (changeFingerprint) {
       const fpResult = await globalFingerprintManager.resetFingerprint();
       results.fingerprint = fpResult;
     }
-    
+
     // Проверка IP после изменений
     results.ipAfter = await globalIPManager.getCurrentIP({ useCache: false });
     results.ipChanged = results.ipBefore?.ip !== results.ipAfter?.ip;

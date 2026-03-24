@@ -58,17 +58,17 @@ export class VPNManager {
    */
   async init() {
     logger.info('Initializing VPN Manager...', 'vpn');
-    
+
     // Создание директории для конфигов
     await fs.ensureDir(this.configPath);
-    
+
     // Проверка установленных VPN клиентов
     const wireguardInstalled = await this.checkWireGuard();
     const openvpnInstalled = await this.checkOpenVPN();
-    
+
     logger.info(`WireGuard: ${wireguardInstalled ? 'installed' : 'not installed'}`, 'vpn');
     logger.info(`OpenVPN: ${openvpnInstalled ? 'installed' : 'not installed'}`, 'vpn');
-    
+
     return { wireguard: wireguardInstalled, openvpn: openvpnInstalled };
   }
 
@@ -132,10 +132,10 @@ export class VPNManager {
 
     const configDir = VPN_CONFIG.wireguard.configDir[this.platform];
     const configFile = path.join(this.configPath, `${name}.conf`);
-    
+
     fs.writeFileSync(configFile, wgConfig);
     logger.info(`WireGuard config created: ${configFile}`, 'vpn');
-    
+
     return configFile;
   }
 
@@ -155,7 +155,7 @@ export class VPNManager {
         await fs.copy(configFile, dest);
         await fs.chmod(dest, 0o600);
       }
-      
+
       logger.info(`WireGuard config imported: ${configFile}`, 'vpn');
       return true;
     } catch (error) {
@@ -179,7 +179,7 @@ export class VPNManager {
       } else {
         await execPromise(`sudo wg-quick up ${tunnelName}`);
       }
-      
+
       this.currentConnection = { type: 'wireguard', name: tunnelName };
       logger.info(`WireGuard connected: ${tunnelName}`, 'vpn');
       return true;
@@ -204,7 +204,7 @@ export class VPNManager {
       } else {
         await execPromise(`sudo wg-quick down ${tunnelName}`);
       }
-      
+
       this.currentConnection = null;
       logger.info(`WireGuard disconnected: ${tunnelName}`, 'vpn');
       return true;
@@ -239,7 +239,7 @@ export class VPNManager {
     ovpnConfig += `remote ${remote} ${port}\n`;
     ovpnConfig += `resolv-retry infinite\nnobind\npersist-key\npersist-tun\n`;
     ovpnConfig += `cipher ${cipher}\nauth ${auth}\ncomp-lzo\nverb 3\n`;
-    
+
     if (compress) {
       ovpnConfig += `compress ${compress}\n`;
     }
@@ -261,7 +261,7 @@ export class VPNManager {
     const configFile = path.join(this.configPath, `${name}.ovpn`);
     fs.writeFileSync(configFile, ovpnConfig);
     logger.info(`OpenVPN config created: ${configFile}`, 'vpn');
-    
+
     return configFile;
   }
 
@@ -273,32 +273,32 @@ export class VPNManager {
    */
   async connectOpenVPN(configFile, options = {}) {
     const { authUserPass } = options;
-    
+
     try {
       const binary = VPN_CONFIG.openvpn.binary[this.platform];
       const args = [`--config "${configFile}"`, '--daemon'];
-      
+
       if (authUserPass) {
         const authFile = path.join(this.configPath, 'auth.txt');
         fs.writeFileSync(authFile, authUserPass);
         args.push(`--auth-user-pass "${authFile}"`);
       }
-      
+
       const command = `"${binary}" ${args.join(' ')}`;
-      
+
       // Запуск в фоне
       exec(command, (error, stdout, stderr) => {
         if (error) {
           logger.error(`OpenVPN error: ${error.message}`, 'vpn');
         }
       });
-      
+
       // Ожидание подключения
       await new Promise(resolve => setTimeout(resolve, 5000));
-      
+
       this.currentConnection = { type: 'openvpn', config: configFile };
       logger.info(`OpenVPN connected: ${configFile}`, 'vpn');
-      
+
       return { success: true, pid: null };
     } catch (error) {
       logger.error(`OpenVPN connect failed: ${error.message}`, 'vpn');
@@ -317,7 +317,7 @@ export class VPNManager {
       } else {
         await execPromise('sudo pkill openvpn');
       }
-      
+
       this.currentConnection = null;
       logger.info('OpenVPN disconnected', 'vpn');
       return true;
@@ -352,21 +352,21 @@ export class VPNManager {
       ip: null,
       country: null
     };
-    
+
     if (this.currentConnection) {
       try {
         // Получение внешнего IP
         const fetch = (await import('node-fetch')).default;
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
-        
+
         status.ip = data.ip;
         status.country = data.country_name;
       } catch (error) {
         logger.debug(`Failed to get VPN status: ${error.message}`, 'vpn');
       }
     }
-    
+
     return status;
   }
 
@@ -378,7 +378,7 @@ export class VPNManager {
     try {
       const files = await fs.readdir(this.configPath);
       const configs = [];
-      
+
       for (const file of files) {
         if (file.endsWith('.conf')) {
           configs.push({
@@ -394,7 +394,7 @@ export class VPNManager {
           });
         }
       }
-      
+
       return configs;
     } catch (error) {
       return [];
@@ -410,14 +410,14 @@ export class VPNManager {
     try {
       const confFile = path.join(this.configPath, `${name}.conf`);
       const ovpnFile = path.join(this.configPath, `${name}.ovpn`);
-      
+
       if (await fs.pathExists(confFile)) {
         await fs.remove(confFile);
       }
       if (await fs.pathExists(ovpnFile)) {
         await fs.remove(ovpnFile);
       }
-      
+
       logger.info(`VPN config deleted: ${name}`, 'vpn');
       return true;
     } catch (error) {
@@ -436,20 +436,20 @@ export class VPNManager {
         // Windows требует установленный WireGuard для генерации ключей
         const { stdout: privateKey } = await execPromise('wgen privatekey');
         const { stdout: publicKey } = await execPromise(`echo ${privateKey.trim()} | wgen publickey`);
-        
-        return {
-          privateKey: privateKey.trim(),
-          publicKey: publicKey.trim()
-        };
-      } else {
-        const { stdout: privateKey } = await execPromise('wg genkey');
-        const { stdout: publicKey } = await execPromise(`echo ${privateKey.trim()} | wg pubkey`);
-        
+
         return {
           privateKey: privateKey.trim(),
           publicKey: publicKey.trim()
         };
       }
+      const { stdout: privateKey } = await execPromise('wg genkey');
+      const { stdout: publicKey } = await execPromise(`echo ${privateKey.trim()} | wg pubkey`);
+
+      return {
+        privateKey: privateKey.trim(),
+        publicKey: publicKey.trim()
+      };
+
     } catch (error) {
       logger.error(`Key generation failed: ${error.message}`, 'vpn');
       return null;
@@ -462,26 +462,26 @@ export class VPNManager {
    */
   async quickConnect() {
     logger.info('Quick connect initiated...', 'vpn');
-    
+
     // Проверка доступных VPN
     const wireguard = await this.checkWireGuard();
     const openvpn = await this.checkOpenVPN();
-    
+
     if (!wireguard && !openvpn) {
       return {
         success: false,
         error: 'No VPN client installed. Install WireGuard or OpenVPN.'
       };
     }
-    
+
     // Отключение текущего подключения
     if (this.currentConnection) {
       await this.disconnect();
     }
-    
+
     // Получение статуса
     const status = await this.getStatus();
-    
+
     return {
       success: true,
       message: 'Quick connect completed',

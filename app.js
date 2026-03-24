@@ -27,24 +27,22 @@ const __dirname = path.dirname(__filename);
  */
 const DynamicConfig = {
   ports: { http: null, ws: null },
-  
+
   autoSelectPort: async (startPort = 3000, maxAttempts = 20) => {
     for (let i = 0; i < maxAttempts; i++) {
       const port = startPort + i;
       const available = await DynamicConfig.checkPort(port);
-      if (available) return port;
+      if (available) {return port;}
     }
     throw new Error(`No available ports in range ${startPort}-${startPort + maxAttempts}`);
   },
 
-  checkPort: (port) => {
-    return new Promise((resolve) => {
-      const server = net.createServer();
-      server.once('error', () => resolve(false));
-      server.once('listening', () => { server.close(); resolve(true); });
-      server.listen(port);
-    });
-  },
+  checkPort: port => new Promise(resolve => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => { server.close(); resolve(true); });
+    server.listen(port);
+  }),
 
   init: async () => {
     DynamicConfig.ports.http = await DynamicConfig.autoSelectPort(3000);
@@ -189,9 +187,7 @@ app.get('/', (req, res) => {
   const lang = req.query.lang || req.headers['accept-language']?.split(',')[0]?.split('-')[0] || 'ru';
   const validLang = getSupportedLanguages().includes(lang) ? lang : 'ru';
   const translations = getTranslations(validLang);
-  const t = (key) => {
-    return translations[key] || translations.en[key] || key;
-  };
+  const t = key => translations[key] || translations.en[key] || key;
   res.render('index', { lang: validLang, t, port, wsPort, translations });
 });
 
@@ -287,7 +283,7 @@ app.delete('/api/metrics/clear', async (req, res) => {
 app.use('/api', resetRouter);
 
 // Graceful shutdown
-const gracefulShutdown = async (signal) => {
+const gracefulShutdown = async signal => {
   logger.info(`Graceful shutdown initiated (${signal})`, 'app');
   globalWSServer.stop();
   server.close(() => {
@@ -326,11 +322,24 @@ app.use((req, res) => {
 let currentServer = server;
 const startServer = async () => {
   try {
-    // Инициализация менеджеров
-    await globalMonitorManager.init();
-    await globalFingerprintManager.init();
-    await globalProxyDatabase.init();
-    await globalMetricsManager.init();
+    // Инициализация менеджеров (ПАРАЛЛЕЛЬНО для ускорения запуска)
+    const initResults = await Promise.allSettled([
+      globalMonitorManager.init(),
+      globalFingerprintManager.init(),
+      globalProxyDatabase.init(),
+      globalMetricsManager.init()
+    ]);
+
+    // Логирование результатов инициализации
+    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics'];
+    for (let i = 0; i < initResults.length; i++) {
+      const result = initResults[i];
+      if (result.status === 'rejected') {
+        logger.error(`${managers[i]} manager init failed: ${result.reason?.message}`, 'app');
+      } else {
+        logger.info(`${managers[i]} manager initialized`, 'app');
+      }
+    }
 
     // Запуск авто-мониторинга
     globalMonitorManager.enableAutoCheck(60000);
@@ -361,7 +370,7 @@ const startServer = async () => {
     });
 
     // Auto-recovery при ошибке сервера
-    currentServer.on('error', async (err) => {
+    currentServer.on('error', async err => {
       if (err.code === 'EADDRINUSE') {
         logger.warn(`Port ${port} is busy, selecting new port...`, 'app');
         const newPort = await DynamicConfig.autoSelectPort(port + 1);

@@ -49,29 +49,29 @@ export class BypassServer {
    */
   async init() {
     logger.info('Initializing Bypass Server...', 'bypass-server');
-    
+
     // Инициализация прокси базы
     await globalProxyDatabase.init();
-    
+
     // Создание Express приложения
     this.app = express();
     this.app.use(cors());
     this.app.use(express.json());
-    
+
     // HTTP сервер
     this.server = http.createServer(this.app);
-    
+
     // WebSocket сервер
-    this.wss = new WebSocketServer({ 
+    this.wss = new WebSocketServer({
       server: this.server,
       path: '/ws'
     });
-    
+
     // Настройка маршрутов
     this.setupRoutes();
     this.setupWebSocket();
     this.setupProxy();
-    
+
     logger.info('Bypass Server initialized', 'bypass-server');
   }
 
@@ -102,7 +102,7 @@ export class BypassServer {
     this.app.get('/proxy', (req, res) => {
       const { protocol } = req.query;
       const proxy = globalProxyDatabase.getRandomWorking(protocol);
-      
+
       if (proxy) {
         res.json({
           success: true,
@@ -129,7 +129,7 @@ export class BypassServer {
         workingOnly: true,
         limit: parseInt(limit)
       });
-      
+
       res.json({
         success: true,
         proxies: proxies.map(p => ({
@@ -145,16 +145,16 @@ export class BypassServer {
     this.app.all('/bypass/*', async (req, res) => {
       try {
         const targetUrl = req.params[0];
-        
+
         if (!targetUrl) {
           return res.status(400).json({ error: 'Target URL required' });
         }
 
         this.stats.totalRequests++;
-        
+
         // Получение рабочего прокси
         const proxy = globalProxyDatabase.getRandomWorking();
-        
+
         if (!proxy) {
           return res.status(503).json({ error: 'No proxies available' });
         }
@@ -162,9 +162,9 @@ export class BypassServer {
         // Проксирование запроса
         const fetch = (await import('node-fetch')).default;
         const { SocksProxyAgent } = await import('socks-proxy-agent');
-        
+
         const agent = new SocksProxyAgent(`socks5://${proxy.url}`);
-        
+
         const response = await fetch(targetUrl, {
           method: req.method,
           headers: req.headers,
@@ -201,16 +201,16 @@ export class BypassServer {
   setupWebSocket() {
     this.wss.on('connection', (ws, req) => {
       const clientId = this.generateClientId();
-      
+
       logger.info(`Client connected: ${clientId}`, 'bypass-server');
-      
+
       this.clients.set(clientId, {
         ws,
         connectedAt: Date.now(),
         requests: 0,
         bytes: 0
       });
-      
+
       this.stats.activeClients = this.clients.size;
 
       // Отправка приветствия
@@ -221,7 +221,7 @@ export class BypassServer {
       }));
 
       // Обработка сообщений
-      ws.on('message', async (message) => {
+      ws.on('message', async message => {
         try {
           const data = JSON.parse(message);
           await this.handleWebSocketMessage(clientId, ws, data);
@@ -241,14 +241,14 @@ export class BypassServer {
       });
 
       // Обработка ошибок
-      ws.on('error', (error) => {
+      ws.on('error', error => {
         logger.error(`WebSocket error (${clientId}): ${error.message}`, 'bypass-server');
       });
     });
 
     // Heartbeat
     setInterval(() => {
-      this.wss.clients.forEach((ws) => {
+      this.wss.clients.forEach(ws => {
         if (ws.isAlive === false) {
           return ws.terminate();
         }
@@ -263,7 +263,7 @@ export class BypassServer {
    */
   async handleWebSocketMessage(clientId, ws, data) {
     const client = this.clients.get(clientId);
-    if (!client) return;
+    if (!client) {return;}
 
     client.requests++;
     this.stats.totalRequests++;
@@ -294,14 +294,14 @@ export class BypassServer {
         try {
           const fetch = (await import('node-fetch')).default;
           const { SocksProxyAgent } = await import('socks-proxy-agent');
-          
+
           const proxy = globalProxyDatabase.getRandomWorking();
           if (!proxy) {
             throw new Error('No proxies available');
           }
 
           const agent = new SocksProxyAgent(`socks5://${proxy.url}`);
-          
+
           const response = await fetch(data.url, {
             method: data.method || 'GET',
             headers: data.headers || {},
@@ -365,7 +365,7 @@ export class BypassServer {
    * Запуск сервера
    */
   async start() {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.server.listen(CONFIG.port, () => {
         logger.info(`Bypass Server running on port ${CONFIG.port}`, 'bypass-server');
         logger.info(`WebSocket available on ws://localhost:${CONFIG.port}/ws`, 'bypass-server');
@@ -379,12 +379,12 @@ export class BypassServer {
    */
   async stop() {
     logger.info('Stopping Bypass Server...', 'bypass-server');
-    
+
     // Закрытие всех WebSocket подключений
-    this.wss.clients.forEach((client) => {
+    this.wss.clients.forEach(client => {
       client.close();
     });
-    
+
     // Остановка сервера
     this.server.close(() => {
       logger.info('Bypass Server stopped', 'bypass-server');

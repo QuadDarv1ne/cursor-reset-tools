@@ -69,9 +69,9 @@ class DoHManager {
         this.cache.set(cacheKey, result);
         logger.debug(`DoH resolved: ${domain} via ${provider}`, 'doh');
         return result;
-      } else {
-        throw new Error(`DNS error: ${data.Status}`);
       }
+      throw new Error(`DNS error: ${data.Status}`);
+
     } catch (error) {
       logger.warn(`DoH resolve failed: ${error.message}`, 'doh');
       return null;

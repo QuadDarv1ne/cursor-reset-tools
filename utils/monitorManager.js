@@ -89,7 +89,7 @@ class MonitorManager {
    */
   async checkGroup(groupName) {
     const targets = MONITOR_TARGETS[groupName];
-    if (!targets) return [];
+    if (!targets) {return [];}
 
     const results = await Promise.all(targets.map(t => this.checkUrl(t)));
 

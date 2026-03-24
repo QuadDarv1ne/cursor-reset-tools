@@ -76,7 +76,7 @@
 
 - **Версия:** 2.2.0
 - **Статус:** ✅ Стабильная версия
-- **Тесты:** Unit + Integration (18 API тестов + validator тесты)
+- **Тесты:** Unit + Integration (61 тест: 40 validator, 6 helpers, 15 API)
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 24 марта 2026

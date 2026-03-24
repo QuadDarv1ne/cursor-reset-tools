@@ -418,7 +418,16 @@ sudo npm start</div>
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('current-year').textContent = new Date().getFullYear();
-    
+
+    // i18n система для main.js
+    window.i18n = {
+      translations: <%= JSON.stringify(translations) %>,
+      t: function(key, lang = '<%= lang %>') {
+        const language = this.translations[lang] || this.translations.ru || {};
+        return language[key] || this.translations.en[key] || key;
+      }
+    };
+
     // Language Switcher
     const currentLang = '<%= lang %>';
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -427,6 +436,7 @@ sudo npm start</div>
       }
       btn.addEventListener('click', () => {
         const lang = btn.dataset.lang;
+        localStorage.setItem('lang', lang);
         window.location.href = window.location.pathname + '?lang=' + lang;
       });
     });

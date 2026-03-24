@@ -719,6 +719,8 @@ import { globalEmailManager } from '../utils/emailManager.js';
 import { globalMonitorManager } from '../utils/monitorManager.js';
 import { globalVPNManager } from '../utils/vpnManager.js';
 import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
+import { globalDoHManager } from '../utils/dohManager.js';
+import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
 
 /**
  * Proxy API
@@ -1378,6 +1380,89 @@ rt.delete('/cursor/clear', (req, res) => {
   try {
     globalCursorRegistrar.clear();
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Smart Bypass API
+ */
+rt.get('/smart/status', (req, res) => {
+  try {
+    const status = globalSmartBypassManager.getStatus();
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/smart/test', async (req, res) => {
+  try {
+    const result = await globalSmartBypassManager.testAllMethods();
+    res.json({
+      success: true,
+      result,
+      best: globalSmartBypassManager.getBestMethod(),
+      recommendations: globalSmartBypassManager.getRecommendations()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/smart/apply', async (req, res) => {
+  try {
+    const result = await globalSmartBypassManager.applyBestMethod();
+    res.json({
+      success: true,
+      result,
+      best: globalSmartBypassManager.getBestMethod()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DoH API
+ */
+rt.get('/doh/resolve', async (req, res) => {
+  try {
+    const { domain, provider = 'cloudflare' } = req.query;
+    if (!domain) {
+      return res.status(400).json({ error: 'Domain required' });
+    }
+    const result = await globalDoHManager.resolve(domain, provider);
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/doh/providers', async (req, res) => {
+  try {
+    const providers = await globalDoHManager.getAvailableProviders();
+    res.json({ success: true, providers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.post('/doh/set-provider', (req, res) => {
+  try {
+    const { provider } = req.body;
+    const success = globalDoHManager.setProvider(provider);
+    res.json({ success, provider });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+rt.get('/doh/stats', (req, res) => {
+  try {
+    const stats = globalDoHManager.getStats();
+    res.json({ success: true, stats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

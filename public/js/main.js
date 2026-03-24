@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const ad = document.getElementById('accept-disclaimer');
   const mc = document.querySelector('.modal-close');
 
+  // i18n система
+  let currentLang = localStorage.getItem('lang') || 'ru';
+  const t = (key) => window.i18n?.t(key, currentLang) || key;
+
   const cm = () => {
     dm.style.display = 'none';
     localStorage.setItem('disclaimerAccepted', 'true');
@@ -42,15 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
     pc.disabled = isRunning;
 
     if (isRunning) {
-      rb.title = "Закройте Cursor сначала";
-      bp.title = "Закройте Cursor сначала";
-      du.title = "Закройте Cursor сначала";
-      pc.title = "Закройте Cursor сначала";
+      rb.title = t('toastCloseCursor');
+      bp.title = t('toastCloseCursorBypass');
+      du.title = t('toastCloseCursorUpdate');
+      pc.title = t('toastCloseCursorPro');
     } else {
-      rb.title = "";
-      bp.title = "";
-      du.title = "";
-      pc.title = "";
+      rb.title = '';
+      bp.title = '';
+      du.title = '';
+      pc.title = '';
     }
   };
 
@@ -72,31 +76,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const gs = async () => {
     try {
-      si.innerHTML = '<div class="loading">Загрузка информации о системе...</div>';
-      cs.innerHTML = '<div class="loading">Проверка статуса Cursor...</div>';
+      si.innerHTML = `<div class="loading">${t('systemInfoLoading')}</div>`;
+      cs.innerHTML = `<div class="loading">${t('cursorStatusLoading')}</div>`;
 
       const p = await gp();
 
       let systemHtml = '<table class="info-table">';
-      systemHtml += `<tr><th>Платформа</th><td>${p.platform || navigator.platform}</td></tr>`;
-      systemHtml += `<tr><th>ОС</th><td>${p.osVersion || navigator.userAgent}</td></tr>`;
-      systemHtml += `<tr><th>Архитектура</th><td>${p.arch || 'Неизвестно'}</td></tr>`;
-      systemHtml += `<tr><th>Домашняя директория</th><td><div class='code-block'>${p.homedir || 'Неизвестно'}</div></td></tr>`;
+      systemHtml += `<tr><th>${t('platform')}</th><td>${p.platform || navigator.platform}</td></tr>`;
+      systemHtml += `<tr><th>${t('os')}</th><td>${p.osVersion || navigator.userAgent}</td></tr>`;
+      systemHtml += `<tr><th>${t('architecture')}</th><td>${p.arch || t('no')}</td></tr>`;
+      systemHtml += `<tr><th>${t('homeDir')}</th><td><div class='code-block'>${p.homedir || t('no')}</div></td></tr>`;
       systemHtml += '</table>';
 
       si.innerHTML = systemHtml;
 
       let cursorHtml = '<table class="info-table">';
-      cursorHtml += `<tr><th>Статус Cursor</th><td><div class="code-block" id="code-block" class="${p.isRunning ? 'badge badge-danger' : 'badge badge-success'}">${p.isRunning ? 'Запущен' : 'Не запущен'}</div></td></tr>`;
-      cursorHtml += `<tr><th>Путь Machine ID</th><td><div class='code-block'>${p.machinePath || 'Не найден'}</div></td></tr>`;
-      cursorHtml += `<tr><th>Путь хранилища</th><td><div class='code-block'>${p.storagePath || 'Не найден'}</div></td></tr>`;
-      cursorHtml += `<tr><th>Путь базы данных</th><td><div class='code-block'>${p.dbPath || 'Не найден'}</div></td></tr>`;
-      cursorHtml += `<tr><th>Путь приложения</th><td><div class='code-block'>${p.appPath || 'Не найден'}</div></td></tr>`;
-      cursorHtml += `<tr><th>Путь обновлений</th><td><div class='code-block'>${p.updatePath || 'Не найден'}</div></td></tr>`;
+      cursorHtml += `<tr><th>${t('cursorStatus')}</th><td><div class="code-block" id="code-block" class="${p.isRunning ? 'badge badge-danger' : 'badge badge-success'}">${p.isRunning ? t('cursorRunning') : t('cursorNotRunning')}</div></td></tr>`;
+      cursorHtml += `<tr><th>${t('machineIdPath')}</th><td><div class='code-block'>${p.machinePath || t('no')}</div></td></tr>`;
+      cursorHtml += `<tr><th>${t('storagePath')}</th><td><div class='code-block'>${p.storagePath || t('no')}</div></td></tr>`;
+      cursorHtml += `<tr><th>${t('dbPath')}</th><td><div class='code-block'>${p.dbPath || t('no')}</div></td></tr>`;
+      cursorHtml += `<tr><th>${t('appPath')}</th><td><div class='code-block'>${p.appPath || t('no')}</div></td></tr>`;
+      cursorHtml += `<tr><th>${t('updatePath')}</th><td><div class='code-block'>${p.updatePath || t('no')}</div></td></tr>`;
 
       if (p.exists) {
         const existsHtml = Object.entries(p.exists).map(([k, v]) =>
-          `<tr><th>${k} существует</th><td>${v ? '<span class="badge badge-success">Да</span>' : '<span class="badge badge-danger">Нет</span>'}</td></tr>`
+          `<tr><th>${t('machineIdExists').includes(k) || t('storageExists').includes(k) || t('databaseExists').includes(k) || t('appExists').includes(k) || t('cursorExists').includes(k) || t('updateExists').includes(k) ? k : t('machineIdExists')}</th><td>${v ? `<span class="badge badge-success">${t('yes')}</span>` : `<span class="badge badge-danger">${t('no')}</span>`}</td></tr>`
         ).join('');
         cursorHtml += existsHtml;
       }
@@ -104,12 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
       cursorHtml += `
         <div id="cursor-warning" class="alert alert-warning mt-3" ${!p.isRunning ? 'style="display:none"' : ''}>
           <i class="ri-alert-line"></i>
-          <strong>Внимание:</strong> Cursor сейчас запущен. Пожалуйста, закройте его перед использованием функций.
+          <strong>${t('cursorWarning')}</strong>
         </div>
 
         <div class="alert alert-info mt-3">
           <i class="ri-information-line"></i>
-          <strong>Примечание:</strong> Убедитесь, что Cursor закрыт перед использованием любых функций.
+          <strong>${t('cursorNote')}</strong>
         </div>
       `;
 
@@ -121,8 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       setInterval(cc, 5000);
     } catch (error) {
-      si.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Ошибка: ${error.message}</div>`;
-      cs.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Ошибка: ${error.message}</div>`;
+      si.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>${t('error')}: ${error.message}</div>`;
+      cs.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>${t('error')}: ${error.message}</div>`;
     }
   };
 
@@ -140,14 +144,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const p = await gp();
       if (p.isRunning) {
-        showToast("Пожалуйста, закройте Cursor перед сбросом Machine ID", "warning");
+        showToast(t('toastCloseCursor'), 'warning');
         return;
       }
 
       rb.disabled = true;
       rr.innerHTML = `
         <div class="processing">
-          <p><i class="ri-loader-2-line ri-spin"></i>Сброс Machine ID... Пожалуйста, подождите</p>
+          <p><i class="ri-loader-2-line ri-spin"></i>${t('resetProcessing')}</p>
         </div>
       `;
 
@@ -163,15 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.success) {
         rr.innerHTML = `
           <div class="success">
-            <p><i class="ri-check-line"></i><strong>Успешно!</strong> Machine ID был сброшен.</p>
+            <p><i class="ri-check-line"></i><strong>${t('success')}</strong> ${t('resetTitle').toLowerCase()}.</p>
             ${result.log ? `<pre class="log-output">${result.log}</pre>` : ''}
           </div>
         `;
       } else {
         rr.innerHTML = `
           <div class="error">
-            <p><i class="ri-error-warning-line"></i><strong>Не удалось сбросить Machine ID</strong></p>
-            <p>Ошибка: ${result.error || 'Неизвестная ошибка'}</p>
+            <p><i class="ri-error-warning-line"></i><strong>${t('error')}</strong></p>
+            <p>${t('error')}: ${result.error || t('error')}</p>
           </div>
         `;
       }
@@ -179,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await gs();
       setTimeout(cb, 100);
     } catch (error) {
-      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Ошибка: ${error.message}</div>`;
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>${t('error')}: ${error.message}</div>`;
     } finally {
       rb.disabled = false;
     }
@@ -189,14 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const p = await gp();
       if (p.isRunning) {
-        showToast("Пожалуйста, закройте Cursor перед обходом лимита токенов", "warning");
+        showToast(t('toastCloseCursorBypass'), 'warning');
         return;
       }
 
       bp.disabled = true;
       rr.innerHTML = `
         <div class="processing">
-          <p><i class="ri-loader-2-line ri-spin"></i>Обход лимита токенов... Пожалуйста, подождите</p>
+          <p><i class="ri-loader-2-line ri-spin"></i>${t('bypassProcessing')}</p>
         </div>
       `;
 
@@ -210,15 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.success) {
         rr.innerHTML = `
           <div class="success">
-            <p><i class="ri-check-line"></i><strong>Успешно!</strong> Лимит токенов был обойдён.</p>
+            <p><i class="ri-check-line"></i><strong>${t('success')}</strong> ${t('featureTokenBypass').toLowerCase()}.</p>
             ${result.log ? `<pre class="log-output">${result.log}</pre>` : ''}
           </div>
         `;
       } else {
         rr.innerHTML = `
           <div class="error">
-            <p><i class="ri-error-warning-line"></i><strong>Не удалось обойти лимит токенов</strong></p>
-            <p>Ошибка: ${result.error || 'Неизвестная ошибка'}</p>
+            <p><i class="ri-error-warning-line"></i><strong>${t('error')}</strong></p>
+            <p>${t('error')}: ${result.error || t('error')}</p>
           </div>
         `;
       }
@@ -226,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await gs();
       setTimeout(cb, 100);
     } catch (error) {
-      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Ошибка: ${error.message}</div>`;
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>${t('error')}: ${error.message}</div>`;
     } finally {
       bp.disabled = false;
     }
@@ -236,14 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const p = await gp();
       if (p.isRunning) {
-        showToast("Пожалуйста, закройте Cursor перед отключением автообновления", "warning");
+        showToast(t('toastCloseCursorUpdate'), 'warning');
         return;
       }
 
       du.disabled = true;
       rr.innerHTML = `
         <div class="processing">
-          <p><i class="ri-loader-2-line ri-spin"></i>Отключение автообновления... Пожалуйста, подождите</p>
+          <p><i class="ri-loader-2-line ri-spin"></i>${t('disableProcessing')}</p>
         </div>
       `;
 
@@ -257,15 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.success) {
         rr.innerHTML = `
           <div class="success">
-            <p><i class="ri-check-line"></i><strong>Успешно!</strong> Автообновление было отключено.</p>
+            <p><i class="ri-check-line"></i><strong>${t('success')}</strong> ${t('featureAutoUpdateBlock').toLowerCase()}.</p>
             ${result.log ? `<pre class="log-output">${result.log}</pre>` : ''}
           </div>
         `;
       } else {
         rr.innerHTML = `
           <div class="error">
-            <p><i class="ri-error-warning-line"></i><strong>Не удалось отключить автообновление</strong></p>
-            <p>Ошибка: ${result.error || 'Неизвестная ошибка'}</p>
+            <p><i class="ri-error-warning-line"></i><strong>${t('error')}</strong></p>
+            <p>${t('error')}: ${result.error || t('error')}</p>
           </div>
         `;
       }
@@ -273,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await gs();
       setTimeout(cb, 100);
     } catch (error) {
-      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Ошибка: ${error.message}</div>`;
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>${t('error')}: ${error.message}</div>`;
     } finally {
       du.disabled = false;
     }
@@ -283,14 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const p = await gp();
       if (p.isRunning) {
-        showToast("Пожалуйста, закройте Cursor перед включением Pro функций", "warning");
+        showToast(t('toastCloseCursorPro'), 'warning');
         return;
       }
 
       pc.disabled = true;
       rr.innerHTML = `
         <div class="processing">
-          <p><i class="ri-loader-2-line ri-spin"></i>Конвертация в Pro + Кастомный UI... Пожалуйста, подождите</p>
+          <p><i class="ri-loader-2-line ri-spin"></i>${t('proProcessing')}</p>
         </div>
       `;
 
@@ -304,15 +308,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.success) {
         rr.innerHTML = `
           <div class="success">
-            <p><i class="ri-check-line"></i><strong>Успешно!</strong> Pro функции и кастомный UI были включены.</p>
+            <p><i class="ri-check-line"></i><strong>${t('success')}</strong> ${t('featureProConversion').toLowerCase()}.</p>
             ${result.log ? `<pre class="log-output">${result.log}</pre>` : ''}
           </div>
         `;
       } else {
         rr.innerHTML = `
           <div class="error">
-            <p><i class="ri-error-warning-line"></i><strong>Не удалось включить Pro функции</strong></p>
-            <p>Ошибка: ${result.error || 'Неизвестная ошибка'}</p>
+            <p><i class="ri-error-warning-line"></i><strong>${t('error')}</strong></p>
+            <p>${t('error')}: ${result.error || t('error')}</p>
           </div>
         `;
       }
@@ -320,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await gs();
       setTimeout(cb, 100);
     } catch (error) {
-      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Ошибка: ${error.message}</div>`;
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>${t('error')}: ${error.message}</div>`;
     } finally {
       pc.disabled = false;
     }
@@ -369,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pl = () => {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'loading';
-    loadingDiv.textContent = 'Загрузка';
+    loadingDiv.textContent = t('systemInfoLoading');
     si.innerHTML = loadingDiv.outerHTML;
     cs.innerHTML = loadingDiv.outerHTML;
   };
@@ -412,9 +416,16 @@ function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
 
+  const icons = {
+    success: 'check-line',
+    error: 'error-warning-line',
+    warning: 'alert-line',
+    info: 'information-line'
+  };
+
   toast.innerHTML = `
     <div class="toast-content">
-      <i class="ri-${type === 'success' ? 'check-line' : type === 'error' ? 'error-warning-line' : type === 'warning' ? 'alert-line' : 'information-line'}"></i>
+      <i class="ri-${icons[type] || icons.info}"></i>
       <span>${message}</span>
     </div>
     <button class="toast-close"><i class="ri-close-line"></i></button>

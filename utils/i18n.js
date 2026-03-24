@@ -331,7 +331,26 @@ export const translations = {
     changeRemoved: 'Removed',
     changeNew: 'New',
     changeFixed: 'Fixed',
-    changeEnhanced: 'Enhanced'
+    changeEnhanced: 'Enhanced',
+
+    // WebSocket & Logs
+    liveLogsTitle: 'Live Logs',
+    clearLogs: 'Clear',
+    logsInitializing: 'Initializing logs...',
+    logsNote: 'Logs update in real-time via WebSocket connection',
+    logsCleared: 'Logs cleared',
+    wsConnected: 'Connected',
+    wsDisconnected: 'Disconnected',
+    wsConnecting: 'Connecting to WebSocket...',
+    wsReconnecting: 'Reconnecting',
+    wsReconnectFailed: 'Failed to reconnect',
+    wsError: 'WebSocket error',
+    wsWelcome: 'Welcome',
+    cursorOk: 'OK',
+    cursorBlocked: 'Blocked',
+    bestBypassMethod: 'Best bypass method',
+    bypassTestComplete: 'Bypass test complete',
+    bypassApplied: 'Bypass method applied'
   },
 
   zh: {
@@ -496,7 +515,26 @@ export const translations = {
     changeRemoved: '已移除',
     changeNew: '新的',
     changeFixed: '已修复',
-    changeEnhanced: '已增强'
+    changeEnhanced: '已增强',
+
+    // WebSocket & Logs
+    liveLogsTitle: '实时日志',
+    clearLogs: '清除',
+    logsInitializing: '初始化日志...',
+    logsNote: '日志通过 WebSocket 连接实时更新',
+    logsCleared: '日志已清除',
+    wsConnected: '已连接',
+    wsDisconnected: '已断开',
+    wsConnecting: '正在连接到 WebSocket...',
+    wsReconnecting: '重新连接',
+    wsReconnectFailed: '重新连接失败',
+    wsError: 'WebSocket 错误',
+    wsWelcome: '欢迎',
+    cursorOk: '正常',
+    cursorBlocked: '已阻止',
+    bestBypassMethod: '最佳绕过方法',
+    bypassTestComplete: '绕过测试完成',
+    bypassApplied: '绕过方法已应用'
   }
 };
 

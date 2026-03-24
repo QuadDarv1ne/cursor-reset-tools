@@ -9,10 +9,159 @@ document.addEventListener('DOMContentLoaded', () => {
   const dm = document.getElementById('disclaimer-modal');
   const ad = document.getElementById('accept-disclaimer');
   const mc = document.querySelector('.modal-close');
+  const lp = document.getElementById('live-logs');
+  const wsc = document.getElementById('ws-status');
 
   // i18n система
   const currentLang = localStorage.getItem('lang') || 'ru';
   const t = key => window.i18n?.t(key, currentLang) || key;
+
+  // WebSocket клиент
+  let ws = null;
+  let wsReconnectAttempts = 0;
+  const WS_MAX_RECONNECT = 5;
+  const WS_RECONNECT_DELAY = 2000;
+
+  const getWsUrl = () => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
+    return `${protocol}//${window.location.hostname}:${port}/ws`;
+  };
+
+  const addLog = (message, type = 'info') => {
+    if (!lp) {return;}
+    const timestamp = new Date().toLocaleTimeString(currentLang);
+    const icons = {
+      info: 'ri-information-line',
+      success: 'ri-check-line',
+      warning: 'ri-alert-line',
+      error: 'ri-error-warning-line',
+      system: 'ri-server-line'
+    };
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+    logEntry.innerHTML = `<span class="log-time">[${timestamp}]</span><i class="${icons[type] || icons.info}"></i><span class="log-message">${message}</span>`;
+    lp.appendChild(logEntry);
+    lp.scrollTop = lp.scrollHeight;
+
+    // Ограничение количества логов
+    while (lp.children.length > 100) {
+      lp.removeChild(lp.firstChild);
+    }
+  };
+
+  const updateWsStatus = connected => {
+    if (!wsc) {return;}
+    wsc.className = `ws-status ${connected ? 'connected' : 'disconnected'}`;
+    wsc.innerHTML = `<i class="ri-${connected ? 'wifi-line' : 'wifi-off-line'}"></i>${connected ? t('wsConnected') : t('wsDisconnected')}`;
+  };
+
+  const connectWebSocket = () => {
+    if (ws) {
+      ws.close();
+    }
+
+    const url = getWsUrl();
+    addLog(`${t('wsConnecting')} ${url}`, 'system');
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      wsReconnectAttempts = 0;
+      updateWsStatus(true);
+      addLog(t('wsConnected'), 'success');
+      ws.send(JSON.stringify({ type: 'subscribe', channel: 'status' }));
+      ws.send(JSON.stringify({ type: 'request_status' }));
+    };
+
+    ws.onmessage = event => {
+      try {
+        const message = JSON.parse(event.data);
+        handleWsMessage(message);
+      } catch (e) {
+        console.error('WebSocket message parse error:', e);
+      }
+    };
+
+    ws.onclose = event => {
+      updateWsStatus(false);
+      addLog(`${t('wsDisconnected')} (code: ${event.code})`, 'warning');
+
+      if (wsReconnectAttempts < WS_MAX_RECONNECT) {
+        wsReconnectAttempts++;
+        const delay = WS_RECONNECT_DELAY * wsReconnectAttempts;
+        addLog(`${t('wsReconnecting')} (${wsReconnectAttempts}/${WS_MAX_RECONNECT})...`, 'system');
+        setTimeout(connectWebSocket, delay);
+      } else {
+        addLog(t('wsReconnectFailed'), 'error');
+      }
+    };
+
+    ws.onerror = error => {
+      console.error('WebSocket error:', error);
+      addLog(t('wsError'), 'error');
+    };
+  };
+
+  const handleWsMessage = message => {
+    switch (message.type) {
+      case 'welcome':
+        addLog(`${t('wsWelcome')} (ID: ${message.clientId})`, 'success');
+        break;
+
+      case 'status':
+        updateStatusFromWs(message.data);
+        break;
+
+      case 'heartbeat':
+        if (message.data?.ip) {
+          updateIpDisplay(message.data.ip);
+        }
+        break;
+
+      case 'bypass_test_result':
+        addLog(`${t('bypassTestComplete')}: ${message.best?.method || 'unknown'}`, 'success');
+        break;
+
+      case 'bypass_applied':
+        addLog(t('bypassApplied'), 'success');
+        break;
+
+      case 'error':
+        addLog(message.message || t('error'), 'error');
+        break;
+
+      case 'pong':
+        console.log('WebSocket latency:', message.latency, 'ms');
+        break;
+    }
+  };
+
+  const updateStatusFromWs = data => {
+    if (!data) {return;}
+
+    if (data.monitor) {
+      const status = data.monitor.currentStatus;
+      if (status) {
+        addLog(`${t('cursorStatusTitle')}: ${status === 'ok' ? t('cursorOk') : t('cursorBlocked')}`, status === 'ok' ? 'success' : 'warning');
+      }
+    }
+
+    if (data.bypass) {
+      const best = data.bypass.bestMethod;
+      if (best) {
+        addLog(`${t('bestBypassMethod')}: ${best}`, 'info');
+      }
+    }
+
+    gs().catch(e => console.error('Status update error:', e));
+  };
+
+  const updateIpDisplay = ipInfo => {
+    const ipElement = document.getElementById('current-ip');
+    if (ipElement && ipInfo) {
+      ipElement.textContent = `${ipInfo.ip || 'N/A'} (${ipInfo.country || 'N/A'})`;
+    }
+  };
 
   const cm = () => {
     dm.style.display = 'none';
@@ -388,8 +537,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const cl = () => {
+    if (lp) {
+      lp.innerHTML = '';
+      addLog(t('logsCleared'), 'info');
+    }
+  };
+
+  // Подключение WebSocket и инициализация
+  const initWebSocket = () => {
+    connectWebSocket();
+  };
+
+  // Обработчик кнопки очистки логов
+  const clb = document.getElementById('clear-logs-btn');
+  if (clb) {
+    clb.addEventListener('click', cl);
+  }
+
   pl();
   gs();
+  initWebSocket();
   rb.addEventListener('click', rm);
   bp.addEventListener('click', bk);
   du.addEventListener('click', dz);

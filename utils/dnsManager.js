@@ -81,9 +81,9 @@ export class DNSManager {
         return await this._getWindowsDNS();
       } else if (this.platform === 'darwin') {
         return await this._getMacOSDNS();
-      } else {
-        return await this._getLinuxDNS();
       }
+      return await this._getLinuxDNS();
+
     } catch (error) {
       logger.error(`Failed to get current DNS: ${error.message}`, 'dns');
       return { primary: 'unknown', secondary: 'unknown' };
@@ -110,7 +110,7 @@ export class DNSManager {
             if (match) {
               dnsServers.push(match[1]);
             }
-            if (!dnsLine.startsWith(' ')) break;
+            if (!dnsLine.startsWith(' ')) {break;}
           }
           break;
         }
@@ -201,7 +201,7 @@ export class DNSManager {
    */
   async setDNS(provider) {
     const dnsConfig = DNS_SERVERS[provider];
-    
+
     if (!dnsConfig) {
       logger.error(`Unknown DNS provider: ${provider}`, 'dns');
       return false;
@@ -217,9 +217,9 @@ export class DNSManager {
         return await this._setWindowsDNS(dnsConfig);
       } else if (this.platform === 'darwin') {
         return await this._setMacOSDNS(dnsConfig);
-      } else {
-        return await this._setLinuxDNS(dnsConfig);
       }
+      return await this._setLinuxDNS(dnsConfig);
+
     } catch (error) {
       logger.error(`Failed to set DNS: ${error.message}`, 'dns');
       return false;
@@ -251,7 +251,7 @@ export class DNSManager {
 
       // Установка первичного DNS
       await execPromise(`netsh interface ipv4 set dns name="${interfaceName}" static ${dnsConfig.primary} primary`);
-      
+
       // Установка вторичного DNS
       if (dnsConfig.secondary && dnsConfig.secondary !== 'auto') {
         await execPromise(`netsh interface ipv4 add dns name="${interfaceName}" ${dnsConfig.secondary} index=2`);
@@ -283,7 +283,7 @@ export class DNSManager {
       const resolverFile = `${resolverDir}/macos-dns`;
 
       await fs.ensureDir(resolverDir);
-      
+
       let content = `nameserver ${dnsConfig.primary}\n`;
       if (dnsConfig.secondary && dnsConfig.secondary !== 'auto') {
         content += `nameserver ${dnsConfig.secondary}\n`;
@@ -316,14 +316,14 @@ export class DNSManager {
     try {
       const fs = await import('fs-extra');
       const resolvConf = '/etc/resolv.conf';
-      
+
       // Чтение текущего файла
       const content = await fs.readFile(resolvConf, 'utf8');
       const lines = content.split('\n');
-      
+
       // Удаление старых nameserver записей
       const newLines = lines.filter(line => !line.startsWith('nameserver'));
-      
+
       // Добавление новых DNS серверов
       newLines.unshift(`nameserver ${dnsConfig.primary}`);
       if (dnsConfig.secondary && dnsConfig.secondary !== 'auto') {
@@ -369,9 +369,9 @@ export class DNSManager {
         return await this._restoreWindowsDNS();
       } else if (this.platform === 'darwin') {
         return await this._restoreMacOSDNS();
-      } else {
-        return await this._restoreLinuxDNS();
       }
+      return await this._restoreLinuxDNS();
+
     } catch (error) {
       logger.error(`Failed to restore DNS: ${error.message}`, 'dns');
       return false;
@@ -402,7 +402,7 @@ export class DNSManager {
 
       // Сброс на автоматическое получение DNS
       await execPromise(`netsh interface ipv4 set dns name="${interfaceName}" source=dhcp`);
-      
+
       this.currentDNS = null;
       logger.info('Windows DNS restored to automatic (DHCP)', 'dns');
       return true;

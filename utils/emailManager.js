@@ -11,7 +11,7 @@ const EMAIL_SERVICES = {
   guerrillamail: {
     name: 'Guerrilla Mail',
     baseUrl: 'https://api.guerrillamail.com/ajax.php',
-    createUrl: (email) => `https://api.guerrillamail.com/ajax.php?f=get_email_address&email_id=${email}`,
+    createUrl: email => `https://api.guerrillamail.com/ajax.php?f=get_email_address&email_id=${email}`,
     inboxUrl: 'https://api.guerrillamail.com/ajax.php?f=get_messages'
   },
   mailinator: {

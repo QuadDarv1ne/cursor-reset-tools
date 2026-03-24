@@ -92,20 +92,20 @@ export const checkAdminRights = async () => {
  * @param {Object} paths - Объект с путями
  * @returns {Object} { valid: boolean, missing: string[] }
  */
-export const validatePaths = (paths) => {
+export const validatePaths = paths => {
   const required = {
     mp: 'Machine ID',
     sp: 'Storage',
     dp: 'Database'
   };
-  
+
   const missing = [];
   for (const [key, name] of Object.entries(required)) {
     if (!paths[key]) {
       missing.push(`${name} (${key})`);
     }
   }
-  
+
   return {
     valid: missing.length === 0,
     missing
@@ -118,30 +118,28 @@ export const validatePaths = (paths) => {
  * @param {number} timeout - мс
  * @returns {Promise<boolean>}
  */
-export const checkFileExists = async (filePath, timeout = 5000) => {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(false), timeout);
+export const checkFileExists = async (filePath, timeout = 5000) => new Promise(resolve => {
+  const timer = setTimeout(() => resolve(false), timeout);
 
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-      clearTimeout(timer);
-      resolve(!err);
-    });
+  fs.access(filePath, fs.constants.F_OK, err => {
+    clearTimeout(timer);
+    resolve(!err);
   });
-};
+});
 
 /**
  * Задержка в мс
  * @param {number} ms
  * @returns {Promise<void>}
  */
-export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+export const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Получение версий Cursor из package.json
  * @param {string} appPath - Путь к приложению
  * @returns {Promise<string|null>}
  */
-export const getCursorVersion = async (appPath) => {
+export const getCursorVersion = async appPath => {
   try {
     const packageJson = `${appPath}/package.json`;
     if (await checkFileExists(packageJson, 1000)) {
@@ -156,19 +154,19 @@ export const getCursorVersion = async (appPath) => {
 
 /**
  * Проверка совместимости версии Cursor
- * @param {string} version 
+ * @param {string} version
  * @returns {boolean}
  */
-export const isCursorVersionSupported = (version) => {
-  if (!version) return false;
-  
+export const isCursorVersionSupported = version => {
+  if (!version) {return false;}
+
   const supported = config.supportedCursorVersions;
   const minVersion = config.minCursorVersion;
-  
+
   // Проверка по семверу (упрощённо)
   const [major] = version.split('.').map(Number);
   const [minMajor] = minVersion.split('.').map(Number);
-  
+
   return major >= minMajor;
 };
 
@@ -180,7 +178,7 @@ export const isCursorVersionSupported = (version) => {
  */
 export const checkCursorProcess = async (platform, timeout = config.timeouts.processCheck) => {
   try {
-    const checkPromise = new Promise((resolve) => {
+    const checkPromise = new Promise(resolve => {
       try {
         if (platform === 'win32') {
           exec('tasklist /FI "IMAGENAME eq Cursor.exe" /NH', (err, stdout) => {
@@ -212,7 +210,7 @@ export const checkCursorProcess = async (platform, timeout = config.timeouts.pro
  * @returns {Promise<boolean>}
  */
 export const clearKeychain = async () => {
-  if (os.platform() !== 'darwin') return false;
+  if (os.platform() !== 'darwin') {return false;}
 
   try {
     await execPromise('security delete-generic-password -s "Cursor" -a "token" 2>/dev/null');
@@ -225,11 +223,12 @@ export const clearKeychain = async () => {
 
 /**
  * Обновление реестра Windows
+ * ОПТИМИЗАЦИЯ: Параллельное выполнение команд реестра
  * @param {string} newGuid - Новый GUID
  * @returns {Promise<boolean>}
  */
-export const updateWindowsRegistry = async (newGuid) => {
-  if (os.platform() !== 'win32') return false;
+export const updateWindowsRegistry = async newGuid => {
+  if (os.platform() !== 'win32') {return false;}
 
   try {
     const cmds = [
@@ -240,14 +239,18 @@ export const updateWindowsRegistry = async (newGuid) => {
       `REG ADD HKCU\\Software\\Cursor /v MachineId /t REG_SZ /d ${newGuid} /f /reg:64`
     ];
 
-    for (const cmd of cmds) {
-      try {
-        await execPromise(cmd);
-      } catch (e) {
-        // Игнорируем ошибки для отдельных команд
-      }
+    // ПАРАЛЛЕЛЬНОЕ выполнение вместо последовательного
+    const results = await Promise.allSettled(cmds.map(cmd => execPromise(cmd)));
+    
+    // Логирование результатов
+    const success = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    if (failed > 0) {
+      logger.warn(`Registry update: ${success} succeeded, ${failed} failed`, 'helpers');
     }
-    return true;
+    
+    return success > 0; // Возвращаем true если хотя бы одна команда успешна
   } catch {
     return false;
   }
@@ -258,8 +261,8 @@ export const updateWindowsRegistry = async (newGuid) => {
  * @param {string} id - Новый UUID
  * @returns {Promise<boolean>}
  */
-export const updateMacOSPlatformUUID = async (id) => {
-  if (os.platform() !== 'darwin') return false;
+export const updateMacOSPlatformUUID = async id => {
+  if (os.platform() !== 'darwin') {return false;}
 
   try {
     const p = '/Library/Preferences/SystemConfiguration/com.apple.platform.uuid.plist';

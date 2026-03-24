@@ -27,13 +27,13 @@ export class BackupManager {
       const timestamp = Date.now();
       const ext = path.extname(filePath);
       const base = path.basename(filePath, ext);
-      
-      const backupPath = this.backupDir 
+
+      const backupPath = this.backupDir
         ? path.join(this.backupDir, `${base}.${timestamp}${ext}.bak`)
         : `${filePath}.${timestamp}.bak`;
 
       await fs.copy(filePath, backupPath);
-      
+
       // Сохраняем информацию о бэкапе
       if (!this.backups.has(operationId)) {
         this.backups.set(operationId, []);
@@ -62,14 +62,14 @@ export class BackupManager {
       // Ищем бэкап для этого файла
       for (const [opId, backups] of this.backups.entries()) {
         const backupInfo = backups.find(b => b.original === filePath);
-        
+
         if (backupInfo && await fs.pathExists(backupInfo.backup)) {
           await fs.copy(backupInfo.backup, filePath);
           logger.info(`Restored from backup: ${filePath}`, 'rollback');
           return true;
         }
       }
-      
+
       logger.warn(`No backup found for: ${filePath}`, 'rollback');
       return false;
     } catch (error) {
@@ -182,13 +182,13 @@ export class BackupManager {
       const timestamp = Date.now();
       const ext = path.extname(filePath) || '.json';
       const base = path.basename(filePath, ext);
-      
-      const backupPath = this.backupDir 
+
+      const backupPath = this.backupDir
         ? path.join(this.backupDir, `${base}.${timestamp}${ext}.bak`)
         : `${filePath}.${timestamp}.bak`;
 
       await fs.outputFile(backupPath, content);
-      
+
       if (!this.backups.has(operationId)) {
         this.backups.set(operationId, []);
       }

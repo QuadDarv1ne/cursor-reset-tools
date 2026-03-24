@@ -58,13 +58,28 @@
 - [x] Улучшить обработку ошибок с retry logic (utils/helpers.js - withRetry)
 - [x] Добавить метрики использования (опционально, с согласия) - utils/metricsManager.js
 
+## 🔧 Улучшения (новые) - Продолжение
+
+- [x] Вынести константы путей в отдельный модуль
+- [x] Рефакторинг функции gp() - дублирование кода для платформ
+- [x] Убрать magic strings из кода
+- [x] Типизация JSDoc для основных функций
+- [x] Добавить unit-тесты для utils/ (test/helpers.test.js)
+- [x] Интеграционные тесты для API endpoints (test/api.test.js)
+- [x] Добавить валидатор данных (utils/validator.js)
+- [x] Unit-тесты для validator.js (test/validator.test.js)
+- [x] Скрипт проверки i18n (scripts/check-i18n.js)
+- [x] Расширенное логирование ошибок
+- [x] Улучшена структура проекта (src/, routes/, server/)
+
 ## 📊 Статус проекта
 
 - **Версия:** 2.2.0
 - **Статус:** ✅ Стабильная версия
-- **Тесты:** Unit + Integration (18 API тестов)
+- **Тесты:** Unit + Integration (18 API тестов + validator тесты)
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
+- **Последнее обновление:** 24 марта 2026
 
 ---
 

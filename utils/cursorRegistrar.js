@@ -15,7 +15,7 @@ export const CURSOR_CONFIG = {
   baseUrl: 'https://api2.cursor.sh',
   authUrl: 'https://auth.cursor.com',
   wwwUrl: 'https://www.cursor.com',
-  
+
   endpoints: {
     signup: '/aiserver.v1.AuthService/SignUp',
     signin: '/aiserver.v1.AuthService/SignIn',
@@ -24,7 +24,7 @@ export const CURSOR_CONFIG = {
     user: '/aiserver.v1.UserService/GetUserProfile',
     subscription: '/aiserver.v1.SubscriptionService/GetSubscription'
   },
-  
+
   headers: {
     'Content-Type': 'application/json',
     'User-Agent': 'Cursor/0.49.0 (Windows NT 10.0; Win64; x64)',
@@ -68,18 +68,18 @@ export class CursorRegistrar {
       // Шаг 1: Создание временного email
       logger.info('Creating temporary email...', 'cursor');
       const emailResult = await globalEmailManager.createEmail(emailService);
-      
+
       if (!emailResult.success) {
         throw new Error('Failed to create email');
       }
-      
+
       result.email = emailResult.email;
       logger.info(`Email created: ${result.email}`, 'cursor');
 
       // Шаг 2: Отправка запроса на регистрацию
       logger.info('Sending signup request...', 'cursor');
       const signupResult = await this.sendSignup(result.email);
-      
+
       if (!signupResult.success) {
         throw new Error(signupResult.error || 'Signup failed');
       }
@@ -103,7 +103,7 @@ export class CursorRegistrar {
         if (code) {
           logger.info(`Verification code found: ${code}`, 'cursor');
           const verifyResult = await this.verifyEmail(code, result.email);
-          
+
           if (verifyResult.success) {
             result.verified = true;
             result.token = verifyResult.token;
@@ -112,7 +112,7 @@ export class CursorRegistrar {
         } else if (link) {
           logger.info(`Verification link found: ${link}`, 'cursor');
           const verifyResult = await this.verifyWithLink(link);
-          
+
           if (verifyResult.success) {
             result.verified = true;
             result.token = verifyResult.token;
@@ -143,7 +143,7 @@ export class CursorRegistrar {
   async sendSignup(email) {
     try {
       const fetchFn = globalProxyManager.getFetch();
-      
+
       const response = await fetchFn(`${CURSOR_CONFIG.baseUrl}${CURSOR_CONFIG.endpoints.signup}`, {
         method: 'POST',
         headers: CURSOR_CONFIG.headers,
@@ -157,11 +157,11 @@ export class CursorRegistrar {
       if (response.ok) {
         logger.info('Signup request sent successfully', 'cursor');
         return { success: true };
-      } else {
-        const error = await response.text();
-        logger.warn(`Signup failed: ${error}`, 'cursor');
-        return { success: false, error };
       }
+      const error = await response.text();
+      logger.warn(`Signup failed: ${error}`, 'cursor');
+      return { success: false, error };
+
     } catch (error) {
       logger.error(`Signup error: ${error.message}`, 'cursor');
       return { success: false, error: error.message };
@@ -177,7 +177,7 @@ export class CursorRegistrar {
   async verifyEmail(code, email) {
     try {
       const fetchFn = globalProxyManager.getFetch();
-      
+
       const response = await fetchFn(`${CURSOR_CONFIG.baseUrl}${CURSOR_CONFIG.endpoints.verify}`, {
         method: 'POST',
         headers: {
@@ -194,14 +194,14 @@ export class CursorRegistrar {
       if (response.ok) {
         const data = await response.json();
         const token = data.authToken || data.token || data.accessToken;
-        
+
         logger.info('Email verified successfully', 'cursor');
         return { success: true, token };
-      } else {
-        const error = await response.text();
-        logger.warn(`Verification failed: ${error}`, 'cursor');
-        return { success: false, error };
       }
+      const error = await response.text();
+      logger.warn(`Verification failed: ${error}`, 'cursor');
+      return { success: false, error };
+
     } catch (error) {
       logger.error(`Verification error: ${error.message}`, 'cursor');
       return { success: false, error: error.message };
@@ -216,7 +216,7 @@ export class CursorRegistrar {
   async verifyWithLink(link) {
     try {
       const fetchFn = globalProxyManager.getFetch();
-      
+
       // Извлечение токена из ссылки
       const tokenMatch = link.match(/[?&]token=([^&]+)/);
       const token = tokenMatch ? tokenMatch[1] : null;
@@ -250,7 +250,7 @@ export class CursorRegistrar {
   async signIn(email, code = null) {
     try {
       const fetchFn = globalProxyManager.getFetch();
-      
+
       // Шаг 1: Запрос кода входа
       if (!code) {
         const response = await fetchFn(`${CURSOR_CONFIG.baseUrl}${CURSOR_CONFIG.endpoints.signin}`, {
@@ -265,9 +265,9 @@ export class CursorRegistrar {
         if (response.ok) {
           logger.info('Signin code requested, check email', 'cursor');
           return { success: true, requiresCode: true };
-        } else {
-          return { success: false, error: 'Signin request failed' };
         }
+        return { success: false, error: 'Signin request failed' };
+
       }
 
       // Шаг 2: Вход с кодом
@@ -283,13 +283,13 @@ export class CursorRegistrar {
       if (response.ok) {
         const data = await response.json();
         const token = data.authToken || data.token;
-        
+
         this.authToken = token;
         logger.info('Signin successful', 'cursor');
         return { success: true, token };
-      } else {
-        return { success: false, error: 'Signin failed' };
       }
+      return { success: false, error: 'Signin failed' };
+
     } catch (error) {
       logger.error(`Signin error: ${error.message}`, 'cursor');
       return { success: false, error: error.message };
@@ -307,7 +307,7 @@ export class CursorRegistrar {
       }
 
       const fetchFn = globalProxyManager.getFetch();
-      
+
       const response = await fetchFn(`${CURSOR_CONFIG.baseUrl}${CURSOR_CONFIG.endpoints.user}`, {
         method: 'POST',
         headers: {
@@ -321,9 +321,9 @@ export class CursorRegistrar {
         const data = await response.json();
         logger.info('User profile retrieved', 'cursor');
         return { success: true, ...data };
-      } else {
-        return { success: false, error: 'Failed to get profile' };
       }
+      return { success: false, error: 'Failed to get profile' };
+
     } catch (error) {
       logger.error(`Profile error: ${error.message}`, 'cursor');
       return { success: false, error: error.message };
@@ -341,7 +341,7 @@ export class CursorRegistrar {
       }
 
       const fetchFn = globalProxyManager.getFetch();
-      
+
       const response = await fetchFn(`${CURSOR_CONFIG.baseUrl}${CURSOR_CONFIG.endpoints.subscription}`, {
         method: 'POST',
         headers: {
@@ -354,17 +354,17 @@ export class CursorRegistrar {
       if (response.ok) {
         const data = await response.json();
         const tier = data.tier || data.plan || 'free';
-        
+
         logger.info(`Subscription status: ${tier}`, 'cursor');
-        return { 
-          success: true, 
+        return {
+          success: true,
           tier,
           isPro: tier === 'pro',
           isTrial: data.isTrial || false
         };
-      } else {
-        return { success: false, error: 'Failed to get subscription' };
       }
+      return { success: false, error: 'Failed to get subscription' };
+
     } catch (error) {
       logger.error(`Subscription error: ${error.message}`, 'cursor');
       return { success: false, error: error.message };
@@ -382,7 +382,7 @@ export class CursorRegistrar {
       }
 
       const fetchFn = globalProxyManager.getFetch();
-      
+
       await fetchFn(`${CURSOR_CONFIG.baseUrl}${CURSOR_CONFIG.endpoints.logout}`, {
         method: 'POST',
         headers: {
@@ -445,7 +445,7 @@ export class CursorRegistrar {
       if (checkProStatus) {
         result.steps.push('Checking Pro status...');
         await new Promise(resolve => setTimeout(resolve, 3000)); // Пауза
-        
+
         const profileResult = await this.getUserProfile();
         if (profileResult.success) {
           result.userData = profileResult;

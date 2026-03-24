@@ -48,7 +48,7 @@ export const CLI_COMMANDS = {
     usage: 'proxy:clear',
     handler: handleProxyClear
   },
-  
+
   // Proxy Database команды
   'proxy-db:init': {
     description: 'Инициализировать базу прокси',
@@ -90,7 +90,7 @@ export const CLI_COMMANDS = {
     usage: 'proxy-db:auto [--enable] [--disable] [--interval 300000]',
     handler: handleProxyDbAuto
   },
-  
+
   // VPN команды
   'vpn:init': {
     description: 'Инициализировать VPN',
@@ -117,7 +117,7 @@ export const CLI_COMMANDS = {
     usage: 'vpn:configs',
     handler: handleVPNConfigs
   },
-  
+
   // Cursor Registrar команды
   'cursor:register': {
     description: 'Регистрация Cursor',
@@ -154,7 +154,7 @@ export const CLI_COMMANDS = {
     usage: 'cursor:session',
     handler: handleCursorSession
   },
-  
+
   // Bypass Server команды
   'server:start': {
     description: 'Запустить Bypass Server',
@@ -171,7 +171,7 @@ export const CLI_COMMANDS = {
     usage: 'server:stop',
     handler: handleServerStop
   },
-  
+
   // Updater команды
   'updater:check': {
     description: 'Проверить обновления',
@@ -220,7 +220,7 @@ export const CLI_COMMANDS = {
     usage: 'dns:flush',
     handler: handleDNSFlush
   },
-  
+
   // IP команды
   'ip:check': {
     description: 'Проверить IP',
@@ -232,7 +232,7 @@ export const CLI_COMMANDS = {
     usage: 'ip:history',
     handler: handleIPHistory
   },
-  
+
   // Fingerprint команды
   'fingerprint:reset': {
     description: 'Сброс fingerprint',
@@ -254,7 +254,7 @@ export const CLI_COMMANDS = {
     usage: 'fingerprint:info',
     handler: handleFingerprintInfo
   },
-  
+
   // Email команды
   'email:create': {
     description: 'Создать временный email',
@@ -271,7 +271,7 @@ export const CLI_COMMANDS = {
     usage: 'email:wait [--timeout 120000]',
     handler: handleEmailWait
   },
-  
+
   // Monitor команды
   'monitor:check': {
     description: 'Проверить статус Cursor',
@@ -293,7 +293,7 @@ export const CLI_COMMANDS = {
     usage: 'monitor:status',
     handler: handleMonitorStatus
   },
-  
+
   // Reset команды
   'reset': {
     description: 'Сброс Machine ID',
@@ -305,7 +305,7 @@ export const CLI_COMMANDS = {
     usage: 'reset:all',
     handler: handleResetAll
   },
-  
+
   // Info команды
   'info': {
     description: 'Общая информация',
@@ -334,11 +334,11 @@ function parseArgs(args) {
   let i = 0;
   while (i < args.length) {
     const arg = args[i];
-    
+
     if (arg.startsWith('--')) {
       const flag = arg.slice(2);
       const nextArg = args[i + 1];
-      
+
       if (nextArg && !nextArg.startsWith('--')) {
         result.flags[flag] = nextArg;
         i += 2;
@@ -371,7 +371,7 @@ function output(message, type = 'info') {
     warning: '⚠️',
     process: '🔄'
   };
-  
+
   console.log(`${icons[type] || 'ℹ️'} ${message}`);
 }
 
@@ -381,39 +381,39 @@ function output(message, type = 'info') {
 
 async function handleProxyAdd(args) {
   const { params, flags } = args;
-  
+
   if (params.length < 1) {
     output('Укажите прокси: proxy:add <host:port>', 'error');
     return;
   }
-  
+
   const proxyStr = params[0];
   const protocol = flags.protocol || 'socks5';
-  
+
   globalProxyManager.addProxy(proxyStr, protocol);
   output(`Прокси добавлен: ${proxyStr} (${protocol})`, 'success');
-  
+
   // Проверка прокси
   output('Проверка прокси...', 'process');
   const isWorking = await globalProxyManager.checkProxy(
     globalProxyManager.parseProxy(proxyStr, protocol),
     protocol
   );
-  
+
   output(isWorking ? 'Пркси работает' : 'Прокси не работает', isWorking ? 'success' : 'warning');
 }
 
 async function handleProxyList() {
   const proxies = globalProxyManager.getProxyList();
   const stats = globalProxyManager.getStats();
-  
+
   output(`Прокси: ${stats.working}/${stats.total} рабочих`, 'info');
-  
+
   if (proxies.length === 0) {
     output('Список прокси пуст', 'warning');
     return;
   }
-  
+
   proxies.forEach((p, i) => {
     const status = p.working ? '🟢' : '🔴';
     const current = p.url === stats.currentProxy ? ' ← текущий' : '';
@@ -429,7 +429,7 @@ async function handleProxyCheck() {
 
 async function handleProxyRotate() {
   const proxy = globalProxyManager.rotateProxy();
-  
+
   if (proxy) {
     output(`Прокси сменён: ${proxy.url}`, 'success');
   } else {
@@ -452,7 +452,7 @@ async function handleProxyDbInit() {
 
 async function handleProxyDbList(args) {
   const { flags } = args;
-  
+
   output('Загрузка списка прокси...', 'process');
   const proxies = globalProxyDatabase.getProxies({
     country: flags.country,
@@ -460,12 +460,12 @@ async function handleProxyDbList(args) {
     workingOnly: flags.working,
     limit: 50
   });
-  
+
   if (proxies.length === 0) {
     output('Прокси не найдены', 'warning');
     return;
   }
-  
+
   output(`Найдено: ${proxies.length} прокси`, 'info');
   proxies.forEach((p, i) => {
     const status = p.working === true ? '🟢' : p.working === false ? '🔴' : '⚪';
@@ -475,7 +475,7 @@ async function handleProxyDbList(args) {
 
 async function handleProxyDbStats() {
   const stats = globalProxyDatabase.getStats();
-  
+
   output('Статистика базы прокси:', 'info');
   console.log(`  Всего: ${stats.total}`);
   console.log(`  Рабочих: ${stats.working}`);
@@ -494,7 +494,7 @@ async function handleProxyDbRefresh() {
 async function handleProxyDbCheck(args) {
   const { flags } = args;
   const concurrency = parseInt(flags.concurrency) || 5;
-  
+
   output(`Проверка всех прокси (concurrency: ${concurrency})...`, 'process');
   const result = await globalProxyDatabase.checkAllProxies(concurrency);
   output(`Проверено: ${result.checked}, рабочих: ${result.working.length}, нерабочих: ${result.failed.length}`, 'success');
@@ -502,10 +502,10 @@ async function handleProxyDbCheck(args) {
 
 async function handleProxyDbRandom(args) {
   const { flags } = args;
-  
+
   output('Поиск случайного рабочего прокси...', 'process');
   const proxy = globalProxyDatabase.getRandomWorking(flags.protocol);
-  
+
   if (proxy) {
     output(`Найден: ${proxy.url} (${proxy.country}) [${proxy.protocol}]`, 'success');
   } else {
@@ -515,7 +515,7 @@ async function handleProxyDbRandom(args) {
 
 async function handleProxyDbCountries() {
   const countries = globalProxyDatabase.getAvailableCountries();
-  
+
   output(`Доступные страны (${countries.length}):`, 'info');
   countries.forEach(c => {
     const count = globalProxyDatabase.getStats().byCountry[c];
@@ -540,7 +540,7 @@ async function handleProxyDbAuto(args) {
 async function handleVPNInit() {
   output('Инициализация VPN...', 'process');
   const result = await globalVPNManager.init();
-  
+
   output(`WireGuard: ${result.wireguard ? 'установлен' : 'не установлен'}`, result.wireguard ? 'success' : 'warning');
   output(`OpenVPN: ${result.openvpn ? 'установлен' : 'не установлен'}`, result.openvpn ? 'success' : 'warning');
 }
@@ -548,7 +548,7 @@ async function handleVPNInit() {
 async function handleVPNStatus() {
   output('Проверка статуса VPN...', 'process');
   const status = await globalVPNManager.getStatus();
-  
+
   if (status.connected) {
     output(`Подключено: ${status.type} (${status.name || 'unknown'})`, 'success');
     output(`IP: ${status.ip || 'unknown'}`, 'info');
@@ -561,11 +561,11 @@ async function handleVPNStatus() {
 async function handleVPNQuick() {
   output('Быстрое подключение VPN...', 'process');
   const result = await globalVPNManager.quickConnect();
-  
+
   if (result.success) {
     output('VPN подключен', 'success');
-    if (result.ip) output(`IP: ${result.ip}`, 'info');
-    if (result.country) output(`Страна: ${result.country}`, 'info');
+    if (result.ip) {output(`IP: ${result.ip}`, 'info');}
+    if (result.country) {output(`Страна: ${result.country}`, 'info');}
   } else {
     output(`Ошибка: ${result.error}`, 'error');
   }
@@ -574,7 +574,7 @@ async function handleVPNQuick() {
 async function handleVPNDisconnect() {
   output('Отключение VPN...', 'process');
   const success = await globalVPNManager.disconnect();
-  
+
   if (success) {
     output('VPN отключен', 'success');
   } else {
@@ -585,12 +585,12 @@ async function handleVPNDisconnect() {
 async function handleVPNConfigs() {
   output('Загрузка конфигураций...', 'process');
   const configs = await globalVPNManager.getConfigs();
-  
+
   if (configs.length === 0) {
     output('Конфигурации не найдены', 'warning');
     return;
   }
-  
+
   output(`Найдено конфигураций: ${configs.length}`, 'info');
   configs.forEach((c, i) => {
     console.log(`  ${i + 1}. ${c.name} (${c.type})`);
@@ -601,18 +601,18 @@ async function handleVPNConfigs() {
 async function handleCursorRegister(args) {
   const { flags } = args;
   const emailService = flags['email-service'] || 'guerrillamail';
-  
+
   output(`Регистрация Cursor (${emailService})...`, 'process');
   const result = await globalCursorRegistrar.register({
     emailService,
     autoVerify: true,
     timeout: 180000
   });
-  
+
   if (result.success) {
     output(`Email: ${result.email}`, 'success');
     output(`Подтверждено: ${result.verified ? 'Да' : 'Нет'}`, result.verified ? 'success' : 'warning');
-    if (result.token) output('Токен получен', 'success');
+    if (result.token) {output('Токен получен', 'success');}
   } else {
     output(`Ошибка: ${result.error}`, 'error');
   }
@@ -621,14 +621,14 @@ async function handleCursorRegister(args) {
 async function handleCursorAutoRegister(args) {
   const { flags } = args;
   const emailService = flags['email-service'] || 'guerrillamail';
-  
+
   output(`Авто-регистрация Cursor (${emailService})...`, 'process');
   const result = await globalCursorRegistrar.autoRegister({
     emailService,
     checkProStatus: true,
     timeout: 180000
   });
-  
+
   if (result.success) {
     output(`Email: ${result.email}`, 'success');
     output(`Статус: ${result.isPro ? 'Pro' : result.isTrial ? 'Trial' : 'Free'}`, 'info');
@@ -640,18 +640,18 @@ async function handleCursorAutoRegister(args) {
 
 async function handleCursorSignIn(args) {
   const { params } = args;
-  
+
   if (params.length < 1) {
     output('Укажите email: cursor:signin <email>', 'error');
     return;
   }
-  
+
   const email = params[0];
   output(`Вход в Cursor: ${email}...`, 'process');
-  
+
   // Запрос кода
   const result = await globalCursorRegistrar.signIn(email);
-  
+
   if (result.success && result.requiresCode) {
     output('Код отправлен на email', 'success');
     const code = prompt('Введите код подтверждения:');
@@ -671,7 +671,7 @@ async function handleCursorSignIn(args) {
 async function handleCursorProfile() {
   output('Загрузка профиля...', 'process');
   const result = await globalCursorRegistrar.getUserProfile();
-  
+
   if (result.success) {
     output('Профиль загружен', 'success');
     console.log(JSON.stringify(result, null, 2));
@@ -683,7 +683,7 @@ async function handleCursorProfile() {
 async function handleCursorSubscription() {
   output('Проверка подписки...', 'process');
   const result = await globalCursorRegistrar.getSubscriptionStatus();
-  
+
   if (result.success) {
     output(`Статус: ${result.tier || 'unknown'}`, 'info');
     output(`Pro: ${result.isPro ? 'Да' : 'Нет'}`, result.isPro ? 'success' : 'info');
@@ -696,7 +696,7 @@ async function handleCursorSubscription() {
 async function handleCursorSignOut() {
   output('Выход из Cursor...', 'process');
   const result = await globalCursorRegistrar.signOut();
-  
+
   if (result.success) {
     output('Выход выполнен', 'success');
   } else {
@@ -706,7 +706,7 @@ async function handleCursorSignOut() {
 
 async function handleCursorSession() {
   const session = globalCursorRegistrar.getSession();
-  
+
   output('Текущая сессия:', 'info');
   console.log(`  Email: ${session.email || 'Нет'}`);
   console.log(`  Подтверждено: ${session.verified ? 'Да' : 'Нет'}`);
@@ -717,14 +717,14 @@ async function handleCursorSession() {
 async function handleServerStart(args) {
   const { flags } = args;
   const port = flags.port ? parseInt(flags.port) : 3001;
-  
+
   output(`Запуск Bypass Server на порту ${port}...`, 'process');
-  
+
   try {
     process.env.BYPASS_PORT = port;
     await globalBypassServer.init();
     await globalBypassServer.start();
-    
+
     output(`Bypass Server запущен`, 'success');
     output(`HTTP: http://localhost:${port}`, 'info');
     output(`WebSocket: ws://localhost:${port}/ws`, 'info');
@@ -737,7 +737,7 @@ async function handleServerStart(args) {
 async function handleServerStatus() {
   output('Проверка статуса сервера...', 'process');
   const stats = globalBypassServer.getStats();
-  
+
   output('Статус Bypass Server:', 'info');
   console.log(`  Активных клиентов: ${stats.activeClients}`);
   console.log(`  Всего запросов: ${stats.totalRequests}`);
@@ -754,14 +754,14 @@ async function handleServerStop() {
 // Updater обработчики
 async function handleUpdaterCheck() {
   output('Проверка обновлений...', 'process');
-  
+
   try {
     const result = await globalUpdater.checkForUpdates();
-    
+
     if (result.updateAvailable) {
       output(`Доступно обновление: ${result.currentVersion} → ${result.latestVersion}`, 'success');
       output(`Описание: ${result.info?.name || ''}`, 'info');
-      console.log(result.info?.description?.substring(0, 200) + '...');
+      console.log(`${result.info?.description?.substring(0, 200)}...`);
     } else {
       output('Обновлений нет. У вас последняя версия.', 'success');
     }
@@ -772,20 +772,20 @@ async function handleUpdaterCheck() {
 
 async function handleUpdaterDownload() {
   output('Проверка обновлений...', 'process');
-  
+
   try {
     await globalUpdater.checkForUpdates();
-    
+
     if (!globalUpdater.updateAvailable) {
       output('Обновлений нет', 'info');
       return;
     }
-    
+
     const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
     output(`Загрузка обновления ${globalUpdater.latestVersion}...`, 'process');
-    
+
     await globalUpdater.downloadUpdate(downloadPath);
-    
+
     output(`Загрузка завершена: ${downloadPath}`, 'success');
   } catch (error) {
     output(`Ошибка загрузки: ${error.message}`, 'error');
@@ -794,25 +794,25 @@ async function handleUpdaterDownload() {
 
 async function handleUpdaterInstall() {
   output('Установка обновления...', 'process');
-  
+
   try {
     await globalUpdater.checkForUpdates();
-    
+
     if (!globalUpdater.updateAvailable) {
       output('Обновлений нет', 'info');
       return;
     }
-    
+
     const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
-    
+
     // Проверка наличия загруженного файла
     if (!await fs.pathExists(downloadPath)) {
       output('Файл обновления не найден. Сначала выполните download.', 'warning');
       return;
     }
-    
+
     await globalUpdater.installUpdate(downloadPath);
-    
+
     output(`Обновление ${globalUpdater.latestVersion} установлено!`, 'success');
     output('Перезапустите приложение для применения обновлений.', 'info');
   } catch (error) {
@@ -822,13 +822,13 @@ async function handleUpdaterInstall() {
 
 async function handleUpdaterAuto() {
   output('Авто-обновление...', 'process');
-  
+
   try {
     const result = await globalUpdater.autoUpdate({
       downloadPath: path.join(process.cwd(), 'updates', 'update.zip'),
       install: true
     });
-    
+
     if (result.updated) {
       output(`Обновление до ${result.version} завершено!`, 'success');
       if (result.requiresRestart) {
@@ -846,7 +846,7 @@ async function handleUpdaterAuto() {
 
 async function handleUpdaterStatus() {
   const status = globalUpdater.getStatus();
-  
+
   output('Статус обновлений:', 'info');
   console.log(`  Текущая версия: ${status.currentVersion}`);
   console.log(`  Последняя версия: ${status.latestVersion || 'Неизвестно'}`);
@@ -860,23 +860,23 @@ async function handleUpdaterStatus() {
 
 async function handleDNSSet(args) {
   const { params } = args;
-  
+
   if (params.length < 1) {
     output('Укажите DNS провайдер: dns:set <cloudflare|google|quad9|opendns|adguard|auto>', 'error');
     return;
   }
-  
+
   const provider = params[0];
-  
+
   if (!DNS_SERVERS[provider]) {
     output(`Неизвестный провайдер: ${provider}`, 'error');
-    output('Доступные: ' + Object.keys(DNS_SERVERS).join(', '), 'info');
+    output(`Доступные: ${Object.keys(DNS_SERVERS).join(', ')}`, 'info');
     return;
   }
-  
+
   output(`Установка DNS: ${DNS_SERVERS[provider].name}...`, 'process');
   const success = await globalDNSManager.setDNS(provider);
-  
+
   if (success) {
     output(`DNS установлен: ${DNS_SERVERS[provider].name} (${DNS_SERVERS[provider].primary})`, 'success');
   } else {
@@ -887,7 +887,7 @@ async function handleDNSSet(args) {
 async function handleDNSCurrent() {
   const dns = await globalDNSManager.getCurrentDNS();
   const config = globalDNSManager.getConfig();
-  
+
   output(`Текущий DNS: ${dns.primary} (вторичный: ${dns.secondary})`, 'info');
   output(`Платформа: ${os.platform()}`, 'info');
   output(`Кастомный DNS: ${config.isCustomDNS ? 'Да' : 'Нет'}`, 'info');
@@ -896,7 +896,7 @@ async function handleDNSCurrent() {
 async function handleDNSRestore() {
   output('Восстановление DNS...', 'process');
   const success = await globalDNSManager.restoreDNS();
-  
+
   if (success) {
     output('DNS восстановлен к настройкам по умолчанию (DHCP)', 'success');
   } else {
@@ -907,7 +907,7 @@ async function handleDNSRestore() {
 async function handleDNSFlush() {
   output('Очистка DNS кэша...', 'process');
   const success = await globalDNSManager.flushDNSCache();
-  
+
   if (success) {
     output('DNS кэш очищен', 'success');
   } else {
@@ -917,10 +917,10 @@ async function handleDNSFlush() {
 
 async function handleIPCheck(args) {
   const { flags } = args;
-  
+
   output('Проверка IP...', 'process');
   const ipData = await globalIPManager.getCurrentIP({ includeDetails: flags.details });
-  
+
   output(`IP: ${ipData.ip}`, 'info');
   if (ipData.country) {
     output(`Страна: ${ipData.country} (${ipData.countryCode})`, 'info');
@@ -931,11 +931,11 @@ async function handleIPCheck(args) {
   if (ipData.isp) {
     output(`Провайдер: ${ipData.isp}`, 'info');
   }
-  
+
   // Проверка блокировок
   output('Проверка доступности Cursor...', 'process');
   const blocks = await globalIPManager.detectBlocks();
-  
+
   if (blocks.cursorBlocked) {
     output('Cursor API заблокирован!', 'error');
   } else if (blocks.cursorPartiallyBlocked) {
@@ -943,7 +943,7 @@ async function handleIPCheck(args) {
   } else {
     output('Cursor API доступен', 'success');
   }
-  
+
   if (blocks.recommendations.length > 0) {
     output('Рекомендации:', 'info');
     blocks.recommendations.forEach(r => {
@@ -955,12 +955,12 @@ async function handleIPCheck(args) {
 
 async function handleIPHistory() {
   const history = globalIPManager.getIPHistory();
-  
+
   if (history.length === 0) {
     output('История IP пуста', 'warning');
     return;
   }
-  
+
   output(`История IP (${history.length} записей):`, 'info');
   history.forEach((entry, i) => {
     const date = new Date(entry.timestamp).toLocaleTimeString();
@@ -970,16 +970,16 @@ async function handleIPHistory() {
 
 async function handleFingerprintReset(args) {
   const { flags } = args;
-  
+
   const options = {
     changeMAC: !flags['no-mac'],
     changeHostname: !flags['no-hostname'],
     flushDNS: !flags['no-dns']
   };
-  
+
   output('Сброс fingerprint...', 'process');
   const result = await globalFingerprintManager.resetFingerprint(options);
-  
+
   if (result.mac) {
     output(`MAC: ${result.mac.success}/${result.mac.total} интерфейсов изменено`, 'success');
   }
@@ -989,16 +989,16 @@ async function handleFingerprintReset(args) {
   if (result.dns) {
     output(`DNS кэш: ${result.dns.success ? 'очищен' : 'ошибка'}`, result.dns.success ? 'success' : 'error');
   }
-  
+
   output('Fingerprint сброс завершён', 'success');
 }
 
 async function handleMACChange() {
   output('Смена MAC адресов...', 'process');
   const result = await globalFingerprintManager.changeAllMAC();
-  
+
   output(`Изменено: ${result.success}/${result.total} интерфейсов`, result.success > 0 ? 'success' : 'error');
-  
+
   result.results.forEach(r => {
     console.log(`  ${r.interface}: ${r.oldMAC} → ${r.newMAC}`);
   });
@@ -1006,7 +1006,7 @@ async function handleMACChange() {
 
 async function handleHostnameChange(args) {
   const { flags } = args;
-  
+
   if (flags.name) {
     output(`Смена hostname на: ${flags.name}`, 'process');
     const success = await globalFingerprintManager.setHostname(flags.name);
@@ -1020,7 +1020,7 @@ async function handleHostnameChange(args) {
 
 async function handleFingerprintInfo() {
   const info = await globalFingerprintManager.getFingerprintInfo();
-  
+
   output('Fingerprint информация:', 'info');
   console.log(`  Платформа: ${info.platform}`);
   console.log(`  Hostname: ${info.hostname}`);
@@ -1035,10 +1035,10 @@ async function handleFingerprintInfo() {
 async function handleEmailCreate(args) {
   const { flags } = args;
   const service = flags.service || 'guerrillamail';
-  
+
   output(`Создание email (${service})...`, 'process');
   const result = await globalEmailManager.createEmail(service);
-  
+
   if (result.success) {
     output(`Email: ${result.email}`, 'success');
     output(`Сервис: ${result.service}`, 'info');
@@ -1050,20 +1050,20 @@ async function handleEmailCreate(args) {
 
 async function handleEmailCheck() {
   const session = globalEmailManager.getSessionInfo();
-  
+
   if (!session.email) {
     output('Нет активного email сеанса', 'error');
     return;
   }
-  
+
   output(`Проверка ${session.email}...`, 'process');
   const messages = await globalEmailManager.getMessages();
-  
+
   if (messages.length === 0) {
     output('Сообщений нет', 'info');
     return;
   }
-  
+
   output(`Сообщений: ${messages.length}`, 'success');
   messages.forEach((msg, i) => {
     console.log(`  ${i + 1}. ${msg.subject || 'Без темы'} (от: ${msg.from})`);
@@ -1073,19 +1073,19 @@ async function handleEmailCheck() {
 async function handleEmailWait(args) {
   const { flags } = args;
   const timeout = parseInt(flags.timeout) || 120000;
-  
+
   output(`Ожидание письма от Cursor (timeout: ${timeout}ms)...`, 'process');
   const result = await globalEmailManager.waitForMessage({
     subjectContains: 'cursor',
     timeout
   });
-  
+
   if (result) {
     output(`Письмо получено: ${result.subject}`, 'success');
-    
+
     const code = globalEmailManager.extractVerificationCode(result.body);
     const link = globalEmailManager.extractVerificationLink(result.body);
-    
+
     if (code) {
       output(`Код подтверждения: ${code}`, 'success');
     }
@@ -1100,14 +1100,14 @@ async function handleEmailWait(args) {
 async function handleMonitorCheck() {
   output('Проверка статуса сервисов...', 'process');
   const report = await globalMonitorManager.fullCheck();
-  
+
   output(`Cursor: ${report.cursorAvailable ? 'доступен' : 'недоступен'}`, report.cursorAvailable ? 'success' : 'error');
-  
+
   Object.entries(report.services).forEach(([name, data]) => {
     const icon = data.availabilityPercent === 100 ? '🟢' : data.availabilityPercent >= 50 ? '🟡' : '🔴';
     console.log(`  ${icon} ${name}: ${data.availabilityPercent}%`);
   });
-  
+
   if (report.recommendations.length > 0) {
     output('Рекомендации:', 'info');
     report.recommendations.forEach(r => {
@@ -1119,7 +1119,7 @@ async function handleMonitorCheck() {
 async function handleMonitorStart(args) {
   const { flags } = args;
   const interval = parseInt(flags.interval) || 60000;
-  
+
   globalMonitorManager.startMonitoring(interval);
   output(`Мониторинг запущен (интервал: ${interval}ms)`, 'success');
 }
@@ -1132,7 +1132,7 @@ async function handleMonitorStop() {
 async function handleMonitorStatus() {
   const status = globalMonitorManager.getCurrentStatus();
   const stats = globalMonitorManager.getStats();
-  
+
   output('Статус мониторинга:', 'info');
   console.log(`  Запущен: ${status.isMonitoring ? 'Да' : 'Нет'}`);
   console.log(`  Последняя проверка: ${status.lastCheck ? new Date(status.lastCheck).toLocaleString() : 'Никогда'}`);
@@ -1163,29 +1163,29 @@ async function handleInfo() {
   const platform = os.platform();
   const version = os.release();
   const arch = os.arch();
-  
+
   output('Cursor Reset Tools - Информация:', 'info');
   console.log(`  Платформа: ${platform} ${version} (${arch})`);
   console.log(`  Hostname: ${os.hostname()}`);
   console.log(`  Node.js: ${process.version}`);
-  
+
   const proxyStats = globalProxyManager.getStats();
   console.log(`  Прокси: ${proxyStats.working}/${proxyStats.total} рабочих`);
-  
+
   const dnsConfig = globalDNSManager.getConfig();
   console.log(`  Кастомный DNS: ${dnsConfig.isCustomDNS ? 'Да' : 'Нет'}`);
-  
+
   const monitorStatus = globalMonitorManager.getCurrentStatus();
   console.log(`  Мониторинг: ${monitorStatus.isMonitoring ? 'Запущен' : 'Остановлен'}`);
 }
 
 async function handleHelp(args) {
   const { params } = args;
-  
+
   if (params.length > 0) {
     const cmdName = params[0];
     const cmd = CLI_COMMANDS[cmdName];
-    
+
     if (cmd) {
       output(`${cmdName}:`, 'info');
       console.log(`  Описание: ${cmd.description}`);
@@ -1195,13 +1195,13 @@ async function handleHelp(args) {
     }
     return;
   }
-  
+
   output('Cursor Reset Tools - CLI помощь', 'info');
   console.log('');
   console.log('Использование: node cli.js <command> [options]');
   console.log('');
   console.log('Команды:');
-  
+
   const categories = {
     'Proxy': ['proxy:add', 'proxy:list', 'proxy:check', 'proxy:rotate', 'proxy:clear'],
     'Proxy Database': ['proxy-db:init', 'proxy-db:list', 'proxy-db:stats', 'proxy-db:refresh', 'proxy-db:check', 'proxy-db:random', 'proxy-db:countries', 'proxy-db:auto'],
@@ -1217,7 +1217,7 @@ async function handleHelp(args) {
     'Reset': ['reset', 'reset:all'],
     'Info': ['info', 'help']
   };
-  
+
   for (const [category, commands] of Object.entries(categories)) {
     console.log(`\n  ${category}:`);
     for (const cmdName of commands) {
@@ -1225,7 +1225,7 @@ async function handleHelp(args) {
       console.log(`    ${cmdName.padEnd(20)} - ${cmd.description}`);
     }
   }
-  
+
   console.log('');
   output('Используйте "help <command>" для подробной информации', 'info');
 }
@@ -1236,21 +1236,21 @@ async function handleHelp(args) {
  */
 export async function runCLI(args = process.argv.slice(2)) {
   logger.init();
-  
+
   if (args.length === 0) {
     handleHelp({ params: [] });
     return;
   }
-  
+
   const parsed = parseArgs(args);
   const command = CLI_COMMANDS[parsed.command];
-  
+
   if (!command) {
     output(`Неизвестная команда: ${parsed.command}`, 'error');
     output('Используйте "help" для списка команд', 'info');
     return;
   }
-  
+
   try {
     await command.handler(parsed);
   } catch (error) {

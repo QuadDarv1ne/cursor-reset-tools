@@ -27,7 +27,7 @@ const BUILTIN_PROXIES = [
   { url: 'proxy6.socks5.example:1080', protocol: 'socks5', country: 'JP', speed: 'medium' },
   { url: 'proxy7.socks5.example:1080', protocol: 'socks5', country: 'SG', speed: 'fast' },
   { url: 'proxy8.socks5.example:1080', protocol: 'socks5', country: 'CA', speed: 'medium' },
-  
+
   // HTTP прокси
   { url: 'proxy1.http.example:8080', protocol: 'http', country: 'US', speed: 'fast' },
   { url: 'proxy2.http.example:8080', protocol: 'http', country: 'DE', speed: 'medium' },
@@ -90,22 +90,22 @@ export class ProxyDatabase {
    */
   async init() {
     logger.info('Initializing proxy database...', 'proxy-db');
-    
+
     // Загрузка из файла
     await this.loadFromFile();
-    
+
     // Если файл пустой, загружаем встроенные прокси
     if (this.proxies.length === 0) {
       this.loadBuiltIn();
     }
-    
+
     // Загрузка из API
     await this.fetchFromAPIs();
-    
+
     // Сохранение и подсчёт статистики
     await this.saveToFile();
     this.updateStats();
-    
+
     logger.info(`Proxy database initialized: ${this.proxies.length} proxies`, 'proxy-db');
   }
 
@@ -118,10 +118,10 @@ export class ProxyDatabase {
         const data = await fs.readJson(DATA_FILE);
         this.proxies = data.proxies || [];
         this.lastUpdate = data.lastUpdate;
-        
+
         // Восстановление статистики
         this.updateStats();
-        
+
         logger.info(`Loaded ${this.proxies.length} proxies from file`, 'proxy-db');
       }
     } catch (error) {
@@ -162,7 +162,7 @@ export class ProxyDatabase {
    */
   addProxy(url, protocol = 'socks5', country = 'Unknown', speed = 'unknown') {
     const exists = this.proxies.some(p => p.url === url);
-    if (exists) return false;
+    if (exists) {return false;}
 
     const proxy = {
       url,
@@ -185,7 +185,7 @@ export class ProxyDatabase {
    */
   async fetchFromAPIs() {
     logger.info('Fetching proxies from APIs...', 'proxy-db');
-    
+
     const results = await Promise.allSettled(
       PROXY_APIS.map(api => this.fetchFromAPI(api))
     );
@@ -236,12 +236,12 @@ export class ProxyDatabase {
       } else if (api.format === 'json') {
         const data = await response.json();
         const proxyList = data.data || data.proxies || data || [];
-        
+
         proxies = proxyList.map(p => {
-          const ipPort = api.parseField 
-            ? p[api.parseField] 
+          const ipPort = api.parseField
+            ? p[api.parseField]
             : `${p.ip}:${p.port}`;
-          
+
           return {
             url: ipPort,
             protocol: api.protocol,
@@ -310,7 +310,7 @@ export class ProxyDatabase {
 
     // Фильтр по стране
     if (country) {
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.country.toLowerCase() === country.toLowerCase()
       );
     }
@@ -322,9 +322,9 @@ export class ProxyDatabase {
 
     // Сортировка
     filtered.sort((a, b) => {
-      if (sortBy === 'added') return b.added - a.added;
-      if (sortBy === 'responseTime') return (a.responseTime || 9999) - (b.responseTime || 9999);
-      if (sortBy === 'country') return a.country.localeCompare(b.country);
+      if (sortBy === 'added') {return b.added - a.added;}
+      if (sortBy === 'responseTime') {return (a.responseTime || 9999) - (b.responseTime || 9999);}
+      if (sortBy === 'country') {return a.country.localeCompare(b.country);}
       return 0;
     });
 
@@ -337,7 +337,7 @@ export class ProxyDatabase {
    */
   updateProxyStatus(url, working, responseTime = null) {
     const proxy = this.proxies.find(p => p.url === url);
-    if (!proxy) return false;
+    if (!proxy) {return false;}
 
     proxy.working = working;
     proxy.lastChecked = Date.now();
@@ -360,11 +360,11 @@ export class ProxyDatabase {
     const initialLength = this.proxies.length;
     this.proxies = this.proxies.filter(p => p.failures < maxFailures);
     const removed = initialLength - this.proxies.length;
-    
+
     logger.info(`Cleaned up ${removed} failed proxies`, 'proxy-db');
     this.updateStats();
     this.saveToFile();
-    
+
     return removed;
   }
 
@@ -377,7 +377,7 @@ export class ProxyDatabase {
     }
 
     this.autoUpdateEnabled = true;
-    
+
     this.updateInterval = setInterval(async () => {
       logger.info('Auto-updating proxy database...', 'proxy-db');
       await this.refresh();
@@ -403,17 +403,17 @@ export class ProxyDatabase {
    */
   async refresh() {
     logger.info('Refreshing proxy database...', 'proxy-db');
-    
+
     // Очистка старых нерабочих
     this.cleanupFailed(5);
-    
+
     // Загрузка из API
     await this.fetchFromAPIs();
-    
+
     // Сохранение и обновление статистики
     await this.saveToFile();
     this.updateStats();
-    
+
     logger.info(`Refresh complete: ${this.proxies.length} proxies`, 'proxy-db');
   }
 
@@ -422,7 +422,7 @@ export class ProxyDatabase {
    */
   async checkAllProxies(concurrency = 5) {
     logger.info(`Checking all proxies (concurrency: ${concurrency})...`, 'proxy-db');
-    
+
     const checked = [];
     const working = [];
     const failed = [];
@@ -430,16 +430,16 @@ export class ProxyDatabase {
     // Проверка с ограничением параллелизма
     for (let i = 0; i < this.proxies.length; i += concurrency) {
       const batch = this.proxies.slice(i, i + concurrency);
-      
+
       const results = await Promise.allSettled(
-        batch.map(async (proxy) => {
+        batch.map(async proxy => {
           const isWorking = await globalProxyManager.checkProxy(
             globalProxyManager.parseProxy(proxy.url, proxy.protocol),
             proxy.protocol
           );
-          
+
           this.updateProxyStatus(proxy.url, isWorking);
-          
+
           return { proxy, isWorking };
         })
       );
@@ -459,7 +459,7 @@ export class ProxyDatabase {
     }
 
     logger.info(`Check complete: ${working.length} working, ${failed.length} failed`, 'proxy-db');
-    
+
     return { checked: checked.length, working, failed };
   }
 
@@ -467,11 +467,11 @@ export class ProxyDatabase {
    * Получение случайного рабочего прокси
    */
   getRandomWorking(protocol = null) {
-    const working = this.proxies.filter(p => 
+    const working = this.proxies.filter(p =>
       p.working === true && (!protocol || p.protocol === protocol)
     );
 
-    if (working.length === 0) return null;
+    if (working.length === 0) {return null;}
 
     return working[Math.floor(Math.random() * working.length)];
   }
@@ -480,7 +480,7 @@ export class ProxyDatabase {
    * Получение лучшего прокси по стране
    */
   getBestByCountry(country, protocol = null) {
-    const filtered = this.proxies.filter(p => 
+    const filtered = this.proxies.filter(p =>
       p.country.toLowerCase() === country.toLowerCase() &&
       p.working === true &&
       (!protocol || p.protocol === protocol)
@@ -523,7 +523,7 @@ export class ProxyDatabase {
       const fs = await import('fs-extra');
       const content = await fs.readFile(filePath, 'utf8');
       const lines = content.split('\n').filter(line => line.trim());
-      
+
       let addedCount = 0;
       for (const line of lines) {
         const trimmed = line.trim();
@@ -531,19 +531,19 @@ export class ProxyDatabase {
           const parts = trimmed.split(':');
           if (parts.length >= 2) {
             let protocol = defaultProtocol;
-            let url = trimmed;
-            
+            const url = trimmed;
+
             if (['socks5', 'socks4', 'http', 'https'].includes(parts[0])) {
               protocol = parts[0];
             }
-            
+
             if (this.addProxy(url, protocol, 'Unknown', 'unknown')) {
               addedCount++;
             }
           }
         }
       }
-      
+
       this.updateStats();
       logger.info(`Imported ${addedCount} proxies from ${filePath}`, 'proxy-db');
       return addedCount;

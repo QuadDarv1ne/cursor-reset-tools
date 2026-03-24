@@ -194,9 +194,9 @@ class FingerprintManager {
       return await this.changeMACWindows();
     } else if (platform === 'darwin') {
       return await this.changeMACMacOS();
-    } else {
-      return await this.changeMACLinux();
     }
+    return await this.changeMACLinux();
+
   }
 
   /**
@@ -242,9 +242,9 @@ class FingerprintManager {
 
     if (platform === 'win32') {
       return await this.changeHostnameWindows(newName);
-    } else {
-      return await this.changeHostnameUnix(newName);
     }
+    return await this.changeHostnameUnix(newName);
+
   }
 
   /**

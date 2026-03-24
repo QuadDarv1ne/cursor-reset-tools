@@ -14,7 +14,10 @@
         "server": "node server/bypassServer.js",
         "update": "node cli.js updater:check",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-        "lint": "eslint ."
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "check:i18n": "node scripts/check-i18n.js",
+        "check:i18n:verbose": "node scripts/check-i18n.js --verbose"
     },
     "dependencies": {
         "cors": "^2.8.5",
@@ -35,6 +38,8 @@
     },
     "devDependencies": {
         "@jest/globals": "^30.3.0",
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "^9.1.0",
         "jest": "^30.3.0",
         "nodemon": "^2.0.22"
     }

@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const mc = document.querySelector('.modal-close');
 
   // i18n система
-  let currentLang = localStorage.getItem('lang') || 'ru';
-  const t = (key) => window.i18n?.t(key, currentLang) || key;
+  const currentLang = localStorage.getItem('lang') || 'ru';
+  const t = key => window.i18n?.t(key, currentLang) || key;
 
   const cm = () => {
     dm.style.display = 'none';
@@ -27,19 +27,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  if (ad) ad.addEventListener('click', cm);
-  if (mc) mc.addEventListener('click', cm);
+  if (ad) {ad.addEventListener('click', cm);}
+  if (mc) {mc.addEventListener('click', cm);}
 
-  window.addEventListener('click', (e) => {
-    if (e.target === dm) cm();
+  window.addEventListener('click', e => {
+    if (e.target === dm) {cm();}
   });
 
   const gp = async () => {
     const r = await fetch('/api/paths');
-    return await r.json();
+    return r.json();
   };
 
-  const ub = (isRunning) => {
+  const ub = isRunning => {
     rb.disabled = isRunning;
     bp.disabled = isRunning;
     du.disabled = isRunning;
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     codeBlocks.forEach(block => {
       block.style.height = 'auto';
       if (block.scrollHeight > block.clientHeight) {
-        block.style.minHeight = Math.min(block.scrollHeight, 200) + 'px';
+        block.style.minHeight = `${Math.min(block.scrollHeight, 200)}px`;
       }
     });
   };
@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const ib = () => {
     const donateBtn = document.querySelector('.donate-btn');
     if (donateBtn) {
-      donateBtn.addEventListener('click', (e) => {
+      donateBtn.addEventListener('click', e => {
         e.preventDefault();
         window.open('https://sociabuzz.com/maestro7it/tribe', '_blank');
       });

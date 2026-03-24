@@ -23,7 +23,7 @@ describe('API Integration Tests', () => {
     app.use('/api', resetRouter);
 
     // Запуск сервера
-    await new Promise((resolve) => {
+    await new Promise(resolve => {
       server = app.listen(TEST_PORT, () => {
         resolve();
       });
@@ -35,7 +35,7 @@ describe('API Integration Tests', () => {
   afterAll(async () => {
     // Остановка сервера
     if (server) {
-      await new Promise((resolve) => {
+      await new Promise(resolve => {
         server.close(resolve);
       });
     }
@@ -174,9 +174,9 @@ describe('API Integration Tests', () => {
  */
 function makeRequest(url) {
   return new Promise((resolve, reject) => {
-    http.get(url, (res) => {
+    http.get(url, res => {
       let data = '';
-      res.on('data', (chunk) => data += chunk);
+      res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
           resolve({

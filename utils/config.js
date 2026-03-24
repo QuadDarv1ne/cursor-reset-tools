@@ -4,10 +4,19 @@
 export const config = {
   // Версии Cursor которые поддерживаются
   supportedCursorVersions: ['0.49.x', '0.50.x', '0.51.x', '0.52.x', '1.0.x', '2.0.x'],
-  
+
   // Минимальная версия
   minCursorVersion: '0.49.0',
-  
+
+  // Лимиты токенов (константы для патчинга)
+  tokenLimits: {
+    default: 200000, // 2e5 - стандартный лимит
+    bypassed: 9000000, // 9e6 - обход лимита (9 миллионов)
+    maxModel: 900000, // 9e5 - максимальный для модели
+    unlimited: 999999, // Почти безлимитный
+    zero: 0 // Для сброса счётчиков
+  },
+
   // Таймауты (мс)
   timeouts: {
     fileOperation: 10000,
@@ -15,8 +24,9 @@ export const config = {
     apiRequest: 30000,
     cacheTTL: 5000
   },
-  
+
   // Паттерны для патчинга workbench
+  // Примечание: значения лимитов токенов используют config.tokenLimits
   workbenchPatterns: {
     proTrial: {
       pattern: '<div>Pro Trial',
@@ -27,8 +37,9 @@ export const config = {
       replacement: 'py-1">Bypass-Version-Pin'
     },
     tokenLimit: {
+      // 2e5 = 200000 (стандартный лимит), 9000000 = bypassed, 900000 = maxModel
       pattern: 'async getEffectiveTokenLimit\\(e\\)\\{const n=e\\.modelName;if\\(!n\\)return 2e5;',
-      replacement: 'async getEffectiveTokenLimit(e){return 9000000;const n=e.modelName;if(!n)return 9e5;'
+      replacement: 'async getEffectiveTokenLimit(e){return 9000000;const n=e.modelName;if(!n)return 900000;'
     },
     proUser: {
       pattern: 'isProUser\\(\\w*\\)\\s*\\{\\s*[^}]+\\}',
@@ -39,14 +50,17 @@ export const config = {
       replacement: 'isPro(){return true}'
     },
     tokenLimitFunc: {
+      // 999999 = unlimited
       pattern: 'getTokenLimit\\(\\w*\\)\\s*\\{\\s*[^}]+\\}',
       replacement: 'getTokenLimit(){return 999999}'
     },
     tokensRemaining: {
+      // 999999 = unlimited
       pattern: 'getTokensRemaining\\(\\w*\\)\\s*\\{\\s*[^}]+\\}',
       replacement: 'getTokensRemaining(){return 999999}'
     },
     tokensUsed: {
+      // 0 = zero (сброс счётчика)
       pattern: 'getTokensUsed\\(\\w*\\)\\s*\\{\\s*[^}]+\\}',
       replacement: 'getTokensUsed(){return 0}'
     },
@@ -63,7 +77,7 @@ export const config = {
       replacement: 'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>. <h1>Pro</h1>");'
     }
   },
-  
+
   // Паттерны для Pro конвертации
   proConversionPatterns: {
     upgradeToPro: {
@@ -79,47 +93,47 @@ export const config = {
       replacement: 'github'
     }
   },
-  
+
   // Пути для разных платформ
   platformPaths: {
     win32: {
-      machineId: (homedir) => `${homedir}\\AppData\\Roaming\\Cursor\\machineId`,
-      storage: (homedir) => `${homedir}\\AppData\\Roaming\\Cursor\\User\\globalStorage\\storage.json`,
-      database: (homedir) => `${homedir}\\AppData\\Roaming\\Cursor\\User\\globalStorage\\state.vscdb`,
-      app: (homedir) => `${homedir}\\AppData\\Local\\Programs\\Cursor\\resources\\app`,
-      cursor: (homedir) => `${homedir}\\AppData\\Roaming\\Cursor\\User\\globalStorage\\cursor.json`,
-      update: (homedir) => `${homedir}\\AppData\\Local\\Programs\\Cursor\\resources\\app-update.yml`,
-      updater: (homedir) => `${homedir}\\AppData\\Local\\cursor-updater`
+      machineId: homedir => `${homedir}\\AppData\\Roaming\\Cursor\\machineId`,
+      storage: homedir => `${homedir}\\AppData\\Roaming\\Cursor\\User\\globalStorage\\storage.json`,
+      database: homedir => `${homedir}\\AppData\\Roaming\\Cursor\\User\\globalStorage\\state.vscdb`,
+      app: homedir => `${homedir}\\AppData\\Local\\Programs\\Cursor\\resources\\app`,
+      cursor: homedir => `${homedir}\\AppData\\Roaming\\Cursor\\User\\globalStorage\\cursor.json`,
+      update: homedir => `${homedir}\\AppData\\Local\\Programs\\Cursor\\resources\\app-update.yml`,
+      updater: homedir => `${homedir}\\AppData\\Local\\cursor-updater`
     },
     darwin: {
-      machineId: (homedir) => `${homedir}/Library/Application Support/Cursor/machineId`,
-      storage: (homedir) => `${homedir}/Library/Application Support/Cursor/User/globalStorage/storage.json`,
-      database: (homedir) => `${homedir}/Library/Application Support/Cursor/User/globalStorage/state.vscdb`,
+      machineId: homedir => `${homedir}/Library/Application Support/Cursor/machineId`,
+      storage: homedir => `${homedir}/Library/Application Support/Cursor/User/globalStorage/storage.json`,
+      database: homedir => `${homedir}/Library/Application Support/Cursor/User/globalStorage/state.vscdb`,
       app: () => '/Applications/Cursor.app/Contents/Resources/app',
-      cursor: (homedir) => `${homedir}/Library/Application Support/Cursor/User/globalStorage/cursor.json`,
+      cursor: homedir => `${homedir}/Library/Application Support/Cursor/User/globalStorage/cursor.json`,
       update: () => '/Applications/Cursor.app/Contents/Resources/app-update.yml',
-      updater: (homedir) => `${homedir}/Library/Application Support/cursor-updater`
+      updater: homedir => `${homedir}/Library/Application Support/cursor-updater`
     },
     linux: {
-      machineId: (homedir) => `${homedir}/.config/cursor/machineId`,
-      storage: (homedir) => `${homedir}/.config/cursor/User/globalStorage/storage.json`,
-      database: (homedir) => `${homedir}/.config/cursor/User/globalStorage/state.vscdb`,
+      machineId: homedir => `${homedir}/.config/cursor/machineId`,
+      storage: homedir => `${homedir}/.config/cursor/User/globalStorage/storage.json`,
+      database: homedir => `${homedir}/.config/cursor/User/globalStorage/state.vscdb`,
       app: () => '/usr/share/cursor/resources/app',
-      cursor: (homedir) => `${homedir}/.config/cursor/User/globalStorage/cursor.json`,
+      cursor: homedir => `${homedir}/.config/cursor/User/globalStorage/cursor.json`,
       update: () => '/usr/share/cursor/resources/app-update.yml',
-      updater: (homedir) => `${homedir}/.config/cursor-updater`
+      updater: homedir => `${homedir}/.config/cursor-updater`
     },
     freebsd: {
-      machineId: (homedir) => `${homedir}/.config/cursor/machineId`,
-      storage: (homedir) => `${homedir}/.config/cursor/User/globalStorage/storage.json`,
-      database: (homedir) => `${homedir}/.config/cursor/User/globalStorage/state.vscdb`,
+      machineId: homedir => `${homedir}/.config/cursor/machineId`,
+      storage: homedir => `${homedir}/.config/cursor/User/globalStorage/storage.json`,
+      database: homedir => `${homedir}/.config/cursor/User/globalStorage/state.vscdb`,
       app: () => '/usr/local/share/cursor/resources/app',
-      cursor: (homedir) => `${homedir}/.config/cursor/User/globalStorage/cursor.json`,
+      cursor: homedir => `${homedir}/.config/cursor/User/globalStorage/cursor.json`,
       update: () => '/usr/local/share/cursor/resources/app-update.yml',
-      updater: (homedir) => `${homedir}/.config/cursor-updater`
+      updater: homedir => `${homedir}/.config/cursor-updater`
     }
   },
-  
+
   // Ключи телеметрии для сброса
   telemetryKeys: [
     'telemetry.machineId',

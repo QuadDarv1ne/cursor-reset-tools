@@ -194,7 +194,7 @@ class WSServer {
           await this.sendStatus(clientId);
           break;
 
-        case 'test_bypass':
+        case 'test_bypass': {
           const result = await globalSmartBypassManager.testAllMethods();
           this.send(clientId, {
             type: 'bypass_test_result',
@@ -202,14 +202,16 @@ class WSServer {
             best: globalSmartBypassManager.getBestMethod()
           });
           break;
+        }
 
-        case 'apply_best':
+        case 'apply_best': {
           const applied = await globalSmartBypassManager.applyBestMethod();
           this.send(clientId, {
             type: 'bypass_applied',
             result: applied
           });
           break;
+        }
 
         default:
           this.send(clientId, {

@@ -241,15 +241,15 @@ export const updateWindowsRegistry = async newGuid => {
 
     // ПАРАЛЛЕЛЬНОЕ выполнение вместо последовательного
     const results = await Promise.allSettled(cmds.map(cmd => execPromise(cmd)));
-    
+
     // Логирование результатов
     const success = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
-    
+
     if (failed > 0) {
       logger.warn(`Registry update: ${success} succeeded, ${failed} failed`, 'helpers');
     }
-    
+
     return success > 0; // Возвращаем true если хотя бы одна команда успешна
   } catch {
     return false;

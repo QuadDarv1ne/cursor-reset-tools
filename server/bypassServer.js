@@ -127,7 +127,7 @@ export class BypassServer {
         protocol,
         country,
         workingOnly: true,
-        limit: parseInt(limit)
+        limit: parseInt(limit, 10)
       });
 
       res.json({
@@ -269,7 +269,7 @@ export class BypassServer {
     this.stats.totalRequests++;
 
     switch (data.type) {
-      case 'proxy':
+      case 'proxy': {
         // Запрос прокси
         const proxy = globalProxyDatabase.getRandomWorking(data.protocol);
         if (proxy) {
@@ -288,6 +288,7 @@ export class BypassServer {
           }));
         }
         break;
+      }
 
       case 'request':
         // Проксирование запроса

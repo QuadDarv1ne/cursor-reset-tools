@@ -493,7 +493,7 @@ async function handleProxyDbRefresh() {
 
 async function handleProxyDbCheck(args) {
   const { flags } = args;
-  const concurrency = parseInt(flags.concurrency) || 5;
+  const concurrency = parseInt(flags.concurrency, 10) || 5;
 
   output(`Проверка всех прокси (concurrency: ${concurrency})...`, 'process');
   const result = await globalProxyDatabase.checkAllProxies(concurrency);
@@ -525,7 +525,7 @@ async function handleProxyDbCountries() {
 
 async function handleProxyDbAuto(args) {
   const { flags } = args;
-  const interval = parseInt(flags.interval) || 300000;
+  const interval = parseInt(flags.interval, 10) || 300000;
 
   if (flags.disable) {
     globalProxyDatabase.disableAutoUpdate();
@@ -716,7 +716,7 @@ async function handleCursorSession() {
 // Bypass Server обработчики
 async function handleServerStart(args) {
   const { flags } = args;
-  const port = flags.port ? parseInt(flags.port) : 3001;
+  const port = flags.port ? parseInt(flags.port, 10) : 3001;
 
   output(`Запуск Bypass Server на порту ${port}...`, 'process');
 
@@ -1072,7 +1072,7 @@ async function handleEmailCheck() {
 
 async function handleEmailWait(args) {
   const { flags } = args;
-  const timeout = parseInt(flags.timeout) || 120000;
+  const timeout = parseInt(flags.timeout, 10) || 120000;
 
   output(`Ожидание письма от Cursor (timeout: ${timeout}ms)...`, 'process');
   const result = await globalEmailManager.waitForMessage({
@@ -1118,7 +1118,7 @@ async function handleMonitorCheck() {
 
 async function handleMonitorStart(args) {
   const { flags } = args;
-  const interval = parseInt(flags.interval) || 60000;
+  const interval = parseInt(flags.interval, 10) || 60000;
 
   globalMonitorManager.startMonitoring(interval);
   output(`Мониторинг запущен (интервал: ${interval}ms)`, 'success');

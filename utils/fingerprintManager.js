@@ -191,12 +191,11 @@ class FingerprintManager {
     const platform = os.platform();
 
     if (platform === 'win32') {
-      return await this.changeMACWindows();
+      return this.changeMACWindows();
     } else if (platform === 'darwin') {
-      return await this.changeMACMacOS();
+      return this.changeMACMacOS();
     }
-    return await this.changeMACLinux();
-
+    return this.changeMACLinux();
   }
 
   /**
@@ -241,10 +240,9 @@ class FingerprintManager {
     const platform = os.platform();
 
     if (platform === 'win32') {
-      return await this.changeHostnameWindows(newName);
+      return this.changeHostnameWindows(newName);
     }
-    return await this.changeHostnameUnix(newName);
-
+    return this.changeHostnameUnix(newName);
   }
 
   /**
@@ -306,7 +304,7 @@ class FingerprintManager {
    * Сброс fingerprint (алиас)
    */
   async resetFingerprint() {
-    return await this.reset();
+    return this.reset();
   }
 }
 

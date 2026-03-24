@@ -333,9 +333,9 @@ export class VPNManager {
    */
   async disconnect() {
     if (this.currentConnection?.type === 'wireguard') {
-      return await this.disconnectWireGuard(this.currentConnection.name);
+      return this.disconnectWireGuard(this.currentConnection.name);
     } else if (this.currentConnection?.type === 'openvpn') {
-      return await this.disconnectOpenVPN();
+      return this.disconnectOpenVPN();
     }
     return true;
   }

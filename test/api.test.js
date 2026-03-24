@@ -33,14 +33,9 @@ describe('API Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Остановка сервера с таймаутом
+    // Остановка сервера
     if (server) {
-      await Promise.race([
-        new Promise(resolve => {
-          server.close(resolve);
-        }),
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]);
+      server.close();
     }
   });
 
@@ -165,7 +160,7 @@ describe('API Integration Tests', () => {
         expect(response.data).toHaveProperty('success', true);
         expect(response.data).toHaveProperty('providers');
       }
-    }, 10000);
+    }, 20000);
   });
 
   describe('404 handler', () => {

@@ -98,7 +98,7 @@ class IPManager {
    */
   async refresh() {
     this.lastCheck = null;
-    return await this.getCurrentIP();
+    return this.getCurrentIP();
   }
 
   /**

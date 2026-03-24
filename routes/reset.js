@@ -707,7 +707,9 @@ rt.get('/paths', async (req, res) => {
           devDeviceId: json['telemetry.devDeviceId'],
           tier: json['cursor.tier'] || 'unknown'
         };
-      } catch (e) {}
+      } catch (e) {
+        logger.debug(`Failed to parse storage.json: ${e.message}`, 'reset');
+      }
     }
 
     if (fs.existsSync(dp)) {
@@ -726,7 +728,9 @@ rt.get('/paths', async (req, res) => {
           return acc;
         }, {});
         await db.close();
-      } catch (e) {}
+      } catch (e) {
+        logger.debug(`Failed to read preferences database: ${e.message}`, 'reset');
+      }
     }
 
     res.json(info);
@@ -845,7 +849,7 @@ rt.get('/proxy-db/list', async (req, res) => {
       protocol,
       country,
       workingOnly: workingOnly === 'true',
-      limit: parseInt(limit) || 100
+      limit: parseInt(limit, 10) || 100
     });
     res.json({ success: true, proxies });
   } catch (err) {

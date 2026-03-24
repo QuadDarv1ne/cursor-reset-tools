@@ -32,7 +32,7 @@ export class Cache {
       evictions: 0
     };
     this.cleanupTimer = null;
-    
+
     // Запуск периодической очистки
     this.startCleanup();
   }
@@ -103,14 +103,14 @@ export class Cache {
   deleteByPattern(pattern) {
     const regex = new RegExp(pattern.replace('*', '.*'));
     let count = 0;
-    
+
     for (const key of this.store.keys()) {
       if (regex.test(key)) {
         this.store.delete(key);
         count++;
       }
     }
-    
+
     this.stats.deletes += count;
     logger.debug(`Cache: deleted ${count} keys by pattern "${pattern}"`, 'cache');
     return count;
@@ -237,11 +237,11 @@ export class Cache {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
     }
-    
+
     this.cleanupTimer = setInterval(() => {
       let count = 0;
       const now = Date.now();
-      
+
       for (const [key, item] of this.store) {
         if (now > item.expiry) {
           this.store.delete(key);
@@ -249,7 +249,7 @@ export class Cache {
           this.stats.evictions++;
         }
       }
-      
+
       if (count > 0) {
         logger.debug(`Cache cleanup: removed ${count} expired entries`, 'cache');
       }
@@ -275,7 +275,7 @@ export class Cache {
     return {
       ...this.stats,
       size: this.store.size,
-      hitRate: total > 0 ? ((this.stats.hits / total) * 100).toFixed(2) + '%' : '0%',
+      hitRate: total > 0 ? `${((this.stats.hits / total) * 100).toFixed(2)}%` : '0%',
       efficiency: this.stats.hits > 0 ? (this.stats.hits / this.stats.sets).toFixed(2) : 0
     };
   }

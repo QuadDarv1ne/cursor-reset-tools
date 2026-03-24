@@ -293,11 +293,11 @@ class SmartBypassManager {
 
     switch (best) {
       case 'proxy':
-        return await this.applyProxy();
+        return this.applyProxy();
       case 'doh':
-        return await this.applyDoH();
+        return this.applyDoH();
       case 'dns':
-        return await this.applyDNS();
+        return this.applyDNS();
       default:
         return { success: true, method: 'direct' };
     }

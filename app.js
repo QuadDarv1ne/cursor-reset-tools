@@ -186,11 +186,11 @@ app.get('/api/doh/providers', async (req, res) => {
 app.get('/', (req, res) => {
   const lang = req.query.lang || req.headers['accept-language']?.split(',')[0]?.split('-')[0] || 'ru';
   const validLang = getSupportedLanguages().includes(lang) ? lang : 'ru';
+  const translations = getTranslations(validLang);
   const t = (key) => {
-    const translations = getTranslations(validLang);
     return translations[key] || translations.en[key] || key;
   };
-  res.render('index', { lang: validLang, t, port, wsPort });
+  res.render('index', { lang: validLang, t, port, wsPort, translations });
 });
 
 app.get('/bypass', (req, res) => {

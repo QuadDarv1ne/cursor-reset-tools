@@ -108,6 +108,15 @@ export const config = {
       cursor: (homedir) => `${homedir}/.config/cursor/User/globalStorage/cursor.json`,
       update: () => '/usr/share/cursor/resources/app-update.yml',
       updater: (homedir) => `${homedir}/.config/cursor-updater`
+    },
+    freebsd: {
+      machineId: (homedir) => `${homedir}/.config/cursor/machineId`,
+      storage: (homedir) => `${homedir}/.config/cursor/User/globalStorage/storage.json`,
+      database: (homedir) => `${homedir}/.config/cursor/User/globalStorage/state.vscdb`,
+      app: () => '/usr/local/share/cursor/resources/app',
+      cursor: (homedir) => `${homedir}/.config/cursor/User/globalStorage/cursor.json`,
+      update: () => '/usr/local/share/cursor/resources/app-update.yml',
+      updater: (homedir) => `${homedir}/.config/cursor-updater`
     }
   },
   

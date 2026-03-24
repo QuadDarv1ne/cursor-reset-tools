@@ -1,0 +1,15 @@
+{
+  "jest": {
+    "transform": {},
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [".js"],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ],
+    "verbose": true,
+    "testTimeout": 30000
+  }
+}

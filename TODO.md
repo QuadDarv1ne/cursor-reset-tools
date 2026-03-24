@@ -28,7 +28,7 @@
 - [x] Рефакторинг функции gp() - дублирование кода для платформ
 - [x] Убрать magic strings из кода
 - [x] Типизация JSDoc для основных функций
-- [ ] Добавить unit-тесты для utils/
+- [x] Добавить unit-тесты для utils/ (test/helpers.test.js)
 - [ ] Интеграционные тесты для API endpoints
 
 ## 🌐 i18n (Интернационализация)
@@ -69,6 +69,7 @@
 - [x] utils/rollback.js - BackupManager для отката
 - [x] utils/i18n.js - поддержка 3 языков (RU, EN, ZH)
 - [x] utils/updater.js - автообновление приложения
+- [x] test/helpers.test.js - unit-тесты для helpers
 - [x] Обновление routes/reset.js с логированием
 - [x] helmet + rate limiting в app.js
 - [x] checkCursorProcess с таймаутом

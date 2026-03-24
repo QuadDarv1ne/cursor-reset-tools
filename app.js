@@ -15,6 +15,7 @@ import { globalProxyDatabase } from './utils/proxyDatabase.js';
 import { globalDoHManager } from './utils/dohManager.js';
 import { globalSmartBypassManager } from './utils/smartBypassManager.js';
 import { globalWSServer } from './utils/websocketServer.js';
+import { globalUpdater } from './utils/updater.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -197,6 +198,45 @@ app.get('/bypass', (req, res) => {
   res.render('bypass', { port, wsPort });
 });
 
+// Updater API endpoints
+app.get('/api/updater/status', async (req, res) => {
+  try {
+    const status = globalUpdater.getStatus();
+    res.json({ success: true, ...status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/updater/check', async (req, res) => {
+  try {
+    const result = await globalUpdater.checkForUpdates();
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/updater/download', async (req, res) => {
+  try {
+    const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
+    await globalUpdater.downloadUpdate(downloadPath);
+    res.json({ success: true, message: 'Update downloaded', path: downloadPath });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/updater/install', async (req, res) => {
+  try {
+    const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
+    const result = await globalUpdater.installUpdate(downloadPath);
+    res.json({ success: result, message: 'Update installed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.use('/api', resetRouter);
 
 // Graceful shutdown
@@ -246,6 +286,15 @@ const startServer = async () => {
 
     // Запуск авто-мониторинга
     globalMonitorManager.enableAutoCheck(60000);
+
+    // Проверка обновлений при старте
+    globalUpdater.checkForUpdates().then(result => {
+      if (result.updateAvailable) {
+        logger.info(`Update available: ${result.currentVersion} → ${result.latestVersion}`, 'app');
+      }
+    }).catch(err => {
+      logger.error(`Update check failed: ${err.message}`, 'app');
+    });
 
     // WebSocket сервер
     globalWSServer.init(server, wsPort);

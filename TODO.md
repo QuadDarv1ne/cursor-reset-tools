@@ -103,6 +103,11 @@
 - Слияние dev → main выполнено
 - Версия обновлена до 2.3.0
 
+## 📝 Заметки
+
+- **dev:** ahead на 3 коммита от origin/dev
+- **data/metrics.json:** не tracked (опционально для gitignore)
+
 ---
 
 **Автор:** Dupley Maxim Igorevich

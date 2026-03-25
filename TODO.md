@@ -183,21 +183,20 @@
 
 ## 📝 Заметки
 
-- **dev:** ✅ синхронизирован с origin/dev (готов к слиянию)
+- **dev:** ✅ синхронизирован с origin/dev (2 коммита ahead, готов к слиянию)
 - **main:** ✅ ожидает слияния из dev
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
 - **Версия:** 2.7.0 — релиз готов ✅
-- **Тесты:** 199 тестов (9 test suites) - 100% passed
+- **Тесты:** 186/199 passed (9 test suites) — vpnManager тесты требуют доработки
 - **Новые модули:** dpiBypass.js, wireguardManager.js, autoRollback.js, fileValidator.js
 - **Оптимизации:** память -400MB, bypass тест 15→5 сек, I/O в 10 раз меньше
 
 ---
 
 **Текущий статус:**
-- ✅ Все тесты пройдены (199/199)
 - ✅ ESLint: 0 ошибок, 0 предупреждений
-- ✅ Dev: готов к слиянию с main
+- ✅ Dev: 2 коммита ahead, готов к слиянию с main
 - ✅ Main: ожидает слияния из dev
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
@@ -208,6 +207,7 @@
 - ✅ Техдолг закрыт (Backup, CLI, CI/CD, Tests)
 - ✅ Интегрированы новые модули (DPI Bypass, WireGuard Manager, Auto Rollback, File Validator)
 - ✅ Критические исправления: утечки памяти, race conditions, производительность
+- ⚠️ vpnManager тесты требуют доработки (несоответствие API)
 
 ---
 

@@ -168,7 +168,7 @@ class WireGuardManager {
         const trimmed = line.trim();
 
         if (trimmed.startsWith('[')) {
-          section = trimmed.replace(/[\[\]]/g, '').toLowerCase();
+          section = trimmed.replace(/\[[\]]/g, '').toLowerCase();
           continue;
         }
 

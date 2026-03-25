@@ -10,7 +10,6 @@ import { globalProxyManager } from './proxyManager.js';
 import { globalDNSManager } from './dnsManager.js';
 import { globalDoHManager } from './dohManager.js';
 import { globalVPNManager } from './vpnManager.js';
-import { globalLeakDetector } from './leakDetector.js';
 
 class SmartBypassManager {
   constructor() {

@@ -5,16 +5,10 @@
  */
 
 import { WebSocketServer } from 'ws';
-import { createHash } from 'crypto';
-import { gzip, gunzip } from 'zlib';
-import { promisify } from 'util';
 import { logger } from './logger.js';
 import { globalMonitorManager } from './monitorManager.js';
 import { globalIPManager } from './ipManager.js';
 import { globalSmartBypassManager } from './smartBypassManager.js';
-
-const compress = promisify(gzip);
-const decompress = promisify(gunzip);
 
 /**
  * Конфигурация WebSocket сервера

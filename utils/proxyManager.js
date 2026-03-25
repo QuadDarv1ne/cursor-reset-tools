@@ -19,6 +19,14 @@ export class ProxyManager {
     this.workingProxies = [];
     this.rotationIndex = 0;
     this.checkTimeout = 10000; // 10 секунд
+
+    // Авто-ротация
+    this.autoRotationEnabled = false;
+    this.autoRotationInterval = null;
+    this.rotationIntervalMs = 300000; // 5 минут
+    this.rotationCount = 0;
+    this.lastRotationTime = null;
+    this.rotationHistory = [];
   }
 
   /**
@@ -357,6 +365,123 @@ export class ProxyManager {
       logger.error(`Failed to save proxies to file: ${error.message}`, 'proxy');
       throw error;
     }
+  }
+
+  /**
+   * Включить автоматическую ротацию прокси
+   * @param {number} intervalMs - Интервал ротации в мс
+   */
+  startAutoRotation(intervalMs = this.rotationIntervalMs) {
+    if (this.autoRotationEnabled) {
+      this.stopAutoRotation();
+    }
+
+    this.rotationIntervalMs = intervalMs;
+    this.autoRotationEnabled = true;
+
+    this.autoRotationInterval = setInterval(() => {
+      this._autoRotate();
+    }, intervalMs);
+
+    logger.info(`Auto proxy rotation включена (интервал: ${intervalMs}ms)`, 'proxy');
+  }
+
+  /**
+   * Автоматическая ротация (внутренний метод)
+   */
+  _autoRotate() {
+    const working = this.workingProxies.filter(p => !p.failed);
+
+    if (working.length === 0) {
+      logger.warn('Нет рабочих прокси для ротации', 'proxy');
+      return;
+    }
+
+    this.rotationIndex = (this.rotationIndex + 1) % working.length;
+    this.currentProxy = working[this.rotationIndex];
+    this.lastRotationTime = Date.now();
+    this.rotationCount++;
+
+    const rotationRecord = {
+      timestamp: Date.now(),
+      proxy: this.currentProxy.url,
+      rotationCount: this.rotationCount
+    };
+
+    this.rotationHistory.push(rotationRecord);
+
+    // Ограничение истории
+    if (this.rotationHistory.length > 50) {
+      this.rotationHistory.shift();
+    }
+
+    logger.info(`Auto rotation: switched to ${this.currentProxy.url}`, 'proxy');
+  }
+
+  /**
+   * Выключить автоматическую ротацию
+   */
+  stopAutoRotation() {
+    if (this.autoRotationInterval) {
+      clearInterval(this.autoRotationInterval);
+      this.autoRotationInterval = null;
+    }
+    this.autoRotationEnabled = false;
+    logger.info('Auto proxy rotation выключена', 'proxy');
+  }
+
+  /**
+   * Получить статус авто-ротации
+   */
+  getAutoRotationStatus() {
+    return {
+      enabled: this.autoRotationEnabled,
+      intervalMs: this.rotationIntervalMs,
+      rotationCount: this.rotationCount,
+      lastRotationTime: this.lastRotationTime,
+      history: this.rotationHistory.slice(-10)
+    };
+  }
+
+  /**
+   * Сбросить счётчик ротаций
+   */
+  resetRotationCount() {
+    this.rotationCount = 0;
+    this.rotationHistory = [];
+    logger.info('Rotation count reset', 'proxy');
+  }
+
+  /**
+   * Принудительная ротация с проверкой
+   */
+  async forceRotate() {
+    logger.info('Forced proxy rotation', 'proxy');
+
+    // Проверка текущих прокси перед ротацией
+    if (this.workingProxies.length > 0) {
+      await this.checkAllProxies();
+    }
+
+    return this.rotateProxy();
+  }
+
+  /**
+   * Получить расширенную статистику
+   */
+  getExtendedStats() {
+    const baseStats = this.getStats();
+
+    return {
+      ...baseStats,
+      autoRotation: {
+        enabled: this.autoRotationEnabled,
+        intervalMs: this.rotationIntervalMs,
+        rotationCount: this.rotationCount,
+        lastRotationTime: this.lastRotationTime
+      },
+      rotationHistory: this.rotationHistory.slice(-10)
+    };
   }
 }
 

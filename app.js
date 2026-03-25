@@ -17,6 +17,9 @@ import { globalSmartBypassManager } from './utils/smartBypassManager.js';
 import { globalWSServer } from './utils/websocketServer.js';
 import { globalUpdater } from './utils/updater.js';
 import { globalMetricsManager } from './utils/metricsManager.js';
+import { globalResourceMonitor } from './utils/resourceMonitor.js';
+import { globalStatsCache } from './utils/statsCache.js';
+import { globalNotificationManager } from './utils/notificationManager.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -101,7 +104,9 @@ app.get('/health', (req, res) => {
     wsPort,
     memory: process.memoryUsage(),
     ip: globalIPManager.getInfo().current?.ip || 'unknown',
-    clients: globalWSServer.getStats().clients
+    clients: globalWSServer.getStats().clients,
+    resources: globalResourceMonitor.getCurrentStats(),
+    cache: globalStatsCache.getStats()
   });
 });
 
@@ -283,12 +288,216 @@ app.delete('/api/metrics/clear', async (req, res) => {
   }
 });
 
+// Resource Monitor API endpoints
+app.get('/api/resources/status', async (req, res) => {
+  try {
+    const status = globalResourceMonitor.getCurrentStats();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/resources/summary', async (req, res) => {
+  try {
+    const summary = globalResourceMonitor.getSummary();
+    return res.json({ success: true, ...summary });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/resources/history', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const history = globalResourceMonitor.getHistory(parseInt(limit, 10));
+    return res.json({ success: true, history });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/resources/alerts', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const alerts = globalResourceMonitor.getAlerts(parseInt(limit, 10));
+    return res.json({ success: true, alerts });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/resources/alerts/clear', async (req, res) => {
+  try {
+    globalResourceMonitor.clearAlerts();
+    return res.json({ success: true, message: 'Alerts cleared' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Stats Cache API endpoints
+app.get('/api/cache/status', async (req, res) => {
+  try {
+    const status = globalStatsCache.getStats();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/cache/stats', async (req, res) => {
+  try {
+    const stats = globalStatsCache.export();
+    return res.json({ success: true, ...stats });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/cache/clear', async (req, res) => {
+  try {
+    globalStatsCache.clear();
+    return res.json({ success: true, message: 'Cache cleared' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/cache/reset-stats', async (req, res) => {
+  try {
+    globalStatsCache.resetStats();
+    return res.json({ success: true, message: 'Stats reset' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Notification Manager API endpoints
+app.get('/api/notifications/status', async (req, res) => {
+  try {
+    const status = globalNotificationManager.getStatus();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/notifications/configure/telegram', async (req, res) => {
+  try {
+    const { botToken, chatId } = req.body;
+    if (!botToken || !chatId) {
+      return res.status(400).json({ success: false, error: 'botToken and chatId required' });
+    }
+    globalNotificationManager.configureTelegram(botToken, chatId);
+    return res.json({ success: true, message: 'Telegram configured' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/notifications/configure/discord', async (req, res) => {
+  try {
+    const { webhookUrl } = req.body;
+    if (!webhookUrl) {
+      return res.status(400).json({ success: false, error: 'webhookUrl required' });
+    }
+    globalNotificationManager.configureDiscord(webhookUrl);
+    return res.json({ success: true, message: 'Discord configured' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/notifications/enable', async (req, res) => {
+  try {
+    globalNotificationManager.setEnabled(true);
+    return res.json({ success: true, message: 'Notifications enabled' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/notifications/disable', async (req, res) => {
+  try {
+    globalNotificationManager.setEnabled(false);
+    return res.json({ success: true, message: 'Notifications disabled' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/notifications/test', async (req, res) => {
+  try {
+    const result = await globalNotificationManager.sendTest();
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/notifications/export', async (req, res) => {
+  try {
+    const config = globalNotificationManager.exportConfig();
+    return res.json({ success: true, config });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Proxy auto-rotation API endpoints
+app.get('/api/proxy/rotation/status', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    const status = globalProxyManager.getAutoRotationStatus();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/proxy/rotation/start', async (req, res) => {
+  try {
+    const { intervalMs = 300000 } = req.body;
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    globalProxyManager.startAutoRotation(intervalMs);
+    return res.json({ success: true, message: 'Auto rotation started' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/proxy/rotation/stop', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    globalProxyManager.stopAutoRotation();
+    return res.json({ success: true, message: 'Auto rotation stopped' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/proxy/rotate', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    const result = globalProxyManager.rotateProxy();
+    return res.json({ success: true, proxy: result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.use('/api', resetRouter);
 
 // Graceful shutdown
 const gracefulShutdown = async signal => {
   logger.info(`Graceful shutdown initiated (${signal})`, 'app');
+
+  // Остановка менеджеров
+  globalResourceMonitor.stopMonitoring();
+  globalStatsCache.stop();
   globalWSServer.stop();
+
   server.close(() => {
     logger.info('HTTP server closed', 'app');
     process.exit(0);
@@ -330,11 +539,14 @@ const startServer = async () => {
       globalMonitorManager.init(),
       globalFingerprintManager.init(),
       globalProxyDatabase.init(),
-      globalMetricsManager.init()
+      globalMetricsManager.init(),
+      globalResourceMonitor.init(),
+      globalStatsCache.init(),
+      globalNotificationManager.init()
     ]);
 
     // Логирование результатов инициализации
-    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics'];
+    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification'];
     for (let i = 0; i < initResults.length; i++) {
       const result = initResults[i];
       if (result.status === 'rejected') {
@@ -346,6 +558,12 @@ const startServer = async () => {
 
     // Запуск авто-мониторинга
     globalMonitorManager.enableAutoCheck(60000);
+
+    // Запуск мониторинга ресурсов
+    globalResourceMonitor.startMonitoring(5000);
+
+    // Отправка уведомления о старте (если включено)
+    globalNotificationManager.sendEvent('start', { version: '2.4.0' }).catch(() => {});
 
     // Проверка обновлений при старте
     globalUpdater.checkForUpdates().then(result => {

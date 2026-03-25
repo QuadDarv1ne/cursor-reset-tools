@@ -1,6 +1,6 @@
 {
     "name": "cursor-reset-tools",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "description": "this is a tool to reset the machine id of cursor",
     "main": "app.js",
     "type": "module",

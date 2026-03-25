@@ -277,10 +277,13 @@ ${notification.message}
    * Отправить событие (с учётом настроек)
    */
   async sendEvent(eventType, data = {}) {
-    const eventConfig = this.config.events[eventType];
+    // Проверка включено ли событие
+    const eventConfigKey = `sendOn${eventType.charAt(0).toUpperCase()}${eventType.slice(1)}`;
+    const eventEnabled = this.config.events[eventConfigKey];
 
-    if (!eventConfig) {
-      return { success: false, reason: 'unknown event' };
+    // Если событие явно выключено, не отправляем (но не ошибка)
+    if (eventEnabled === false) {
+      return { success: true, skipped: true, reason: 'event disabled' };
     }
 
     const templates = {
@@ -309,7 +312,7 @@ ${notification.message}
     const template = templates[eventType];
 
     if (!template) {
-      return { success: false, reason: 'no template' };
+      return { success: false, reason: 'unknown event' };
     }
 
     return this.send(template.title, template.message, data.level || 'info');

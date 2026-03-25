@@ -4,33 +4,33 @@
       "cpu": null,
       "memory": {
         "total": 16365133824,
-        "free": 7565467648,
-        "used": 8799666176,
-        "percent": 53.77
+        "free": 7719190528,
+        "used": 8645943296,
+        "percent": 52.83
       },
       "disk": {
         "total": 313629077504,
-        "free": 2446094336,
-        "used": 311182983168,
-        "percent": 99.22
+        "free": 2383478784,
+        "used": 311245598720,
+        "percent": 99.24
       },
-      "uptime": 4402.578,
+      "uptime": 4707.718,
       "load": [
         0,
         0,
         0
       ],
-      "timestamp": 1774425485280
+      "timestamp": 1774425790427
     }
   ],
   "alerts": [
     {
       "type": "disk",
       "severity": "error",
-      "message": "Критическое заполнение диска: 99.22%",
+      "message": "Критическое заполнение диска: 99.24%",
       "threshold": 90,
-      "value": 99.22,
-      "timestamp": 1774425487789
+      "value": 99.24,
+      "timestamp": 1774425792930
     }
   ]
 }

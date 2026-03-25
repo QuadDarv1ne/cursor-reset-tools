@@ -27,6 +27,7 @@ import { globalVPNLeakFix } from './utils/vpnLeakFix.js';
 import { globalVPNTrafficManager } from './utils/vpnTrafficManager.js';
 import { globalBypassTester } from './utils/bypassTester.js';
 import { globalSystemProxyManager } from './utils/systemProxyManager.js';
+import { globalConfigBackup } from './utils/configBackup.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -493,6 +494,86 @@ app.post('/api/system-proxy/restore', async (req, res) => {
   try {
     const success = await globalSystemProxyManager.restoreOriginalSettings();
     return res.json({ success, message: success ? 'Settings restored' : 'Restore failed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// Config Backup API endpoints
+// ============================================
+
+// Config Backup - экспорт конфигурации
+app.post('/api/config-backup/export', async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    const result = await globalConfigBackup.export(filePath);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Config Backup - импорт конфигурации
+app.post('/api/config-backup/import', async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'File path is required' });
+    }
+    const result = await globalConfigBackup.import(filePath);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Config Backup - список бэкапов
+app.get('/api/config-backup/list', async (req, res) => {
+  try {
+    const backups = await globalConfigBackup.listBackups();
+    return res.json({ success: true, backups });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Config Backup - автобэкап
+app.post('/api/config-backup/auto', async (req, res) => {
+  try {
+    const result = await globalConfigBackup.autoBackup();
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Config Backup - удаление бэкапа
+app.delete('/api/config-backup/delete/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const success = await globalConfigBackup.deleteBackup(filename);
+    return res.json({ success, message: success ? 'Backup deleted' : 'Delete failed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Config Backup - очистка старых бэкапов
+app.post('/api/config-backup/cleanup', async (req, res) => {
+  try {
+    const deleted = await globalConfigBackup.cleanup();
+    return res.json({ success: true, deleted });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Config Backup - статистика
+app.get('/api/config-backup/stats', async (req, res) => {
+  try {
+    const stats = await globalConfigBackup.getStats();
+    return res.json({ success: true, ...stats });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -1071,11 +1152,12 @@ const startServer = async () => {
       globalMetricsManager.init(),
       globalResourceMonitor.init(),
       globalStatsCache.init(),
-      globalNotificationManager.init()
+      globalNotificationManager.init(),
+      globalConfigBackup.init()
     ]);
 
     // Логирование результатов инициализации
-    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification'];
+    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup'];
     for (let i = 0; i < initResults.length; i++) {
       const result = initResults[i];
       if (result.status === 'rejected') {

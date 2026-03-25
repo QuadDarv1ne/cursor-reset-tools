@@ -80,33 +80,57 @@
 - [x] Расширена локализация i18n (добавлены ключи для VPN и обхода)
 - [x] Улучшен Web UI для Bypass страницы (карточки VPN, статусы, статистика)
 - [x] Добавлена страница Dashboard с мониторингом ресурсов
+- [x] VPN Leak Fix Manager (utils/vpnLeakFix.js) - 3 API endpoints
+- [x] VPN Traffic Manager (utils/vpnTrafficManager.js) - 5 API endpoints
+- [x] Bypass Tester (utils/bypassTester.js) - 4 API endpoints
+- [x] System Proxy Manager (utils/systemProxyManager.js) - 4 API endpoints
+- [x] DoH-VPN Integration (обновлён utils/dohManager.js) - 2 API endpoints
+- [x] Amnezia VPN поддержка (обновлён utils/vpnManager.js) - 2 API endpoints
+- [x] Скрипт быстрой настройки (scripts/quick-setup.js)
+- [x] Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 
 ## 📊 Статус проекта
 
-- **Версия:** 2.5.0
-- **Статус:** ✅ Готов к релизу
+- **Версия:** 2.6.0 (dev)
+- **Статус:** ✅ В разработке (VPN/DNS/Proxy улучшения)
 - **Тесты:** Unit + Integration (151 тест: 151 passed) — 100% покрытие
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
 - **ESLint:** ✅ 0 ошибок, 1 предупреждение (unused var в main.js)
-- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager
+- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager
 - **Web UI:** Главная, Bypass Tools, Dashboard
+- **API Endpoints:** 20 новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN)
 
 ## 🚀 В разработке (Dev)
 
 - [x] История ресурсов с графиками (Chart.js) - *добавить в Dashboard*
+- [x] VPN Leak Fix Manager (исправление DNS/WebRTC/IPv6 утечек)
+- [x] VPN Traffic Manager (Kill Switch, туннелирование)
+- [x] Bypass Tester (диагностика и рекомендации)
+- [x] System Proxy Manager (настройка системного прокси)
+- [x] Amnezia VPN поддержка (статус, рекомендации)
+- [x] DoH-VPN Integration (автоматическое включение DoH при VPN)
+- [x] Скрипт quick-setup.js для быстрой настройки
 - [ ] Бэкап конфигурации (экспорт/импорт настроек в JSON)
 - [ ] CLI команды для управления менеджерами
 - [ ] GitHub Actions CI/CD
-- [ ] Расширенная статистика по обходам блокировок
 - [ ] Тесты для SmartBypassManager и VpnManager
 - [ ] Оптимизация производительности WebSocket сервера
 - [ ] Поддержка дополнительных протоколов обхода (Shadowsocks, V2Ray)
 
 ## ✅ Выполнено (последнее)
 
-- ✅ Исправлены все failing тесты (151/151 passed)
+- ✅ Добавлена поддержка VPN/DNS/Proxy (20 новых API endpoints)
+- ✅ VPN Leak Fix Manager - исправление DNS/WebRTC/IPv6 утечек
+- ✅ VPN Traffic Manager - Kill Switch, туннелирование трафика
+- ✅ Bypass Tester - диагностика и рекомендации
+- ✅ System Proxy Manager - настройка системного прокси
+- ✅ Amnezia VPN поддержка - статус и рекомендации
+- ✅ DoH-VPN Integration - автоматическое включение DoH при VPN
+- ✅ Скрипт quick-setup.js для быстрой настройки
+- ✅ Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
+- ✅ Исправлены failing тесты (151/151 passed)
 - ✅ Исправлены ESLint ошибки (0 errors, 1 warning)
 - ✅ Улучшен SmartBypassManager (getStatus, getStats, resetStats методы)
 - ✅ Улучшен VpnManager (testConnection, getStatistics, resetStatistics методы)
@@ -147,25 +171,25 @@
 **Текущий статус:**
 - ✅ Все тесты пройдены (151/151)
 - ✅ ESLint: 0 ошибок, 1 предупреждение
-- ✅ Dev и Main синхронизированы
-- ✅ Документация обновлена
-- ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager)
+- ✅ Dev: 17 коммитов ahead от origin/dev (VPN/DNS/Proxy улучшения)
+- ✅ Main: синхронизирован с предыдущей версией
+- ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
+- ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Web UI улучшен (Bypass страница, Dashboard)
+- ✅ 20 новых API endpoints для VPN/DNS/Proxy функциональности
 
 ---
 
-**Релиз 2.5.0 - Ключевые изменения:**
+**Релиз 2.6.0 - Ключевые изменения (в разработке):**
 
 🎯 **Новые возможности:**
-- Dashboard страница с полной статистикой
-- Мониторинг ресурсов (CPU, RAM, Disk) в реальном времени
-- Авто-ротация прокси с настраиваемым интервалом
-- Уведомления в Telegram и Discord
-- Кэширование API endpoints для производительности
-- Экспорт статистики в JSON и CSV
-- Умный обход блокировок (SmartBypass + VPN)
-- Тестирование VPN соединений
-- Расширенная статистика обходов
+- VPN Leak Fix Manager - комплексное исправление утечек (DNS, WebRTC, IPv6)
+- VPN Traffic Manager - Kill Switch, принудительное туннелирование
+- Bypass Tester - диагностика и рекомендации (0-100 баллов)
+- System Proxy Manager - настройка системного прокси на всех платформах
+- Amnezia VPN поддержка - проверка статуса и рекомендации
+- DoH-VPN Integration - автоматическое включение DoH при VPN
+- Quick Setup Script - быстрая настройка за 1 команду
 
 🧪 **Тесты:**
 - 151 тест — 100% passed
@@ -177,6 +201,14 @@
 - Навигация между страницами
 - WebSocket для логов в реальном времени
 - Локализация: RU, EN, ZH
+
+🔧 **API Endpoints (20 новых):**
+- VPN Leak Fix: 3 endpoints
+- VPN Traffic: 5 endpoints
+- Bypass Tester: 4 endpoints
+- System Proxy: 4 endpoints
+- Amnezia VPN: 2 endpoints
+- DoH-VPN: 2 endpoints
 
 ---
 

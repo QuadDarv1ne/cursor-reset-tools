@@ -40,6 +40,18 @@ class VPNManager {
     this.vpnType = null;
     this.vpnInfo = {};
 
+    // Платформа
+    this.platform = process.platform;
+
+    // Текущее подключение
+    this.currentConnection = null;
+
+    // Все подключения
+    this.connections = new Map();
+
+    // Путь к конфигурации
+    this.configPath = path.join(process.cwd(), 'data', 'vpn-configs');
+
     // Кэш для IPInfo с TTL для предотвращения частых запросов
     this.ipInfoCache = null;
     this.ipInfoCacheTime = 0;
@@ -442,40 +454,46 @@ class VPNManager {
    * Рекомендации по AmneziaVPN для Cursor
    */
   getAmneziaRecommendations() {
-    return {
-      preferredProtocols: this.amneziaProtocols.filter(p => p.recommended),
-      optimalSettings: {
-        protocol: 'awg',
-        dns: '1.1.1.1',
-        killSwitch: true,
-        splitTunneling: {
-          enabled: true,
-          apps: ['Cursor.exe', 'cursor']
-        }
-      },
-      serverSelection: {
-        preferred: this.cursorOptimizedConfigs.preferredCountries,
-        avoid: this.cursorOptimizedConfigs.avoidCountries
-      },
-      tips: [
-        {
-          title: 'Используйте AmneziaWG',
-          description: 'Протокол AmneziaWG обеспечивает лучшую обфускацию и скорость для Cursor'
-        },
-        {
-          title: 'Включите Kill Switch',
-          description: 'Защитит от утечек при разрыве соединения'
-        },
-        {
-          title: 'Выберите сервер в Нидерландах или Германии',
-          description: 'Минимальная задержка и стабильное соединение'
-        },
-        {
-          title: 'Настройте DNS на 1.1.1.1',
-          description: 'Предотвратит утечки DNS запросов'
-        }
-      ]
-    };
+    const recommendations = [];
+
+    // Добавляем рекомендации по протоколам
+    this.amneziaProtocols
+      .filter(p => p.recommended)
+      .forEach(protocol => {
+        recommendations.push({
+          type: 'protocol',
+          priority: 'high',
+          title: `Используйте ${protocol.name}`,
+          description: `${protocol.obfuscation ? 'Обфускация включена' : 'Стандартный протокол'} для лучшей производительности`
+        });
+      });
+
+    // Добавляем рекомендации по настройкам
+    recommendations.push({
+      type: 'settings',
+      priority: 'high',
+      title: 'Включите Kill Switch',
+      description: 'Защитит от утечек при разрыве соединения'
+    });
+
+    recommendations.push({
+      type: 'settings',
+      priority: 'medium',
+      title: 'Настройте DNS на 1.1.1.1',
+      description: 'Предотвратит утечки DNS запросов'
+    });
+
+    // Добавляем рекомендации по серверам
+    this.cursorOptimizedConfigs.preferredCountries.forEach(country => {
+      recommendations.push({
+        type: 'server',
+        priority: 'low',
+        title: `Сервер в ${country}`,
+        description: 'Минимальная задержка и стабильное соединение'
+      });
+    });
+
+    return recommendations;
   }
 
   /**
@@ -689,13 +707,161 @@ class VPNManager {
   }
 
   /**
+   * Создать конфигурацию WireGuard
+   */
+  createWireGuardConfig(config) {
+    const { privateKey, address, dns, peers = [] } = config;
+
+    let wgConfig = `[Interface]\n`;
+    wgConfig += `PrivateKey = ${privateKey}\n`;
+    wgConfig += `Address = ${address}\n`;
+    if (dns) {
+      wgConfig += `DNS = ${dns}\n`;
+    }
+
+    peers.forEach(peer => {
+      wgConfig += `\n[Peer]\n`;
+      wgConfig += `PublicKey = ${peer.publicKey}\n`;
+      if (peer.endpoint) {
+        wgConfig += `Endpoint = ${peer.endpoint}\n`;
+      }
+      if (peer.allowedIPs) {
+        wgConfig += `AllowedIPs = ${peer.allowedIPs.join(', ')}\n`;
+      }
+    });
+
+    return wgConfig;
+  }
+
+  /**
+   * Создать конфигурацию OpenVPN
+   */
+  createOpenVPNConfig(config) {
+    const { remote, port, proto = 'udp' } = config;
+
+    let ovpnConfig = `client\n`;
+    ovpnConfig += `dev tun\n`;
+    ovpnConfig += `proto ${proto}\n`;
+    ovpnConfig += `remote ${remote} ${port}\n`;
+    ovpnConfig += `resolv-retry infinite\n`;
+    ovpnConfig += `nobind\n`;
+    ovpnConfig += `persist-key\n`;
+    ovpnConfig += `persist-tun\n`;
+    ovpnConfig += `remote-cert-tls server\n`;
+    ovpnConfig += `verb 3\n`;
+
+    return ovpnConfig;
+  }
+
+  /**
+   * Проверка доступности WireGuard
+   */
+  async checkWireGuard() {
+    const platform = os.platform();
+    const binary = VPN_CONFIG.wireguard.binary[platform] || VPN_CONFIG.wireguard.binary.linux;
+
+    try {
+      await fs.access(binary);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Проверка доступности OpenVPN
+   */
+  async checkOpenVPN() {
+    const platform = os.platform();
+    const binary = VPN_CONFIG.openvpn.binary[platform] || VPN_CONFIG.openvpn.binary.linux;
+
+    try {
+      await fs.access(binary);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Проверка доступности AmneziaVPN
+   */
+  async checkAmneziaVPN() {
+    const status = await this.getAmneziaStatus();
+    return status.installed;
+  }
+
+  /**
+   * Быстрое подключение к VPN
+   */
+  async quickConnect() {
+    try {
+      // Пытаемся подключиться через AmneziaVPN
+      const amneziaStatus = await this.getAmneziaStatus();
+
+      if (amneziaStatus.installed) {
+        this.currentConnection = {
+          type: 'amnezia',
+          connected: amneziaStatus.connected,
+          protocol: amneziaStatus.protocol,
+          timestamp: Date.now()
+        };
+
+        this.connections.set('amnezia', this.currentConnection);
+
+        return {
+          success: true,
+          connected: amneziaStatus.connected,
+          type: 'amnezia'
+        };
+      }
+
+      // Проверяем другие VPN
+      const runningVPNs = await this.detectRunningVPNProcesses();
+
+      if (runningVPNs.length > 0) {
+        const vpn = runningVPNs[0];
+        this.currentConnection = {
+          type: vpn.type,
+          connected: true,
+          timestamp: Date.now()
+        };
+
+        this.connections.set(vpn.type, this.currentConnection);
+
+        return {
+          success: true,
+          connected: true,
+          type: vpn.type
+        };
+      }
+
+      return {
+        success: false,
+        connected: false,
+        error: 'No VPN clients detected'
+      };
+    } catch (error) {
+      logger.error(`Quick connect error: ${error.message}`, 'vpn');
+      return {
+        success: false,
+        connected: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * Получить статус
    */
   getStatus() {
     return {
       detected: this.detected,
       type: this.vpnType,
-      info: this.vpnInfo
+      info: this.vpnInfo,
+      connected: this.currentConnection?.connected || false,
+      currentConnection: this.currentConnection,
+      connectionsCount: this.connections.size
     };
   }
 }

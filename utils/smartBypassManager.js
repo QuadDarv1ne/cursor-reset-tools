@@ -670,7 +670,9 @@ class SmartBypassManager {
         available: method.available,
         avgResponseTime: method.avgResponseTime,
         successRate: method.successRate,
-        consecutiveFails: method.consecutiveFails
+        consecutiveFails: method.consecutiveFails,
+        lastSuccess: method.lastSuccess,
+        lastFail: method.lastFail
       };
     }
     return result;

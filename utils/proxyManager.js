@@ -21,17 +21,53 @@ class ProxyManager {
       lastCheck: null
     };
     this.autoRotationInterval = null;
+    
+    // Кэши с ограничениями для предотвращения утечек памяти
     this.dpiTestResults = new Map();
     this.geoIpCache = new Map();
     this.connectionPool = new Map();
     this.proxyHealthScore = new Map();
     
+    // Лимиты для предотвращения утечек памяти
+    this.MAX_CACHE_SIZE = 100;
+    this.CACHE_TTL = 300000; // 5 минут
+    
+    // Mutex для синхронизации rotateProxy
+    this.rotateLock = false;
+    this.rotateQueue = [];
+
     // DPI bypass patterns для тестирования
     this.dpiPatterns = [
       { name: 'fragmented', enabled: true },
       { name: 'domain_fronting', enabled: true },
       { name: 'tls_mixed', enabled: true }
     ];
+  }
+
+  /**
+   * Очистка старых записей из кэша
+   */
+  _cleanupCache(cache, maxAge = this.CACHE_TTL) {
+    const now = Date.now();
+    for (const [key, value] of cache.entries()) {
+      const timestamp = value.timestamp || value.addedAt || 0;
+      if (now - timestamp > maxAge) {
+        cache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Ограничение размера кэша
+   */
+  _limitCacheSize(cache, maxSize = this.MAX_CACHE_SIZE) {
+    if (cache.size > maxSize) {
+      const entries = Array.from(cache.entries());
+      const oldest = entries.slice(0, entries.length - maxSize);
+      for (const [key] of oldest) {
+        cache.delete(key);
+      }
+    }
   }
 
   /**
@@ -97,16 +133,16 @@ class ProxyManager {
     try {
       const testUrl = 'http://ip-api.com/json/';
       const agent = this.createAgent(proxyInfo);
-      
+
       const response = await this.fetchWithTimeout(testUrl, { agent }, 5000);
       const data = JSON.parse(response);
-      
+
       if (data.status === 'success') {
         proxyInfo.country = data.countryCode;
         proxyInfo.city = data.city;
         proxyInfo.isp = data.isp;
         proxyInfo.isResidential = this.detectResidential(data);
-        
+
         this.geoIpCache.set(proxyInfo.url, {
           country: proxyInfo.country,
           city: proxyInfo.city,
@@ -115,6 +151,10 @@ class ProxyManager {
           timestamp: Date.now()
         });
         
+        // Очистка старых записей и ограничение размера
+        this._cleanupCache(this.geoIpCache);
+        this._limitCacheSize(this.geoIpCache);
+
         logger.debug(`GeoIP validated for proxy: ${proxyInfo.country}, Residential: ${proxyInfo.isResidential}`, 'proxy');
       }
     } catch (error) {
@@ -184,17 +224,21 @@ class ProxyManager {
       results.score = (results.fragmented ? 33 : 0) + 
                       (results.domainFronting ? 33 : 0) + 
                       (results.tlsMixed ? 34 : 0);
-      
+
       proxyInfo.dpiCompliant = results.score >= 66;
-      this.dpiTestResults.set(proxyInfo.url, results);
+      this.dpiTestResults.set(proxyInfo.url, { ...results, timestamp: Date.now() });
       
+      // Очистка старых записей и ограничение размера
+      this._cleanupCache(this.dpiTestResults);
+      this._limitCacheSize(this.dpiTestResults);
+
       logger.info(`DPI test for proxy: score=${results.score}, compliant=${proxyInfo.dpiCompliant}`, 'proxy');
-      
+
     } catch (error) {
       logger.warn(`DPI test failed: ${error.message}`, 'proxy');
       results.error = error.message;
     }
-    
+
     return results;
   }
 
@@ -289,43 +333,64 @@ class ProxyManager {
   }
 
   /**
-   * Получить следующий прокси (умная ротация)
+   * Получить следующий прокси (умная ротация с синхронизацией)
    */
-  rotateProxy() {
-    if (this.proxies.length === 0) {
-      return null;
-    }
-
-    // Фильтруем рабочие прокси с хорошим здоровьем
-    const healthyProxies = this.proxies.filter(p => {
-      const healthScore = this.proxyHealthScore.get(p.url) || 100;
-      return healthScore >= 50;
-    });
-
-    if (healthyProxies.length === 0) {
-      // Если нет здоровых, берём любой
-      this.currentIndex = this.currentIndex % this.proxies.length;
-      this.currentProxy = this.proxies[this.currentIndex];
-    } else {
-      // Сортируем по health score и DPI compliance
-      healthyProxies.sort((a, b) => {
-        const scoreA = (this.proxyHealthScore.get(a.url) || 100) + (a.dpiCompliant ? 20 : 0) + (a.isResidential ? 10 : 0);
-        const scoreB = (this.proxyHealthScore.get(b.url) || 100) + (b.dpiCompliant ? 20 : 0) + (b.isResidential ? 10 : 0);
-        return scoreB - scoreA;
+  async rotateProxy() {
+    // Ждем если другая ротация уже выполняется
+    if (this.rotateLock) {
+      return new Promise(resolve => {
+        this.rotateQueue.push(resolve);
       });
-      
-      // Случайный выбор из топ-3
-      const topProxies = healthyProxies.slice(0, Math.min(3, healthyProxies.length));
-      const randomIndex = Math.floor(Math.random() * topProxies.length);
-      this.currentProxy = topProxies[randomIndex];
     }
 
-    this.currentIndex++;
-    this.currentProxy.lastUsed = Date.now();
+    this.rotateLock = true;
     
-    logger.debug(`Rotated to proxy: ${this.maskProxyUrl(this.currentProxy.url)}`, 'proxy');
-    
-    return this.currentProxy;
+    try {
+      if (this.proxies.length === 0) {
+        return null;
+      }
+
+      // Периодическая очистка кэшей
+      this._cleanupCache(this.proxyHealthScore, 600000); // 10 минут
+
+      // Фильтруем рабочие прокси с хорошим здоровьем
+      const healthyProxies = this.proxies.filter(p => {
+        const healthScore = this.proxyHealthScore.get(p.url) || 100;
+        return healthScore >= 50;
+      });
+
+      if (healthyProxies.length === 0) {
+        // Если нет здоровых, берём любой
+        this.currentIndex = this.currentIndex % this.proxies.length;
+        this.currentProxy = this.proxies[this.currentIndex];
+      } else {
+        // Сортируем по health score и DPI compliance
+        healthyProxies.sort((a, b) => {
+          const scoreA = (this.proxyHealthScore.get(a.url) || 100) + (a.dpiCompliant ? 20 : 0) + (a.isResidential ? 10 : 0);
+          const scoreB = (this.proxyHealthScore.get(b.url) || 100) + (b.dpiCompliant ? 20 : 0) + (b.isResidential ? 10 : 0);
+          return scoreB - scoreA;
+        });
+
+        // Случайный выбор из топ-3
+        const topProxies = healthyProxies.slice(0, Math.min(3, healthyProxies.length));
+        const randomIndex = Math.floor(Math.random() * topProxies.length);
+        this.currentProxy = topProxies[randomIndex];
+      }
+
+      this.currentIndex++;
+      this.currentProxy.lastUsed = Date.now();
+
+      logger.debug(`Rotated to proxy: ${this.maskProxyUrl(this.currentProxy.url)}`, 'proxy');
+
+      return this.currentProxy;
+    } finally {
+      this.rotateLock = false;
+      // Обрабатываем очередь
+      if (this.rotateQueue.length > 0) {
+        const next = this.rotateQueue.shift();
+        next();
+      }
+    }
   }
 
   /**

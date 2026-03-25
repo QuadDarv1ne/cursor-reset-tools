@@ -30,6 +30,7 @@ import { globalSystemProxyManager } from './utils/systemProxyManager.js';
 import { globalConfigBackup } from './utils/configBackup.js';
 import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
+import { globalProxyManager } from './utils/proxyManager.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -632,7 +633,6 @@ app.get('/api/doh-vpn/recommendations', async (req, res) => {
 // Proxy status
 app.get('/api/proxy/status', async (req, res) => {
   try {
-    const { globalProxyManager } = await import('./utils/proxyManager.js');
     const stats = globalProxyManager.getStats();
     const currentProxy = globalProxyManager.getCurrentProxy();
 
@@ -649,7 +649,6 @@ app.get('/api/proxy/status', async (req, res) => {
 // Proxy add
 app.post('/api/proxy/add', async (req, res) => {
   try {
-    const { globalProxyManager } = await import('./utils/proxyManager.js');
     const { url, protocol = 'socks5' } = req.body;
 
     if (!url) {
@@ -666,8 +665,7 @@ app.post('/api/proxy/add', async (req, res) => {
 // Proxy rotate
 app.post('/api/proxy/rotate', async (req, res) => {
   try {
-    const { globalProxyManager } = await import('./utils/proxyManager.js');
-    const proxy = globalProxyManager.rotateProxy();
+    const proxy = await globalProxyManager.rotateProxy();
 
     if (proxy) {
       return res.json({ success: true, proxy });
@@ -681,7 +679,6 @@ app.post('/api/proxy/rotate', async (req, res) => {
 // Proxy clear
 app.post('/api/proxy/clear', async (req, res) => {
   try {
-    const { globalProxyManager } = await import('./utils/proxyManager.js');
     globalProxyManager.clearProxy();
     return res.json({ success: true, message: 'Proxy cleared, working without proxy' });
   } catch (error) {
@@ -1162,13 +1159,29 @@ const startServer = async () => {
 
     // Логирование результатов инициализации
     const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup', 'DPIBypass', 'WireGuard'];
+    const criticalManagers = ['Monitor', 'ProxyDatabase', 'Resource']; // Критические менеджеры
+    let criticalFailed = false;
+    
     for (let i = 0; i < initResults.length; i++) {
       const result = initResults[i];
       if (result.status === 'rejected') {
-        logger.error(`${managers[i]} manager init failed: ${result.reason?.message}`, 'app');
+        const errorMsg = `${managers[i]} manager init failed: ${result.reason?.message}`;
+        logger.error(errorMsg, 'app');
+        
+        // Проверка критических менеджеров
+        if (criticalManagers.includes(managers[i])) {
+          criticalFailed = true;
+          logger.error(`Critical manager ${managers[i]} failed to initialize. Server cannot start safely.`, 'app');
+        }
       } else {
         logger.info(`${managers[i]} manager initialized`, 'app');
       }
+    }
+    
+    // Прерывание запуска если критический менеджер не инициализировался
+    if (criticalFailed) {
+      logger.error('Server startup aborted due to critical manager failures', 'app');
+      process.exit(1);
     }
 
     // Запуск авто-мониторинга

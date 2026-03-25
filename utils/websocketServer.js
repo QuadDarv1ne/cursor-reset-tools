@@ -256,14 +256,22 @@ class WSServer {
   }
 
   /**
-   * Обработка отключения
+   * Обработка отключения (с гарантированной очисткой таймеров)
    */
   handleDisconnect(clientId) {
     const client = this.clients.get(clientId);
 
-    // Очистка таймера таймаута
-    if (client && client.timeoutId) {
-      clearTimeout(client.timeoutId);
+    // Гарантированная очистка таймера таймаута
+    if (client) {
+      if (client.timeoutId) {
+        clearTimeout(client.timeoutId);
+        client.timeoutId = null;
+      }
+      
+      // Очистка подписок для предотвращения утечек памяти
+      if (client.subscriptions) {
+        client.subscriptions.clear();
+      }
     }
 
     this.clients.delete(clientId);
@@ -271,25 +279,37 @@ class WSServer {
   }
 
   /**
-   * Отправка сообщения клиенту
+   * Отправка сообщения клиенту (с проверкой состояния)
    */
   send(clientId, message) {
     const client = this.clients.get(clientId);
-    if (client && client.ws.readyState === 1) {
-      client.ws.send(JSON.stringify(message));
-      return true;
+    if (client && client.ws.readyState === 1) { // WebSocket.OPEN
+      try {
+        client.ws.send(JSON.stringify(message));
+        return true;
+      } catch (error) {
+        logger.debug(`Failed to send to ${clientId}: ${error.message}`, 'websocket');
+        // Клиент с ошибкой - пометить как мёртвого
+        client.pingPong.isAlive = false;
+      }
     }
     return false;
   }
 
   /**
-   * Вещание всем клиентам
+   * Вещание всем клиентам (безопасная итерация)
    */
   broadcast(message, channel = null) {
     let count = 0;
+    
+    // Копируем ключи для безопасной итерации (защита от изменения Map во время итерации)
+    const clientIds = Array.from(this.clients.keys());
 
-    for (const [clientId, client] of this.clients) {
-      if (channel && !client.subscriptions.has(channel)) {
+    for (const clientId of clientIds) {
+      const client = this.clients.get(clientId);
+      
+      // Пропускаем если клиент не подписан на канал
+      if (channel && (!client || !client.subscriptions.has(channel))) {
         continue;
       }
 

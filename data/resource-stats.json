@@ -1,0 +1,36 @@
+{
+  "history": [
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 7565467648,
+        "used": 8799666176,
+        "percent": 53.77
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 2446094336,
+        "used": 311182983168,
+        "percent": 99.22
+      },
+      "uptime": 4402.578,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774425485280
+    }
+  ],
+  "alerts": [
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 99.22%",
+      "threshold": 90,
+      "value": 99.22,
+      "timestamp": 1774425487789
+    }
+  ]
+}

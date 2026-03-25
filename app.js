@@ -96,7 +96,13 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
+  const cacheKey = 'health';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
+  const data = {
     status: 'ok',
     timestamp: Date.now(),
     uptime: process.uptime(),
@@ -107,7 +113,10 @@ app.get('/health', (req, res) => {
     clients: globalWSServer.getStats().clients,
     resources: globalResourceMonitor.getCurrentStats(),
     cache: globalStatsCache.getStats()
-  });
+  };
+
+  globalStatsCache.set(cacheKey, data, 5000); // 5 секунд TTL
+  res.json(data);
 });
 
 // Config endpoint
@@ -140,10 +149,18 @@ app.get('/api/smart/status', (req, res) => {
 
 // Monitor status
 app.get('/api/monitor/status', (req, res) => {
-  res.json({
+  const cacheKey = 'monitor:status';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
+  const data = {
     success: true,
     status: globalMonitorManager.getStatus()
-  });
+  };
+  globalStatsCache.set(cacheKey, data, 10000); // 10 секунд TTL
+  res.json(data);
 });
 
 // Smart bypass test
@@ -302,18 +319,34 @@ app.delete('/api/metrics/clear', async (req, res) => {
 
 // Resource Monitor API endpoints
 app.get('/api/resources/status', async (req, res) => {
+  const cacheKey = 'resources:status';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   try {
     const status = globalResourceMonitor.getCurrentStats();
-    return res.json({ success: true, ...status });
+    const data = { success: true, ...status };
+    globalStatsCache.set(cacheKey, data, 3000); // 3 секунды TTL
+    return res.json(data);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.get('/api/resources/summary', async (req, res) => {
+  const cacheKey = 'resources:summary';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   try {
     const summary = globalResourceMonitor.getSummary();
-    return res.json({ success: true, ...summary });
+    const data = { success: true, ...summary };
+    globalStatsCache.set(cacheKey, data, 5000); // 5 секунд TTL
+    return res.json(data);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -350,9 +383,17 @@ app.post('/api/resources/alerts/clear', async (req, res) => {
 
 // Stats Cache API endpoints
 app.get('/api/cache/status', async (req, res) => {
+  const cacheKey = 'cache:status';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   try {
     const status = globalStatsCache.getStats();
-    return res.json({ success: true, ...status });
+    const data = { success: true, ...status };
+    globalStatsCache.set(cacheKey, data, 2000); // 2 секунды TTL
+    return res.json(data);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -387,9 +428,17 @@ app.post('/api/cache/reset-stats', async (req, res) => {
 
 // Notification Manager API endpoints
 app.get('/api/notifications/status', async (req, res) => {
+  const cacheKey = 'notifications:status';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   try {
     const status = globalNotificationManager.getStatus();
-    return res.json({ success: true, ...status });
+    const data = { success: true, ...status };
+    globalStatsCache.set(cacheKey, data, 5000); // 5 секунд TTL
+    return res.json(data);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -459,10 +508,18 @@ app.get('/api/notifications/export', async (req, res) => {
 
 // Proxy auto-rotation API endpoints
 app.get('/api/proxy/rotation/status', async (req, res) => {
+  const cacheKey = 'proxy:rotation:status';
+  const cached = globalStatsCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   try {
     const { globalProxyManager } = await import('./utils/proxyManager.js');
     const status = globalProxyManager.getAutoRotationStatus();
-    return res.json({ success: true, ...status });
+    const data = { success: true, ...status };
+    globalStatsCache.set(cacheKey, data, 3000); // 3 секунды TTL
+    return res.json(data);
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

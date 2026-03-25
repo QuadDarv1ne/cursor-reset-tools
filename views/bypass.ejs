@@ -239,6 +239,77 @@
         </div>
       </div>
 
+    <!-- Notifications -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-notification-3-line"></i> Уведомления</h2>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div class="stat-card">
+            <h3>Telegram</h3>
+            <div id="telegram-status" class="status-badge status-error">✗ Не настроен</div>
+          </div>
+          <div class="stat-card">
+            <h3>Discord</h3>
+            <div id="discord-status" class="status-badge status-error">✗ Не настроен</div>
+          </div>
+        </div>
+        <div class="input-group" style="margin-top: 16px;">
+          <label>Telegram Bot Token</label>
+          <input type="text" id="telegram-token" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+        </div>
+        <div class="input-group">
+          <label>Telegram Chat ID</label>
+          <input type="text" id="telegram-chat-id" placeholder="123456789">
+        </div>
+        <div class="input-group">
+          <label>Discord Webhook URL</label>
+          <input type="text" id="discord-webhook" placeholder="https://discord.com/api/webhooks/...">
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+          <button class="btn btn-primary" onclick="saveTelegramConfig()">
+            <i class="ri-save-line"></i> Сохранить Telegram
+          </button>
+          <button class="btn btn-primary" onclick="saveDiscordConfig()">
+            <i class="ri-save-line"></i> Сохранить Discord
+          </button>
+          <button class="btn btn-success" onclick="testNotification()">
+            <i class="ri-send-plane-line"></i> Тест
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proxy Auto-Rotation -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-repeat-2-line"></i> Авто-ротация прокси</h2>
+      </div>
+      <div class="card-body">
+        <div class="stat-card" style="margin-bottom: 16px;">
+          <div><strong>Статус:</strong> <span id="auto-rotation-status" class="status-badge status-error">✗ Выключена</span></div>
+          <div><strong>Интервал:</strong> <span id="rotation-interval">--</span></div>
+          <div><strong>Ротаций:</strong> <span id="rotation-count">0</span></div>
+        </div>
+        <div class="input-group">
+          <label>Интервал ротации (мс)</label>
+          <input type="number" id="rotation-interval-input" value="300000" step="60000" min="60000">
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+          <button class="btn btn-success" onclick="startAutoRotation()">
+            <i class="ri-play-line"></i> Включить
+          </button>
+          <button class="btn btn-danger" onclick="stopAutoRotation()">
+            <i class="ri-stop-line"></i> Выключить
+          </button>
+          <button class="btn btn-primary" onclick="forceRotateProxy()">
+            <i class="ri-arrow-right-circle-line"></i> Ротировать сейчас
+          </button>
+        </div>
+      </div>
+    </div>
+
       <!-- Email -->
       <div class="card">
         <div class="card-header">
@@ -485,6 +556,146 @@
       await api('/proxy/clear', { method: 'DELETE' });
       log('Прокси очищен', 'success');
       loadProxyList();
+    }
+
+    // Notifications
+    async function loadNotificationStatus() {
+      const result = await api('/notifications/status');
+      if (result.success) {
+        const tgStatus = document.getElementById('telegram-status');
+        const dcStatus = document.getElementById('discord-status');
+        
+        if (tgStatus) {
+          tgStatus.textContent = result.telegram.configured ? '✓ Настроен' : '✗ Не настроен';
+          tgStatus.className = `status-badge ${result.telegram.configured ? 'status-success' : 'status-error'}`;
+        }
+        
+        if (dcStatus) {
+          dcStatus.textContent = result.discord.configured ? '✓ Настроен' : '✗ Не настроен';
+          dcStatus.className = `status-badge ${result.discord.configured ? 'status-success' : 'status-error'}`;
+        }
+      }
+    }
+
+    async function saveTelegramConfig() {
+      const token = document.getElementById('telegram-token').value;
+      const chatId = document.getElementById('telegram-chat-id').value;
+      
+      if (!token || !chatId) {
+        log('Введите Token и Chat ID', 'error');
+        return;
+      }
+      
+      log('Сохранение Telegram конфигурации...');
+      const result = await api('/notifications/configure/telegram', {
+        method: 'POST',
+        body: JSON.stringify({ botToken: token, chatId })
+      });
+      
+      if (result.success) {
+        log('Telegram настроен', 'success');
+        loadNotificationStatus();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function saveDiscordConfig() {
+      const webhookUrl = document.getElementById('discord-webhook').value;
+      
+      if (!webhookUrl) {
+        log('Введите Webhook URL', 'error');
+        return;
+      }
+      
+      log('Сохранение Discord конфигурации...');
+      const result = await api('/notifications/configure/discord', {
+        method: 'POST',
+        body: JSON.stringify({ webhookUrl })
+      });
+      
+      if (result.success) {
+        log('Discord настроен', 'success');
+        loadNotificationStatus();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function testNotification() {
+      log('Отправка тестового уведомления...');
+      const result = await api('/notifications/test', { method: 'POST' });
+      
+      if (result.success) {
+        log('Тестовое уведомление отправлено', 'success');
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    // Auto Rotation
+    async function loadAutoRotationStatus() {
+      const result = await api('/proxy/rotation/status');
+      if (result.success) {
+        const statusEl = document.getElementById('auto-rotation-status');
+        const intervalEl = document.getElementById('rotation-interval');
+        const countEl = document.getElementById('rotation-count');
+        
+        if (statusEl) {
+          statusEl.textContent = result.enabled ? '✓ Включена' : '✗ Выключена';
+          statusEl.className = `status-badge ${result.enabled ? 'status-success' : 'status-error'}`;
+        }
+        
+        if (intervalEl) {
+          intervalEl.textContent = result.enabled ? `${result.intervalMs / 1000}с` : '--';
+        }
+        
+        if (countEl) {
+          countEl.textContent = result.rotationCount || 0;
+        }
+      }
+    }
+
+    async function startAutoRotation() {
+      const interval = parseInt(document.getElementById('rotation-interval-input').value);
+      
+      log(`Включение авто-ротации (интервал: ${interval}мс)...`);
+      const result = await api('/proxy/rotation/start', {
+        method: 'POST',
+        body: JSON.stringify({ intervalMs: interval })
+      });
+      
+      if (result.success) {
+        log('Авто-ротация включена', 'success');
+        loadAutoRotationStatus();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function stopAutoRotation() {
+      log('Выключение авто-ротации...');
+      const result = await api('/proxy/rotation/stop', { method: 'POST' });
+      
+      if (result.success) {
+        log('Авто-ротация выключена', 'success');
+        loadAutoRotationStatus();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
+    }
+
+    async function forceRotateProxy() {
+      log('Принудительная ротация прокси...');
+      const result = await api('/proxy/rotate', { method: 'POST' });
+      
+      if (result.success) {
+        log(`Прокси ротирован: ${result.proxy?.url || 'новый'}`, 'success');
+        loadAutoRotationStatus();
+        loadProxyList();
+      } else {
+        log(`Ошибка: ${result.error}`, 'error');
+      }
     }
 
     // DNS
@@ -878,6 +1089,8 @@
       loadProxyList();
       loadDNS();
       loadFingerprint();
+      loadNotificationStatus();
+      loadAutoRotationStatus();
       initWebSocket();
       log('Bypass Tools загружен', 'success');
     });

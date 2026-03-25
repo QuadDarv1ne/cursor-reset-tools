@@ -14,6 +14,26 @@ import { logger } from './logger.js';
 
 const execPromise = promisify(exec);
 
+// VPN конфигурация
+export const VPN_CONFIG = {
+  wireguard: {
+    name: 'WireGuard',
+    binary: {
+      win32: 'C:\\Program Files\\WireGuard\\wireguard.exe',
+      darwin: '/usr/local/bin/wireguard',
+      linux: '/usr/bin/wg'
+    }
+  },
+  openvpn: {
+    name: 'OpenVPN',
+    binary: {
+      win32: 'C:\\Program Files\\OpenVPN\\bin\\openvpn.exe',
+      darwin: '/usr/local/bin/openvpn',
+      linux: '/usr/sbin/openvpn'
+    }
+  }
+};
+
 class VPNManager {
   constructor() {
     this.detected = false;
@@ -683,3 +703,4 @@ class VPNManager {
 // Singleton
 export const globalVPNManager = new VPNManager();
 export default VPNManager;
+export { VPNManager };

@@ -246,4 +246,4 @@
 **Автор:** Dupley Maxim Igorevich  
 **Год:** 2026  
 **Копирайт:** © 2026 Все права защищены  
-**Последний коммит:** a3acbe9 — fix: исправлены ESLint warning (9 → 0)
+**Последний коммит:** eeef188 — docs: обновлён статус ESLint (0 warnings) в TODO.md

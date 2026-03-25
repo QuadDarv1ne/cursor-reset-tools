@@ -181,7 +181,7 @@ class DoHManager {
   /**
    * Автоматическое включение DoH при VPN подключении
    */
-  async enableForVPN(vpnStatus) {
+  async enableForVPN(_vpnStatus) {
     logger.info('Enabling DoH for VPN connection...', 'doh');
 
     try {

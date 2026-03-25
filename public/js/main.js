@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Чтение конфигурации
   const configEl = document.getElementById('app-config');
-  const appConfig = configEl ? JSON.parse(configEl.textContent) : {};
+  const _appConfig = configEl ? JSON.parse(configEl.textContent) : {};
 
   // WebSocket клиент
   let ws = null;

@@ -7,7 +7,7 @@ import os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs-extra';
-import path from 'path';
+import { _path } from 'path';
 import { logger } from './logger.js';
 import { globalVPNManager } from './vpnManager.js';
 
@@ -117,7 +117,7 @@ class VPNTrafficManager {
   async _enableKillSwitchWindows() {
     try {
       // Создание правил брандмауэра для блокировки без VPN
-      const blockRule = `netsh advfirewall firewall add rule name="Block No VPN" dir=out action=block enable=yes`;
+      const _blockRule = `netsh advfirewall firewall add rule name="Block No VPN" dir=out action=block enable=yes`;
 
       // Разрешение только для VPN интерфейса
       const vpnInterfaces = await this._getVPNInterfaces();
@@ -394,7 +394,7 @@ pass out proto udp from any to any port 53 keep state
     const interfaces = os.networkInterfaces();
     const found = [];
 
-    for (const [name, iface] of Object.entries(interfaces)) {
+    for (const [name, _iface] of Object.entries(interfaces)) {
       const nameLower = name.toLowerCase();
       if (vpnInterfaceNames.some(v => nameLower.includes(v))) {
         found.push(name);

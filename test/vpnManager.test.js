@@ -144,7 +144,7 @@ describe('VPNManager', () => {
       const result = await manager.detectActiveVPN();
       expect(result).toBeDefined();
       expect(result).toHaveProperty('detected');
-    });
+    }, 15000); // Увеличенный timeout для сетевого запроса
   });
 
   describe('getStatus', () => {

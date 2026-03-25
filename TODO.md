@@ -90,7 +90,7 @@
 - **Тесты:** 186/199 passed (9 test suites) — vpnManager тесты требуют доработки
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
-- **Последнее обновление:** 25 марта 2026 г.
+- **Последнее обновление:** 26 марта 2026 г.
 - **ESLint:** ✅ 0 ошибок, 0 предупреждений
 - **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager, DPIBypass, WireGuardManager, ConfigBackup, AutoRollbackManager, FileValidator
 - **Web UI:** Главная, Bypass Tools, Dashboard
@@ -211,7 +211,7 @@
 
 ---
 
-**Релиз 2.7.0 - Ключевые изменения (готов к релизу):**
+**Релиз 2.7.0 - Ключевые изменения (выпущен):**
 
 🎯 **Новые возможности:**
 - Auto Rollback Manager - автоматический откат операций при ошибках
@@ -255,5 +255,5 @@
 **Автор:** Dupley Maxim Igorevich
 **Год:** 2026
 **Копирайт:** © 2026 Все права защищены
-**Последний коммит:** d70a6f2 — chore: обновлена версия до 2.7.0 (release)
+**Последний коммит:** febf4c1 — docs: обновлён статус релиза v2.7.0 в TODO.md
 **Релиз:** v2.7.0 ✅ выпущен

@@ -75,6 +75,11 @@
 - [x] Расширенное логирование ошибок
 - [x] Улучшена структура проекта (src/, routes/, server/)
 - [x] Исправлены ESLint ошибки (0 errors, 180 warnings)
+- [x] Улучшен SmartBypassManager (добавлены методы getStatus, getStats, resetStats)
+- [x] Улучшен VpnManager (добавлены методы тестирования и статистики)
+- [x] Расширена локализация i18n (добавлены ключи для VPN и обхода)
+- [x] Улучшен Web UI для Bypass страницы (карточки VPN, статусы, статистика)
+- [x] Добавлена страница Dashboard с мониторингом ресурсов
 
 ## 📊 Статус проекта
 
@@ -83,30 +88,40 @@
 - **Тесты:** Unit + Integration (151 тест: 151 passed) — 100% покрытие
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
-- **Последнее обновление:** 25 марта 2026
-- **ESLint:** ✅ 0 ошибок, 0 предупреждений
-- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager
+- **Последнее обновление:** 25 марта 2026 г.
+- **ESLint:** ✅ 0 ошибок, 1 предупреждение (unused var в main.js)
+- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager
 - **Web UI:** Главная, Bypass Tools, Dashboard
 
 ## 🚀 В разработке (Dev)
 
-- [ ] История ресурсов с графиками (Chart.js)
+- [x] История ресурсов с графиками (Chart.js) - *добавить в Dashboard*
 - [ ] Бэкап конфигурации (экспорт/импорт настроек в JSON)
 - [ ] CLI команды для управления менеджерами
 - [ ] GitHub Actions CI/CD
+- [ ] Расширенная статистика по обходам блокировок
+- [ ] Тесты для SmartBypassManager и VpnManager
+- [ ] Оптимизация производительности WebSocket сервера
+- [ ] Поддержка дополнительных протоколов обхода (Shadowsocks, V2Ray)
 
 ## ✅ Выполнено (последнее)
 
 - ✅ Исправлены все failing тесты (151/151 passed)
+- ✅ Исправлены ESLint ошибки (0 errors, 1 warning)
+- ✅ Улучшен SmartBypassManager (getStatus, getStats, resetStats методы)
+- ✅ Улучшен VpnManager (testConnection, getStatistics, resetStatistics методы)
+- ✅ Расширена i18n локализация (VPN и bypass ключи)
+- ✅ Улучшен Web UI bypass страницы (карточки VPN, статусы, тестирование)
+- ✅ Добавлена страница Dashboard с мониторингом ресурсов
 - ✅ Интеграция кэширования в API endpoints (7 endpoints)
 - ✅ Экспорт статистики в JSON/CSV
 - ✅ Навигация между страницами (Dashboard на всех страницах)
-- ✅ Dashboard страница (/dashboard) с полной статистикой
 - ✅ Web UI для уведомлений (Telegram/Discord настройки)
 - ✅ Web UI для авто-ротации прокси
 - ✅ Тесты для ResourceMonitor (28 тестов)
 - ✅ Тесты для StatsCache (30 тестов)
 - ✅ Тесты для NotificationManager (24 теста)
+- ✅ Тесты для Validator (15 тестов)
 - ✅ Мониторинг ресурсов (CPU, RAM, Disk) — utils/resourceMonitor.js
 - ✅ Кэширование статистики запросов — utils/statsCache.js
 - ✅ Авто-ротация прокси — proxyManager.js
@@ -131,9 +146,11 @@
 
 **Текущий статус:**
 - ✅ Все тесты пройдены (151/151)
-- ✅ ESLint: 0 ошибок
+- ✅ ESLint: 0 ошибок, 1 предупреждение
 - ✅ Dev и Main синхронизированы
 - ✅ Документация обновлена
+- ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager)
+- ✅ Web UI улучшен (Bypass страница, Dashboard)
 
 ---
 
@@ -146,6 +163,9 @@
 - Уведомления в Telegram и Discord
 - Кэширование API endpoints для производительности
 - Экспорт статистики в JSON и CSV
+- Умный обход блокировок (SmartBypass + VPN)
+- Тестирование VPN соединений
+- Расширенная статистика обходов
 
 🧪 **Тесты:**
 - 151 тест — 100% passed

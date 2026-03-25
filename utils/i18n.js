@@ -166,7 +166,29 @@ export const translations = {
     changeRemoved: 'Удалено',
     changeNew: 'Новое',
     changeFixed: 'Исправлено',
-    changeEnhanced: 'Улучшено'
+    changeEnhanced: 'Улучшено',
+
+    // WebSocket & Logs
+    liveLogsTitle: 'Журнал событий',
+    clearLogs: 'Очистить',
+    logsInitializing: 'Инициализация журнала...',
+    logsNote: 'Журнал обновляется в реальном времени через WebSocket',
+    logsCleared: 'Журнал очищен',
+    wsConnected: 'Подключено',
+    wsDisconnected: 'Отключено',
+    wsConnecting: 'Подключение к WebSocket...',
+    wsReconnecting: 'Переподключение',
+    wsReconnectFailed: 'Не удалось переподключиться',
+    wsError: 'Ошибка WebSocket',
+    wsWelcome: 'Добро пожаловать',
+    cursorOk: 'OK',
+    cursorBlocked: 'Заблокировано',
+    bestBypassMethod: 'Лучший метод обхода',
+    bypassTestComplete: 'Тест обхода завершён',
+    bypassApplied: 'Метод обхода применён',
+
+    // Resources
+    resourcesTitle: 'Мониторинг ресурсов'
   },
 
   en: {

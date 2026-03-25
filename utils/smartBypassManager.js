@@ -9,6 +9,7 @@ import { globalMonitorManager } from './monitorManager.js';
 import { globalProxyManager } from './proxyManager.js';
 import { globalDNSManager } from './dnsManager.js';
 import { globalDoHManager } from './dohManager.js';
+import { globalVPNManager } from './vpnManager.js';
 
 class SmartBypassManager {
   constructor() {
@@ -42,6 +43,9 @@ class SmartBypassManager {
 
     // Тест DNS
     results.dns = await this.testDNS();
+
+    // Тест VPN
+    results.vpn = await this.testVPN();
 
     // Обновление весов
     this.updateWeights(results);
@@ -164,6 +168,40 @@ class SmartBypassManager {
   }
 
   /**
+   * Тест VPN
+   */
+  async testVPN() {
+    const start = Date.now();
+    try {
+      const vpnStatus = await globalVPNManager.detectActiveVPN();
+
+      // Если VPN активен, проверяем доступность Cursor
+      let cursorAvailable = false;
+      if (vpnStatus.detected) {
+        const cursorStatus = await globalMonitorManager.checkCursor();
+        cursorAvailable = cursorStatus.available;
+      }
+
+      return {
+        success: vpnStatus.detected && cursorAvailable,
+        responseTime: Date.now() - start,
+        available: vpnStatus.detected,
+        vpnActive: vpnStatus.detected,
+        vpnType: vpnStatus.type,
+        vpnCountry: vpnStatus.country,
+        vpnIP: vpnStatus.ip,
+        cursorAvailable
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        available: false
+      };
+    }
+  }
+
+  /**
    * Обновить веса методов
    */
   updateWeights(results) {
@@ -172,6 +210,19 @@ class SmartBypassManager {
       this.methods.direct.weight = 100;
     } else {
       this.methods.direct.weight = 0;
+    }
+
+    // VPN - приоритет если активен и работает
+    if (results.vpn?.available && results.vpn.cursorAvailable) {
+      this.methods.vpn.weight = 90;
+      this.methods.vpn.available = true;
+    } else if (results.vpn?.available) {
+      // VPN активен но Cursor не доступен - возможно проблема с DNS
+      this.methods.vpn.weight = 50;
+      this.methods.vpn.available = true;
+    } else {
+      this.methods.vpn.weight = 0;
+      this.methods.vpn.available = false;
     }
 
     // DoH - хороший вариант если работает

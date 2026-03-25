@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentLang = localStorage.getItem('lang') || 'ru';
   const t = key => window.i18n?.t(key, currentLang) || key;
 
+  // Чтение конфигурации
+  const configEl = document.getElementById('app-config');
+  const appConfig = configEl ? JSON.parse(configEl.textContent) : {};
+
   // WebSocket клиент
   let ws = null;
   let wsReconnectAttempts = 0;
@@ -24,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const getWsUrl = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // WebSocket работает на том же порту что и HTTP с путем /ws
     const port = window.location.port || (protocol === 'wss:' ? '443' : '80');
     return `${protocol}//${window.location.hostname}:${port}/ws`;
   };
@@ -248,9 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
       cursorHtml += `<tr><th>${t('updatePath')}</th><td><div class='code-block'>${p.updatePath || t('no')}</div></td></tr>`;
 
       if (p.exists) {
-        const existsHtml = Object.entries(p.exists).map(([k, v]) =>
-          `<tr><th>${t('machineIdExists').includes(k) || t('storageExists').includes(k) || t('databaseExists').includes(k) || t('appExists').includes(k) || t('cursorExists').includes(k) || t('updateExists').includes(k) ? k : t('machineIdExists')}</th><td>${v ? `<span class="badge badge-success">${t('yes')}</span>` : `<span class="badge badge-danger">${t('no')}</span>`}</td></tr>`
-        ).join('');
+        const existsLabels = {
+          machineId: t('machineIdExists'),
+          storage: t('storageExists'),
+          database: t('databaseExists'),
+          app: t('appExists'),
+          cursor: t('cursorExists'),
+          update: t('updateExists')
+        };
+        const existsHtml = Object.entries(p.exists).map(([k, v]) => {
+          const label = existsLabels[k] || k;
+          return `<tr><th>${label}</th><td>${v ? `<span class="badge badge-success">${t('yes')}</span>` : `<span class="badge badge-danger">${t('no')}</span>`}</td></tr>`;
+        }).join('');
         cursorHtml += existsHtml;
       }
 

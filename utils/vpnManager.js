@@ -370,6 +370,59 @@ export class VPNManager {
   }
 
   /**
+   * Проверка любого активного VPN подключения (включая Amnezia, NordVPN, и др.)
+   * @returns {Promise<Object>}
+   */
+  async detectActiveVPN() {
+    const result = {
+      detected: false,
+      type: null,
+      name: null,
+      ip: null,
+      country: null
+    };
+
+    try {
+      const fetch = (await import('node-fetch')).default;
+
+      // Получаем IP и информацию
+      const response = await fetch('https://ipapi.co/json/', { timeout: 5000 });
+      const data = await response.json();
+
+      result.ip = data.ip;
+      result.country = data.country_name;
+      result.countryCode = data.country_code;
+      result.isp = data.org || data.isp;
+
+      // Проверка на известные VPN провайдеры по ISP
+      const vpnProviders = [
+        'Mullvad', 'NordVPN', 'ExpressVPN', 'Surfshark',
+        'ProtonVPN', 'CyberGhost', 'PIA', 'Windscribe',
+        'Amnezia', 'WireGuard', 'OpenVPN'
+      ];
+
+      const isVPN = vpnProviders.some(v =>
+        result.isp?.toLowerCase().includes(v.toLowerCase())
+      );
+
+      // Проверка через IP (некоторые страны = VPN)
+      const vpnCountries = ['KZ', 'SG', 'NL', 'DE', 'US', 'GB', 'FR'];
+      const isForeignIP = vpnCountries.includes(data.country_code);
+
+      result.detected = isVPN || isForeignIP;
+      result.type = isVPN ? 'known_vpn' : (isForeignIP ? 'foreign_ip' : 'local');
+      result.name = result.isp;
+
+      logger.info(`VPN detection: ${JSON.stringify(result)}`, 'vpn');
+
+      return result;
+    } catch (error) {
+      logger.debug(`VPN detection failed: ${error.message}`, 'vpn');
+      return result;
+    }
+  }
+
+  /**
    * Получение списка конфигураций
    * @returns {Promise<Array>}
    */

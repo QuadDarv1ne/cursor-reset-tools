@@ -502,6 +502,7 @@ sudo npm start</div>
     </footer>
   </div>
 
+  <script id="app-config" type="application/json">{"wsPort": <%= typeof wsPort !== 'undefined' ? wsPort : 3001 %>}</script>
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('current-year').textContent = new Date().getFullYear();

@@ -141,109 +141,155 @@
       </div>
     </div>
 
-    <div class="grid-2">
-      <!-- Proxy Manager -->
-      <div class="card">
-        <div class="card-header">
-          <h2><i class="ri-global-line"></i> Proxy Manager</h2>
-        </div>
-        <div class="card-body">
-          <div class="input-group">
-            <label>Добавить прокси</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="proxy-url" placeholder="host:port или user:pass@host:port">
-              <select id="proxy-protocol" style="width: 100px;">
-                <option value="socks5">SOCKS5</option>
-                <option value="http">HTTP</option>
-              </select>
-              <button class="btn btn-primary" onclick="addProxy()">
-                <i class="ri-add-line"></i>
-              </button>
-            </div>
-          </div>
-          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <button class="btn btn-success" onclick="checkProxies()">
-              <i class="ri-checkbox-circle-line"></i> Проверить
-            </button>
-            <button class="btn btn-warning" onclick="rotateProxy()">
-              <i class="ri-shuffle-line"></i> Ротация
-            </button>
-            <button class="btn btn-danger" onclick="clearProxy()">
-              <i class="ri-delete-bin-line"></i> Очистить
-            </button>
-          </div>
-          <div id="proxy-list"></div>
-        </div>
+    <!-- System Info -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-computer-line"></i> Информация о системе</h2>
       </div>
-
-      <!-- DNS Manager -->
-      <div class="card">
-        <div class="card-header">
-          <h2><i class="ri-server-line"></i> DNS Manager</h2>
-        </div>
-        <div class="card-body">
-          <div class="input-group">
-            <label>Текущий DNS</label>
-            <div id="current-dns" class="stat-card" style="text-align: left; margin-bottom: 16px;">
-              <div class="stat-value" id="dns-primary">--</div>
-              <div class="stat-label" id="dns-secondary">--</div>
-            </div>
+      <div class="card-body">
+        <div id="system-info" class="grid-3">
+          <div class="stat-card">
+            <div class="stat-value">Загрузка...</div>
+            <div class="stat-label">Платформа</div>
           </div>
-          <div class="input-group">
-            <label>Выбрать DNS провайдер</label>
-            <select id="dns-provider">
-              <option value="cloudflare">Cloudflare (1.1.1.1)</option>
-              <option value="google">Google (8.8.8.8)</option>
-              <option value="quad9">Quad9 (9.9.9.9)</option>
-              <option value="opendns">OpenDNS</option>
-              <option value="adguard">AdGuard DNS</option>
-              <option value="auto">Автоматически (DHCP)</option>
-            </select>
+          <div class="stat-card">
+            <div class="stat-value">Загрузка...</div>
+            <div class="stat-label">Архитектура</div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-primary" onclick="setDNS()">
-              <i class="ri-check-line"></i> Установить
-            </button>
-            <button class="btn btn-secondary" onclick="restoreDNS()">
-              <i class="ri-reply-line"></i> Восстановить
-            </button>
-            <button class="btn btn-secondary" onclick="flushDNS()">
-              <i class="ri-broom-line"></i> Очистить кэш
-            </button>
+          <div class="stat-card">
+            <div class="stat-value">Загрузка...</div>
+            <div class="stat-label">Cursor</div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Fingerprint -->
-      <div class="card">
-        <div class="card-header">
-          <h2><i class="ri-fingerprint-line"></i> Fingerprint</h2>
-        </div>
-        <div class="card-body">
-          <div id="fingerprint-info" class="stat-card" style="text-align: left; margin-bottom: 16px;">
-            <div><strong>Hostname:</strong> <span id="fp-hostname">--</span></div>
-            <div><strong>MAC адресов:</strong> <span id="fp-mac-count">--</span></div>
-            <div><strong>Платформа:</strong> <span id="fp-platform">--</span></div>
-          </div>
+    <!-- Proxy Manager -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-global-line"></i> Proxy Manager</h2>
+      </div>
+      <div class="card-body">
+        <div class="input-group">
+          <label>Добавить прокси</label>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn btn-primary" onclick="resetFingerprint()">
-              <i class="ri-restart-line"></i> Полный сброс
-            </button>
-            <button class="btn btn-warning" onclick="changeMAC()">
-              <i class="ri-network-line"></i> Сменить MAC
-            </button>
-            <button class="btn btn-warning" onclick="changeHostname()">
-              <i class="ri-edit-line"></i> Сменить hostname
+            <input type="text" id="proxy-url" placeholder="host:port или user:pass@host:port" style="flex: 1; min-width: 200px;">
+            <select id="proxy-protocol" style="width: 120px;">
+              <option value="socks5">SOCKS5</option>
+              <option value="http">HTTP</option>
+            </select>
+            <button class="btn btn-primary" onclick="addProxy()">
+              <i class="ri-add-line"></i> Добавить
             </button>
           </div>
         </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+          <button class="btn btn-success" onclick="checkProxies()">
+            <i class="ri-checkbox-circle-line"></i> Проверить
+          </button>
+          <button class="btn btn-warning" onclick="rotateProxy()">
+            <i class="ri-shuffle-line"></i> Ротация
+          </button>
+          <button class="btn btn-danger" onclick="clearProxy()">
+            <i class="ri-delete-bin-line"></i> Очистить
+          </button>
+        </div>
+        <div id="proxy-list"></div>
       </div>
+    </div>
+
+    <!-- DNS Manager -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-server-line"></i> DNS Manager</h2>
+      </div>
+      <div class="card-body">
+        <div class="input-group">
+          <label>Текущий DNS</label>
+          <div id="current-dns" class="stat-card" style="text-align: left; margin-bottom: 16px;">
+            <div class="stat-value" id="dns-primary">--</div>
+            <div class="stat-label" id="dns-secondary">--</div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Выбрать DNS провайдер</label>
+          <select id="dns-provider" style="max-width: 300px;">
+            <option value="cloudflare">Cloudflare (1.1.1.1)</option>
+            <option value="google">Google (8.8.8.8)</option>
+            <option value="quad9">Quad9 (9.9.9.9)</option>
+            <option value="opendns">OpenDNS</option>
+            <option value="adguard">AdGuard DNS</option>
+            <option value="auto">Автоматически (DHCP)</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="setDNS()">
+            <i class="ri-check-line"></i> Установить
+          </button>
+          <button class="btn btn-secondary" onclick="restoreDNS()">
+            <i class="ri-reply-line"></i> Восстановить
+          </button>
+          <button class="btn btn-secondary" onclick="flushDNS()">
+            <i class="ri-broom-line"></i> Очистить кэш
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fingerprint -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-fingerprint-line"></i> Fingerprint</h2>
+      </div>
+      <div class="card-body">
+        <div id="fingerprint-info" class="stat-card" style="text-align: left; margin-bottom: 16px;">
+          <div><strong>Hostname:</strong> <span id="fp-hostname">--</span></div>
+          <div><strong>MAC адресов:</strong> <span id="fp-mac-count">--</span></div>
+          <div><strong>Платформа:</strong> <span id="fp-platform">--</span></div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="resetFingerprint()">
+            <i class="ri-restart-line"></i> Полный сброс
+          </button>
+          <button class="btn btn-warning" onclick="changeMAC()">
+            <i class="ri-network-line"></i> Сменить MAC
+          </button>
+          <button class="btn btn-warning" onclick="changeHostname()">
+            <i class="ri-edit-line"></i> Сменить hostname
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VPN Status -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-shield-keyhole-line"></i> VPN Статус</h2>
+        <button class="btn btn-secondary btn-sm" onclick="checkVPN()" style="margin-left: auto;">
+          <i class="ri-refresh-line"></i> Обновить
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="vpn-status" class="grid-3">
+          <div class="stat-card">
+            <div class="stat-value" id="vpn-active">--</div>
+            <div class="stat-label">Статус VPN</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="vpn-country">--</div>
+            <div class="stat-label">Страна</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="vpn-ip">--</div>
+            <div class="stat-label">Ваш IP</div>
+          </div>
+        </div>
+        <div id="vpn-info" style="margin-top: 16px;"></div>
+      </div>
+    </div>
 
     <!-- Notifications -->
     <div class="card">
-      <div class="card-header">
-        <h2><i class="ri-notification-3-line"></i> Уведомления</h2>
-      </div>
       <div class="card-body">
         <div class="grid-2">
           <div class="stat-card">
@@ -461,28 +507,57 @@
     async function checkMonitor() {
       log('Проверка статуса Cursor...');
       const result = await api('/monitor/check');
-      
+
       if (result.success) {
-        document.getElementById('cursor-status').innerHTML = 
-          result.cursorAvailable 
+        document.getElementById('cursor-status').innerHTML =
+          result.cursorAvailable
             ? '<span class="status-badge status-success">Доступен</span>'
             : '<span class="status-badge status-error">Заблокирован</span>';
-        
+
         document.getElementById('ip-address').textContent = result.ip?.ip || '--';
-        document.getElementById('ip-country').textContent = 
+        document.getElementById('ip-country').textContent =
           `${result.ip?.country || '--'} (${result.ip?.countryCode || '--'})`;
-        
+
         const recContainer = document.getElementById('monitor-recommendations');
         if (result.recommendations?.length > 0) {
-          recContainer.innerHTML = result.recommendations.map(r => 
+          recContainer.innerHTML = result.recommendations.map(r =>
             `<div class="status-badge status-warning" style="display: inline-block; margin: 4px;">⚠️ ${r.message}</div>`
           ).join('');
         } else {
           recContainer.innerHTML = '<span class="status-badge status-success">✓ Нет рекомендаций</span>';
         }
-        
-        log(`Cursor: ${result.cursorAvailable ? 'доступен' : 'заблокирован'}`, 
+
+        log(`Cursor: ${result.cursorAvailable ? 'доступен' : 'заблокирован'}`,
             result.cursorAvailable ? 'success' : 'error');
+      }
+    }
+
+    // Загрузка информации о системе и Cursor
+    async function loadSystemInfo() {
+      try {
+        const response = await fetch('/api/paths');
+        const p = await response.json();
+
+        // Обновление информации о системе (если есть элементы)
+        const systemEl = document.getElementById('system-info');
+        if (systemEl) {
+          systemEl.innerHTML = `
+            <div class="stat-card">
+              <div class="stat-value">${p.platform || 'Windows'}</div>
+              <div class="stat-label">Платформа</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${p.arch || 'x64'}</div>
+              <div class="stat-label">Архитектура</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${p.isRunning ? 'Запущен' : 'Остановлен'}</div>
+              <div class="stat-label">Cursor</div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки информации о системе:', error);
       }
     }
 
@@ -749,6 +824,42 @@
       }
     }
 
+    // VPN
+    async function checkVPN() {
+      try {
+        const response = await fetch('/api/vpn/status');
+        const result = await response.json();
+        
+        if (result.success) {
+          const status = result.status;
+          
+          document.getElementById('vpn-active').textContent = status.detected ? '✓ Активен' : '✗ Не активен';
+          document.getElementById('vpn-active').className = status.detected ? 'stat-value status-success' : 'stat-value status-error';
+          
+          document.getElementById('vpn-country').textContent = status.country || '--';
+          document.getElementById('vpn-ip').textContent = status.ip || '--';
+          
+          const infoEl = document.getElementById('vpn-info');
+          if (status.detected) {
+            infoEl.innerHTML = `
+              <div class="status-badge status-success" style="display: inline-block; margin: 4px;">
+                ✓ VPN: ${status.name || status.type || 'Unknown'}
+              </div>
+              <div class="status-badge status-info" style="display: inline-block; margin: 4px;">
+                ISP: ${status.isp || '--'}
+              </div>
+            `;
+            log(`VPN обнаружен: ${status.country} (${status.ip})`, 'success');
+          } else {
+            infoEl.innerHTML = '<span class="status-badge status-error">✗ VPN не обнаружен</span>';
+            log('VPN не обнаружен', 'warning');
+          }
+        }
+      } catch (error) {
+        log(`Ошибка проверки VPN: ${error.message}`, 'error');
+      }
+    }
+
     async function resetFingerprint() {
       log('Сброс fingerprint...');
       const result = await api('/fingerprint/reset', {
@@ -888,7 +999,8 @@
     let ws = null;
 
     function initWebSocket() {
-      const wsUrl = `ws://localhost:${typeof wsPort !== 'undefined' ? wsPort : 3001}/ws`;
+      // WebSocket работает на том же порту что и HTTP с путем /ws
+      const wsUrl = `ws://${window.location.hostname}:${window.location.port || (window.location.protocol === 'https:' ? '443' : '80')}/ws`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -1086,6 +1198,7 @@
     // Initial load
     document.addEventListener('DOMContentLoaded', () => {
       checkMonitor();
+      loadSystemInfo();
       loadProxyList();
       loadDNS();
       loadFingerprint();

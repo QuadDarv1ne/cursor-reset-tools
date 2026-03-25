@@ -1184,7 +1184,20 @@ rt.post('/fingerprint/mac', async (req, res) => {
     const result = await globalFingerprintManager.changeAllMAC();
     res.json({ success: true, result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    logger.error(`Fingerprint reset error: ${err.message}`, 'api');
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * VPN API
+ */
+rt.get('/vpn/status', async (req, res) => {
+  try {
+    const status = await globalVPNManager.detectActiveVPN();
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

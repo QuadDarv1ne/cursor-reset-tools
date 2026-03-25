@@ -21,17 +21,17 @@ class ProxyManager {
       lastCheck: null
     };
     this.autoRotationInterval = null;
-    
+
     // Кэши с ограничениями для предотвращения утечек памяти
     this.dpiTestResults = new Map();
     this.geoIpCache = new Map();
     this.connectionPool = new Map();
     this.proxyHealthScore = new Map();
-    
+
     // Лимиты для предотвращения утечек памяти
     this.MAX_CACHE_SIZE = 100;
     this.CACHE_TTL = 300000; // 5 минут
-    
+
     // Mutex для синхронизации rotateProxy
     this.rotateLock = false;
     this.rotateQueue = [];
@@ -94,12 +94,12 @@ class ProxyManager {
 
     this.proxies.push(proxyInfo);
     this.stats.total++;
-    
+
     logger.info(`Proxy added: ${this.maskProxyUrl(url)} (${protocol})`, 'proxy');
-    
+
     // Асинхронная проверка GeoIP
     this.validateGeoIP(proxyInfo).catch(() => {});
-    
+
     return proxyInfo;
   }
 
@@ -121,7 +121,7 @@ class ProxyManager {
 
     this.proxies.push(wgProxy);
     this.stats.total++;
-    
+
     logger.info(`WireGuard config added: ${config.endpoint}`, 'proxy');
     return wgProxy;
   }
@@ -150,7 +150,7 @@ class ProxyManager {
           isResidential: proxyInfo.isResidential,
           timestamp: Date.now()
         });
-        
+
         // Очистка старых записей и ограничение размера
         this._cleanupCache(this.geoIpCache);
         this._limitCacheSize(this.geoIpCache);
@@ -168,25 +168,25 @@ class ProxyManager {
   detectResidential(data) {
     const residentialKeywords = ['residential', 'home', 'dsl', 'cable', 'fiber', 'pppoe'];
     const datacenterKeywords = ['datacenter', 'hosting', 'cloud', 'server', 'vps', 'dedicated'];
-    
+
     const ispLower = (data.isp || '').toLowerCase();
     const orgLower = (data.org || '').toLowerCase();
     const asLower = (data.as || '').toLowerCase();
-    
+
     const combined = `${ispLower} ${orgLower} ${asLower}`;
-    
+
     for (const keyword of datacenterKeywords) {
       if (combined.includes(keyword)) {
         return false;
       }
     }
-    
+
     for (const keyword of residentialKeywords) {
       if (combined.includes(keyword)) {
         return true;
       }
     }
-    
+
     // Если не определено, считаем residential если это не известный дата-центр
     return !datacenterKeywords.some(k => combined.includes(k));
   }
@@ -200,34 +200,34 @@ class ProxyManager {
       'api2.cursor.sh',
       'telemetry.cursor.sh'
     ];
-    
+
     const results = {
       fragmented: false,
       domainFronting: false,
       tlsMixed: false,
       score: 0
     };
-    
+
     try {
       const agent = this.createAgent(proxyInfo);
-      
+
       // Тест 1: Fragmented request simulation
       results.fragmented = await this.testFragmentedRequest(agent, testDomains);
-      
+
       // Тест 2: Domain fronting test
       results.domainFronting = await this.testDomainFronting(agent);
-      
+
       // Тест 3: TLS mixed SNI test
       results.tlsMixed = await this.testTLSMixed(agent, testDomains);
-      
+
       // Подсчёт общего скора
-      results.score = (results.fragmented ? 33 : 0) + 
-                      (results.domainFronting ? 33 : 0) + 
+      results.score = (results.fragmented ? 33 : 0) +
+                      (results.domainFronting ? 33 : 0) +
                       (results.tlsMixed ? 34 : 0);
 
       proxyInfo.dpiCompliant = results.score >= 66;
       this.dpiTestResults.set(proxyInfo.url, { ...results, timestamp: Date.now() });
-      
+
       // Очистка старых записей и ограничение размера
       this._cleanupCache(this.dpiTestResults);
       this._limitCacheSize(this.dpiTestResults);
@@ -249,7 +249,7 @@ class ProxyManager {
     try {
       for (const domain of domains) {
         const url = `https://${domain}/`;
-        await this.fetchWithTimeout(url, { 
+        await this.fetchWithTimeout(url, {
           agent,
           headers: {
             'Connection': 'keep-alive',
@@ -291,13 +291,13 @@ class ProxyManager {
     try {
       for (const domain of domains) {
         const url = `https://${domain}/api/health`;
-        const response = await this.fetchWithTimeout(url, { 
+        const response = await this.fetchWithTimeout(url, {
           agent,
           headers: {
             'Accept': 'application/json'
           }
         }, 8000);
-        
+
         if (response.includes('ok') || response.includes('success')) {
           return true;
         }
@@ -312,15 +312,15 @@ class ProxyManager {
    * Создать HTTP agent для прокси
    */
   createAgent(proxyInfo) {
-    if (!proxyInfo) return undefined;
-    
+    if (!proxyInfo) {return undefined;}
+
     if (proxyInfo.type === 'wireguard') {
       // WireGuard требует отдельную реализацию через внешний интерфейс
       return undefined; // Используем системный туннель
     }
-    
+
     const proxyUrl = proxyInfo.url;
-    
+
     if (proxyInfo.protocol === 'socks5' || proxyInfo.protocol === 'socks4') {
       return new SocksProxyAgent(proxyUrl);
     } else if (proxyInfo.protocol === 'http' || proxyInfo.protocol === 'https') {
@@ -328,7 +328,7 @@ class ProxyManager {
         proxy: proxyUrl
       });
     }
-    
+
     return undefined;
   }
 
@@ -344,7 +344,7 @@ class ProxyManager {
     }
 
     this.rotateLock = true;
-    
+
     try {
       if (this.proxies.length === 0) {
         return null;
@@ -403,26 +403,26 @@ class ProxyManager {
     }
 
     const startTime = Date.now();
-    
+
     try {
       const agent = this.createAgent(proxy);
       const testUrl = 'https://api.ipify.org?format=json';
-      
+
       const response = await this.fetchWithTimeout(testUrl, { agent }, timeout);
       const data = JSON.parse(response);
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       proxy.successCount++;
       proxy.responseTimes.push(responseTime);
       if (proxy.responseTimes.length > 10) {
         proxy.responseTimes.shift();
       }
       proxy.avgResponseTime = proxy.responseTimes.reduce((a, b) => a + b, 0) / proxy.responseTimes.length;
-      
+
       // Обновляем health score
       this.updateHealthScore(proxy, true, responseTime);
-      
+
       return {
         success: true,
         ip: data.ip,
@@ -432,7 +432,7 @@ class ProxyManager {
     } catch (error) {
       proxy.failCount++;
       this.updateHealthScore(proxy, false);
-      
+
       return {
         success: false,
         error: error.message
@@ -445,11 +445,11 @@ class ProxyManager {
    */
   updateHealthScore(proxy, success, responseTime = null) {
     let score = this.proxyHealthScore.get(proxy.url) || 100;
-    
+
     if (success) {
       // Бонус за успешное соединение
       score = Math.min(100, score + 5);
-      
+
       // Бонус за быстрый отклик
       if (responseTime && responseTime < 1000) {
         score = Math.min(100, score + 5);
@@ -458,7 +458,7 @@ class ProxyManager {
       // Штраф за ошибку
       score = Math.max(0, score - 20);
     }
-    
+
     this.proxyHealthScore.set(proxy.url, score);
     proxy.healthScore = score;
   }
@@ -483,14 +483,14 @@ class ProxyManager {
       const chunkResults = await Promise.all(
         chunk.map(proxy => this.checkProxy(proxy.url))
       );
-      
+
       for (let i = 0; i < chunk.length; i++) {
         const result = chunkResults[i];
         results.results.push({
           url: this.maskProxyUrl(chunk[i].url),
           ...result
         });
-        
+
         if (result.success) {
           results.working++;
         } else {
@@ -502,7 +502,7 @@ class ProxyManager {
     this.stats.working = results.working;
     this.stats.failed = results.failed;
     this.stats.lastCheck = Date.now();
-    
+
     // Запускаем DPI тест для рабочих прокси
     const workingProxies = this.proxies.filter((p, i) => results.results[i]?.success);
     for (const proxy of workingProxies.slice(0, 5)) { // Тестируем топ-5
@@ -517,8 +517,8 @@ class ProxyManager {
    */
   getProxyByCountry(countryCode) {
     const filtered = this.proxies.filter(p => p.country === countryCode);
-    if (filtered.length === 0) return null;
-    
+    if (filtered.length === 0) {return null;}
+
     // Возвращаем лучший по health score
     return filtered.sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))[0];
   }
@@ -528,8 +528,8 @@ class ProxyManager {
    */
   getResidentialProxy() {
     const residential = this.proxies.filter(p => p.isResidential);
-    if (residential.length === 0) return null;
-    
+    if (residential.length === 0) {return null;}
+
     return residential.sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))[0];
   }
 
@@ -538,8 +538,8 @@ class ProxyManager {
    */
   getDPICompliantProxy() {
     const compliant = this.proxies.filter(p => p.dpiCompliant);
-    if (compliant.length === 0) return null;
-    
+    if (compliant.length === 0) {return null;}
+
     return compliant.sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))[0];
   }
 
@@ -547,21 +547,21 @@ class ProxyManager {
    * Получить лучший прокси (по совокупности факторов)
    */
   getBestProxy() {
-    if (this.proxies.length === 0) return null;
-    
+    if (this.proxies.length === 0) {return null;}
+
     // Приоритеты: DPI-compliant > Residential > Health Score
     const sorted = [...this.proxies].sort((a, b) => {
       let scoreA = a.healthScore || 100;
       let scoreB = b.healthScore || 100;
-      
-      if (a.dpiCompliant) scoreA += 30;
-      if (b.dpiCompliant) scoreB += 30;
-      if (a.isResidential) scoreA += 20;
-      if (b.isResidential) scoreB += 20;
-      
+
+      if (a.dpiCompliant) {scoreA += 30;}
+      if (b.dpiCompliant) {scoreB += 30;}
+      if (a.isResidential) {scoreA += 20;}
+      if (b.isResidential) {scoreB += 20;}
+
       return scoreB - scoreA;
     });
-    
+
     return sorted[0];
   }
 
@@ -570,14 +570,14 @@ class ProxyManager {
    */
   startAutoRotation(intervalMs = 300000) {
     this.stopAutoRotation();
-    
+
     this.autoRotationInterval = setInterval(() => {
       const proxy = this.rotateProxy();
       if (proxy) {
         logger.info(`Auto-rotated to: ${this.maskProxyUrl(proxy.url)}`, 'proxy');
       }
     }, intervalMs);
-    
+
     logger.info(`Auto-rotation started with interval ${intervalMs}ms`, 'proxy');
   }
 
@@ -667,10 +667,10 @@ class ProxyManager {
       }, timeout);
 
       const protocol = url.startsWith('https') ? https : http;
-      
-      protocol.get(url, { ...options, timeout }, (res) => {
+
+      protocol.get(url, { ...options, timeout }, res => {
         clearTimeout(timeoutId);
-        
+
         let data = '';
         res.on('data', chunk => { data += chunk; });
         res.on('end', () => resolve(data));
@@ -689,7 +689,7 @@ class ProxyManager {
    * Маскировать URL прокси для логов
    */
   maskProxyUrl(url) {
-    if (!url) return 'null';
+    if (!url) {return 'null';}
     try {
       const parsed = new URL(url);
       const user = parsed.username ? `${parsed.username[0]}***` : '';
@@ -697,7 +697,7 @@ class ProxyManager {
       const auth = user || pass ? `${user}:${pass}@` : '';
       return `${parsed.protocol}//${auth}${parsed.host}`;
     } catch {
-      return url.substring(0, 20) + '...';
+      return `${url.substring(0, 20)}...`;
     }
   }
 
@@ -708,15 +708,15 @@ class ProxyManager {
     const fs = await import('fs-extra');
     const content = await fs.readFile(filePath, 'utf8');
     const lines = content.split('\n').filter(line => line.trim());
-    
+
     let imported = 0;
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      
+      if (!trimmed || trimmed.startsWith('#')) {continue;}
+
       try {
         let url, protocol = defaultProtocol;
-        
+
         if (trimmed.includes('://')) {
           const parsed = new URL(trimmed);
           protocol = parsed.protocol.replace(':', '');
@@ -724,14 +724,14 @@ class ProxyManager {
         } else {
           url = `${defaultProtocol}://${trimmed}`;
         }
-        
+
         this.addProxy(url, protocol);
         imported++;
       } catch (error) {
         logger.warn(`Failed to import proxy: ${trimmed}`, 'proxy');
       }
     }
-    
+
     logger.info(`Imported ${imported} proxies from ${filePath}`, 'proxy');
     return imported;
   }
@@ -741,15 +741,15 @@ class ProxyManager {
    */
   cleanupFailed(maxFailures = 3) {
     const initialCount = this.proxies.length;
-    
+
     this.proxies = this.proxies.filter(p => {
       const score = this.proxyHealthScore.get(p.url) || 100;
       return score >= (100 - maxFailures * 20);
     });
-    
+
     const removed = initialCount - this.proxies.length;
     this.stats.total = this.proxies.length;
-    
+
     logger.info(`Cleaned up ${removed} failed proxies`, 'proxy');
     return removed;
   }

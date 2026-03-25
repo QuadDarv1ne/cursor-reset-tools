@@ -1161,13 +1161,13 @@ const startServer = async () => {
     const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup', 'DPIBypass', 'WireGuard'];
     const criticalManagers = ['Monitor', 'ProxyDatabase', 'Resource']; // Критические менеджеры
     let criticalFailed = false;
-    
+
     for (let i = 0; i < initResults.length; i++) {
       const result = initResults[i];
       if (result.status === 'rejected') {
         const errorMsg = `${managers[i]} manager init failed: ${result.reason?.message}`;
         logger.error(errorMsg, 'app');
-        
+
         // Проверка критических менеджеров
         if (criticalManagers.includes(managers[i])) {
           criticalFailed = true;
@@ -1177,7 +1177,7 @@ const startServer = async () => {
         logger.info(`${managers[i]} manager initialized`, 'app');
       }
     }
-    
+
     // Прерывание запуска если критический менеджер не инициализировался
     if (criticalFailed) {
       logger.error('Server startup aborted due to critical manager failures', 'app');

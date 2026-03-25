@@ -126,15 +126,15 @@ export class ResourceMonitor {
 
       // Сохранение только каждые 10 семплов (раз в 50 секунд при интервале 5с)
       // или при наличии новых алертов
-      const shouldSave = this.alerts.length > 0 && 
+      const shouldSave = this.alerts.length > 0 &&
         (this.alerts[this.alerts.length - 1]?.timestamp || 0) > (this.lastSaveTime || 0);
-      
+
       if (shouldSave || !this.saveCounter) {
         this.saveCounter = 0;
       }
-      
+
       this.saveCounter = (this.saveCounter || 0) + 1;
-      
+
       if (this.saveCounter % 10 === 0 || shouldSave) {
         await this._save();
         this.lastSaveTime = timestamp;

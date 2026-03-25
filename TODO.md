@@ -91,7 +91,7 @@
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
-- **ESLint:** ✅ 0 ошибок, 0 предупреждений
+- **ESLint:** ✅ 0 ошибок, 9 предупреждений (некритичные)
 - **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager, DPIBypass, WireGuardManager, ConfigBackup
 - **Web UI:** Главная, Bypass Tools, Dashboard
 - **API Endpoints:** 20+ новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN, DPI Bypass, WireGuard)
@@ -179,7 +179,7 @@
 
 ## 📝 Заметки
 
-- **dev:** ✅ синхронизирован с origin/dev (25 коммитов)
+- **dev:** ✅ синхронизирован с origin/dev (27 коммитов, всего 110)
 - **main:** ✅ синхронизирован с dev (слияние выполнено)
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
@@ -193,8 +193,8 @@
 
 **Текущий статус:**
 - ✅ Все тесты пройдены (199/199)
-- ✅ ESLint: 0 ошибок, 0 предупреждений ✅
-- ✅ Dev: 25 коммитов, синхронизирован с origin/dev
+- ✅ ESLint: 0 ошибок, 9 предупреждений (некритичные unused vars) ✅
+- ✅ Dev: 27 коммитов, синхронизирован с origin/dev (110 всего)
 - ✅ Main: синхронизирован с dev ✅
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)

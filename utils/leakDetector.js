@@ -19,7 +19,7 @@ class LeakDetector {
     this.leakHistory = [];
     this.autoFixEnabled = true;
     this.recommendations = [];
-    
+
     // Список тестовых серверов для обнаружения утечек
     this.testServers = {
       dns: [
@@ -136,10 +136,10 @@ class LeakDetector {
 
       // Получаем реальный IP через DNS запрос
       const realIP = await this.getRealIPThroughDNS();
-      
+
       // Получаем IP через VPN/прокси (если используется)
       const vpnIP = await this.getVPNIP();
-      
+
       // Проверяем DNS запрос через сторонний сервис
       const dnsLeakIP = await this.checkDNSLeakIP();
 
@@ -258,17 +258,17 @@ class LeakDetector {
    */
   isPrivateIP(ip) {
     const parts = ip.split('.').map(Number);
-    if (parts.length !== 4) return false;
-    
+    if (parts.length !== 4) {return false;}
+
     // 10.0.0.0/8
-    if (parts[0] === 10) return true;
+    if (parts[0] === 10) {return true;}
     // 172.16.0.0/12
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) {return true;}
     // 192.168.0.0/16
-    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 192 && parts[1] === 168) {return true;}
     // 100.64.0.0/10 (CGNAT)
-    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
-    
+    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) {return true;}
+
     return false;
   }
 
@@ -349,7 +349,7 @@ class LeakDetector {
       if (localIPs.length > 0) {
         // Проверяем если локальный IP не в приватном диапазоне VPN
         const vpnSubnets = ['10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.'];
-        
+
         for (const ip of localIPs) {
           const isVPNRange = vpnSubnets.some(subnet => ip.address.startsWith(subnet));
           if (!isVPNRange && !ip.address.startsWith('192.168.')) {
@@ -542,7 +542,7 @@ class LeakDetector {
    */
   identifyMACType(mac) {
     const firstOctet = parseInt(mac.split(':')[0], 16);
-    
+
     if (firstOctet & 0x02) {
       return 'locally_administered'; // Локально администрируемый
     }
@@ -734,7 +734,7 @@ class LeakDetector {
    * Исправление Windows Telemetry
    */
   async fixWindowsTelemetry() {
-    if (os.platform() !== 'win32') return false;
+    if (os.platform() !== 'win32') {return false;}
 
     try {
       // Отключение служб телеметрии
@@ -798,7 +798,7 @@ class LeakDetector {
       const timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);
       const protocol = url.startsWith('https') ? https : http;
 
-      protocol.get(url, options, (res) => {
+      protocol.get(url, options, res => {
         clearTimeout(timeoutId);
         let data = '';
         res.on('data', chunk => { data += chunk; });

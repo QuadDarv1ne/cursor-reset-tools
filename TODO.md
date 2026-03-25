@@ -85,9 +85,9 @@
 
 ## 📊 Статус проекта
 
-- **Версия:** 2.7.0 (ready for release)
-- **Статус:** ✅ Готов к релизу (Auto Rollback + File Validator интегрированы)
-- **Тесты:** Unit + Integration (199 тестов: 100% passed) — 100% покрытие
+- **Версия:** 2.7.0 ✅ (выпущена)
+- **Статус:** ✅ Релиз выпущен (Auto Rollback + File Validator)
+- **Тесты:** 186/199 passed (9 test suites) — vpnManager тесты требуют доработки
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
@@ -183,11 +183,11 @@
 
 ## 📝 Заметки
 
-- **dev:** ✅ синхронизирован с origin/dev (2 коммита ahead, готов к слиянию)
-- **main:** ✅ ожидает слияния из dev
+- **dev:** ✅ синхронизирован с origin/dev
+- **main:** ✅ синхронизирован с origin/main (релиз v2.7.0)
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
-- **Версия:** 2.7.0 — релиз готов ✅
+- **Версия:** 2.7.0 — релиз выпущен ✅
 - **Тесты:** 186/199 passed (9 test suites) — vpnManager тесты требуют доработки
 - **Новые модули:** dpiBypass.js, wireguardManager.js, autoRollback.js, fileValidator.js
 - **Оптимизации:** память -400MB, bypass тест 15→5 сек, I/O в 10 раз меньше
@@ -196,14 +196,14 @@
 
 **Текущий статус:**
 - ✅ ESLint: 0 ошибок, 0 предупреждений
-- ✅ Dev: 2 коммита ahead, готов к слиянию с main
-- ✅ Main: ожидает слияния из dev
+- ✅ Dev: синхронизирован с origin/dev
+- ✅ Main: синхронизирован с origin/main (релиз v2.7.0 выпущен)
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Web UI улучшен (Bypass страница, Dashboard)
 - ✅ 20+ новых API endpoints для VPN/DNS/Proxy/DPI/WireGuard функциональности
 - ✅ Новые модули: AutoRollbackManager, FileValidator
-- ✅ Релиз 2.7.0 готов
+- ✅ Релиз 2.7.0 выпущен
 - ✅ Техдолг закрыт (Backup, CLI, CI/CD, Tests)
 - ✅ Интегрированы новые модули (DPI Bypass, WireGuard Manager, Auto Rollback, File Validator)
 - ✅ Критические исправления: утечки памяти, race conditions, производительность
@@ -229,9 +229,10 @@
   - Генерация отчётов
 
 🧪 **Тесты:**
-- 199 тестов — 100% passed
+- 186/199 тестов passed
 - Unit тесты для всех новых менеджеров
 - Integration тесты для API endpoints
+- ⚠️ vpnManager тесты требуют доработки
 
 🌐 **Web UI:**
 - 3 страницы: Главная, Bypass Tools, Dashboard
@@ -254,4 +255,5 @@
 **Автор:** Dupley Maxim Igorevich
 **Год:** 2026
 **Копирайт:** © 2026 Все права защищены
-**Последний коммит:** подготовка к релизу 2.7.0
+**Последний коммит:** d70a6f2 — chore: обновлена версия до 2.7.0 (release)
+**Релиз:** v2.7.0 ✅ выпущен

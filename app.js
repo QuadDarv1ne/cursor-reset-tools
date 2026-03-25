@@ -20,6 +20,13 @@ import { globalMetricsManager } from './utils/metricsManager.js';
 import { globalResourceMonitor } from './utils/resourceMonitor.js';
 import { globalStatsCache } from './utils/statsCache.js';
 import { globalNotificationManager } from './utils/notificationManager.js';
+import { globalLeakDetector } from './utils/leakDetector.js';
+import { globalVPNManager } from './utils/vpnManager.js';
+import { globalDNSManager } from './utils/dnsManager.js';
+import { globalVPNLeakFix } from './utils/vpnLeakFix.js';
+import { globalVPNTrafficManager } from './utils/vpnTrafficManager.js';
+import { globalBypassTester } from './utils/bypassTester.js';
+import { globalSystemProxyManager } from './utils/systemProxyManager.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -192,6 +199,413 @@ app.post('/api/smart/apply', async (req, res) => {
   }
 });
 
+// VPN status
+app.get('/api/vpn/status', async (req, res) => {
+  try {
+    const vpnStatus = await globalVPNManager.detectActiveVPN();
+    return res.json({
+      success: true,
+      ...vpnStatus
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN check
+app.post('/api/vpn/check', async (req, res) => {
+  try {
+    const vpnStatus = await globalVPNManager.detectActiveVPN();
+    const recommendations = [];
+
+    // Рекомендации на основе статуса VPN
+    if (!vpnStatus.detected) {
+      recommendations.push({
+        type: 'vpn',
+        priority: 'high',
+        title: 'VPN не обнаружен',
+        description: 'Для обхода блокировок рекомендуется включить VPN'
+      });
+    } else if (vpnStatus.countryCode === 'KZ') {
+      recommendations.push({
+        type: 'geo',
+        priority: 'medium',
+        title: 'Казахстан может иметь ограничения',
+        description: 'Cursor может блокировать некоторые функции в вашем регионе'
+      });
+    }
+
+    // Проверка DNS
+    const dnsStatus = await globalMonitorManager.checkDNS();
+    if (dnsStatus.availableCount < 2) {
+      recommendations.push({
+        type: 'dns',
+        priority: 'high',
+        title: 'Публичные DNS недоступны',
+        description: 'Рекомендуется сменить DNS на Cloudflare (1.1.1.1)'
+      });
+    }
+
+    return res.json({
+      success: true,
+      vpn: vpnStatus,
+      dns: dnsStatus,
+      recommendations
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DNS status
+app.get('/api/dns/status', async (req, res) => {
+  try {
+    const currentDNS = await globalDNSManager.getCurrentDNS();
+    const providers = globalDNSManager.getAvailableProviders();
+    const dnsStatus = await globalMonitorManager.checkDNS();
+
+    return res.json({
+      success: true,
+      current: currentDNS,
+      providers,
+      status: dnsStatus
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DNS set
+app.post('/api/dns/set', async (req, res) => {
+  try {
+    const { provider } = req.body;
+    if (!provider) {
+      return res.status(400).json({ success: false, error: 'Provider required' });
+    }
+
+    const success = await globalDNSManager.setDNS(provider);
+    if (success) {
+      await globalDNSManager.flushDNSCache();
+      return res.json({ success: true, message: `DNS set to ${provider}` });
+    }
+    return res.status(500).json({ success: false, error: 'Failed to set DNS' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DNS restore
+app.post('/api/dns/restore', async (req, res) => {
+  try {
+    const success = await globalDNSManager.restoreDNS();
+    if (success) {
+      await globalDNSManager.flushDNSCache();
+      return res.json({ success: true, message: 'DNS restored to automatic (DHCP)' });
+    }
+    return res.status(500).json({ success: false, error: 'Failed to restore DNS' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DNS flush cache
+app.post('/api/dns/flush', async (req, res) => {
+  try {
+    await globalDNSManager.flushDNSCache();
+    return res.json({ success: true, message: 'DNS cache flushed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// VPN Leak Fix API endpoints
+// ============================================
+
+// VPN Leak Fix - комплексное исправление утечек
+app.post('/api/vpn-leak/fix', async (req, res) => {
+  try {
+    const result = await globalVPNLeakFix.fixAll();
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN Leak Fix - восстановление настроек
+app.post('/api/vpn-leak/restore', async (req, res) => {
+  try {
+    const success = await globalVPNLeakFix.restoreSettings();
+    return res.json({ success, message: success ? 'Settings restored' : 'Restore failed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN Leak Fix - статус
+app.get('/api/vpn-leak/status', async (req, res) => {
+  try {
+    const status = await globalVPNLeakFix.getLeakStatus();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// VPN Traffic Manager API endpoints
+// ============================================
+
+// VPN Traffic - настройка полного туннелирования
+app.post('/api/vpn-traffic/configure', async (req, res) => {
+  try {
+    const result = await globalVPNTrafficManager.configureFullTunnel();
+    return res.json({ success: result.success, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN Traffic - включение Kill Switch
+app.post('/api/vpn-traffic/killswitch/enable', async (req, res) => {
+  try {
+    const success = await globalVPNTrafficManager.enableKillSwitch();
+    return res.json({ success, message: success ? 'Kill Switch enabled' : 'Failed to enable' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN Traffic - отключение Kill Switch
+app.post('/api/vpn-traffic/killswitch/disable', async (req, res) => {
+  try {
+    const success = await globalVPNTrafficManager.disableKillSwitch();
+    return res.json({ success, message: success ? 'Kill Switch disabled' : 'Failed to disable' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN Traffic - статус туннеля
+app.get('/api/vpn-traffic/status', async (req, res) => {
+  try {
+    const status = await globalVPNTrafficManager.getTunnelStatus();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// VPN Traffic - быстрая настройка для Cursor
+app.post('/api/vpn-traffic/quick-setup', async (req, res) => {
+  try {
+    const result = await globalVPNTrafficManager.quickSetupForCursor();
+    return res.json({ success: result.success, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// Bypass Tester API endpoints
+// ============================================
+
+// Bypass Tester - полный тест
+app.get('/api/bypass/test/full', async (req, res) => {
+  try {
+    const result = await globalBypassTester.runFullTest();
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Bypass Tester - быстрый тест
+app.get('/api/bypass/test/quick', async (req, res) => {
+  try {
+    const result = await globalBypassTester.runQuickTest();
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Bypass Tester - последние результаты
+app.get('/api/bypass/results', async (req, res) => {
+  try {
+    const results = globalBypassTester.getLastResults();
+    return res.json({ success: true, results });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Bypass Tester - рекомендации (текст)
+app.get('/api/bypass/recommendations', async (req, res) => {
+  try {
+    const text = globalBypassTester.getFormattedRecommendations();
+    return res.json({ success: true, text });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// System Proxy Manager API endpoints
+// ============================================
+
+// System Proxy - настройка прокси
+app.post('/api/system-proxy/configure', async (req, res) => {
+  try {
+    const { host, port, protocol = 'http', auth } = req.body;
+    if (!host || !port) {
+      return res.status(400).json({ success: false, error: 'host and port required' });
+    }
+    const result = await globalSystemProxyManager.configureProxy({ host, port, protocol, auth });
+    return res.json({ success: result.success, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// System Proxy - отключение прокси
+app.post('/api/system-proxy/disable', async (req, res) => {
+  try {
+    const result = await globalSystemProxyManager.disableProxy();
+    return res.json({ success: result.success, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// System Proxy - статус
+app.get('/api/system-proxy/status', async (req, res) => {
+  try {
+    const status = await globalSystemProxyManager.getProxyStatus();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// System Proxy - восстановление настроек
+app.post('/api/system-proxy/restore', async (req, res) => {
+  try {
+    const success = await globalSystemProxyManager.restoreOriginalSettings();
+    return res.json({ success, message: success ? 'Settings restored' : 'Restore failed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// Amnezia VPN API endpoints
+// ============================================
+
+// Amnezia VPN - статус
+app.get('/api/amnezia/status', async (req, res) => {
+  try {
+    const status = await globalVPNManager.getAmneziaStatus();
+    return res.json({ success: true, ...status });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Amnezia VPN - рекомендации
+app.get('/api/amnezia/recommendations', async (req, res) => {
+  try {
+    const recommendations = globalVPNManager.getAmneziaRecommendations();
+    return res.json({ success: true, recommendations });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// DoH-VPN Integration API endpoints
+// ============================================
+
+// DoH-VPN Integration
+app.post('/api/doh-vpn/integrate', async (req, res) => {
+  try {
+    const result = await globalDoHManager.integrateWithVPN();
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DoH-VPN Recommendations
+app.get('/api/doh-vpn/recommendations', async (req, res) => {
+  try {
+    const recommendations = globalDoHManager.getVPNRecommendations();
+    return res.json({ success: true, ...recommendations });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Proxy status
+app.get('/api/proxy/status', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    const stats = globalProxyManager.getStats();
+    const currentProxy = globalProxyManager.getCurrentProxy();
+
+    return res.json({
+      success: true,
+      stats,
+      currentProxy
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Proxy add
+app.post('/api/proxy/add', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    const { url, protocol = 'socks5' } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ success: false, error: 'Proxy URL required' });
+    }
+
+    globalProxyManager.addProxy(url, protocol);
+    return res.json({ success: true, message: 'Proxy added' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Proxy rotate
+app.post('/api/proxy/rotate', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    const proxy = globalProxyManager.rotateProxy();
+
+    if (proxy) {
+      return res.json({ success: true, proxy });
+    }
+    return res.status(400).json({ success: false, error: 'No working proxies available' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Proxy clear
+app.post('/api/proxy/clear', async (req, res) => {
+  try {
+    const { globalProxyManager } = await import('./utils/proxyManager.js');
+    globalProxyManager.clearProxy();
+    return res.json({ success: true, message: 'Proxy cleared, working without proxy' });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // DoH resolve
 app.get('/api/doh/resolve', async (req, res) => {
   try {
@@ -211,6 +625,52 @@ app.get('/api/doh/providers', async (req, res) => {
   try {
     const providers = await globalDoHManager.getAvailableProviders();
     return res.json({ success: true, providers });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Leak detector endpoints
+app.get('/api/leak/check', async (req, res) => {
+  try {
+    const results = await globalLeakDetector.checkAll();
+    return res.json({ success: true, ...results });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/leak/dns', async (req, res) => {
+  try {
+    const results = await globalLeakDetector.checkDNSLeak();
+    return res.json({ success: true, ...results });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/leak/webrtc', async (req, res) => {
+  try {
+    const results = await globalLeakDetector.checkWebRTCLEak();
+    return res.json({ success: true, ...results });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/leak/ipv6', async (req, res) => {
+  try {
+    const results = await globalLeakDetector.checkIPv6Leak();
+    return res.json({ success: true, ...results });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/leak/recommendations', async (req, res) => {
+  try {
+    const recommendations = globalLeakDetector.getRecommendations();
+    return res.json({ success: true, recommendations });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

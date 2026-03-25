@@ -13,6 +13,7 @@
         "cli": "node cli.js",
         "server": "node server/bypassServer.js",
         "update": "node cli.js updater:check",
+        "quick": "node scripts/quick-setup.js",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",

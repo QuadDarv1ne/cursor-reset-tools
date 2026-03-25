@@ -77,9 +77,14 @@
       <h1>Sazumi Cloud</h1>
       <p><%= typeof t !== 'undefined' ? t('headerSubtitle') : '' %></p>
       <span class="version-label"><%= typeof t !== 'undefined' ? t('versionLabel') : '' %></span>
-      <a href="/bypass" class="btn" style="margin-top: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-        <i class="ri-global-line"></i> Bypass Tools - Обход блокировок
-      </a>
+      <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+        <a href="/bypass" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+          <i class="ri-global-line"></i> Bypass Tools
+        </a>
+        <a href="/dashboard" class="btn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+          <i class="ri-dashboard-line"></i> Dashboard
+        </a>
+      </div>
     </header>
 
     <section id="intro">

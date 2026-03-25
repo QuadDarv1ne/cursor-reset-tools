@@ -147,9 +147,17 @@
         <a href="/bypass" class="nav-link"><i class="ri-global-line"></i> Bypass Tools</a>
         <a href="/dashboard" class="nav-link active"><i class="ri-dashboard-line"></i> Dashboard</a>
       </div>
-      <button class="btn btn-primary" onclick="refreshAll()">
-        <i class="ri-refresh-line"></i> Обновить
-      </button>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-warning" onclick="exportStats('json')">
+          <i class="ri-file-code-line"></i> JSON
+        </button>
+        <button class="btn btn-warning" onclick="exportStats('csv')">
+          <i class="ri-file-text-line"></i> CSV
+        </button>
+        <button class="btn btn-primary" onclick="refreshAll()">
+          <i class="ri-refresh-line"></i> Обновить
+        </button>
+      </div>
     </div>
 
     <!-- System Overview -->
@@ -604,6 +612,85 @@
       } else {
         addLog('Ошибка отправки уведомления', 'error');
       }
+    }
+
+    async function exportStats(format = 'json') {
+      try {
+        const [resources, cache, notifications, proxy, monitor, health] = await Promise.all([
+          api('/api/resources/summary'),
+          api('/api/cache/stats'),
+          api('/api/notifications/status'),
+          api('/api/proxy/rotation/status'),
+          api('/api/monitor/status'),
+          api('/health')
+        ]);
+
+        const stats = {
+          timestamp: new Date().toISOString(),
+          version: '2.4.0',
+          health: health,
+          resources: resources.success ? resources : null,
+          cache: cache.success ? cache : null,
+          notifications: notifications.success ? notifications : null,
+          proxy: proxy.success ? proxy : null,
+          monitor: monitor.success ? monitor : null
+        };
+
+        if (format === 'json') {
+          const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
+          downloadBlob(blob, `dashboard-stats-${Date.now()}.json`);
+          addLog('Статистика экспортирована в JSON', 'success');
+        } else if (format === 'csv') {
+          const csv = convertToCSV(stats);
+          const blob = new Blob([csv], { type: 'text/csv' });
+          downloadBlob(blob, `dashboard-stats-${Date.now()}.csv`);
+          addLog('Статистика экспортирована в CSV', 'success');
+        }
+      } catch (error) {
+        addLog(`Ошибка экспорта: ${error.message}`, 'error');
+      }
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function convertToCSV(stats) {
+      const rows = [['Metric', 'Value', 'Timestamp']];
+      
+      if (stats.health) {
+        rows.push(['Uptime', stats.health.uptime, stats.timestamp]);
+        rows.push(['Memory Heap Used', stats.health.memory?.heapUsed, stats.timestamp]);
+        rows.push(['Clients', stats.health.clients, stats.timestamp]);
+      }
+      
+      if (stats.resources) {
+        rows.push(['CPU %', stats.resources.cpu?.current, stats.timestamp]);
+        rows.push(['Memory %', stats.resources.memory?.current, stats.timestamp]);
+        rows.push(['Disk %', stats.resources.disk?.current, stats.timestamp]);
+        rows.push(['Samples', stats.resources.samples, stats.timestamp]);
+      }
+      
+      if (stats.cache) {
+        rows.push(['Cache Hits', stats.cache.hits, stats.timestamp]);
+        rows.push(['Cache Misses', stats.cache.misses, stats.timestamp]);
+        rows.push(['Cache Size', stats.cache.size, stats.timestamp]);
+        rows.push(['Cache Hit Rate', stats.cache.hitRate, stats.timestamp]);
+      }
+      
+      if (stats.notifications) {
+        rows.push(['Notifications Sent', stats.notifications.sentCount, stats.timestamp]);
+        rows.push(['Notifications Failed', stats.notifications.failedCount, stats.timestamp]);
+      }
+      
+      return rows.map(row => row.join(',')).join('\n');
     }
 
     // Initialize

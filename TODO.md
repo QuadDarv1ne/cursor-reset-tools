@@ -80,43 +80,48 @@
 
 - **Версия:** 2.4.0
 - **Статус:** ✅ Стабильная версия
-- **Тесты:** Unit + Integration (61 тест: 40 validator, 6 helpers, 15 API)
+- **Тесты:** Unit + Integration (151 тест: 146 passed, 5 failed - не критичны)
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026
 - **ESLint:** ✅ 0 ошибок, 0 предупреждений
-- **Новые менеджеры:** ResourceMonitor, StatsCache, NotificationManager
-- **Web UI:** Мониторинг ресурсов в реальном времени
+- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager
+- **Web UI:** Главная, Bypass Tools, Dashboard
 
 ## 🚀 В разработке (Dev)
 
-- [ ] Тесты для новых менеджеров (ResourceMonitor, StatsCache, NotificationManager)
-- [ ] Web UI для уведомлений (настройка Telegram/Discord)
-- [ ] Web UI для прокси (управление авто-ротацией)
-- [ ] Интеграция StatsCache в API endpoints
-- [ ] Dashboard страница со всей статистикой
+- [ ] Исправить 5 failing тестов (NotificationManager async queue timing)
+- [ ] Интеграция кэширования в API endpoints
+- [ ] История ресурсов с графиками
+- [ ] Бэкап конфигурации (экспорт/импорт настроек)
+- [ ] CLI команды для управления менеджерами
 
 ## ✅ Выполнено (последнее)
 
+- ✅ Dashboard страница (/dashboard) с полной статистикой
+- ✅ Web UI для уведомлений (Telegram/Discord настройки)
+- ✅ Web UI для авто-ротации прокси
+- ✅ Тесты для ResourceMonitor (28 тестов)
+- ✅ Тесты для StatsCache (30 тестов)
+- ✅ Тесты для NotificationManager (24 теста)
 - ✅ Мониторинг ресурсов (CPU, RAM, Disk) — utils/resourceMonitor.js
 - ✅ Кэширование статистики запросов — utils/statsCache.js
-- ✅ Авто-ротация прокси — proxyManager.js (startAutoRotation, forceRotate)
+- ✅ Авто-ротация прокси — proxyManager.js
 - ✅ Уведомления (Telegram/Discord) — utils/notificationManager.js
 - ✅ API endpoints для всех новых менеджеров
 - ✅ Интеграция в app.js (init, graceful shutdown)
-- ✅ Web UI для мониторинга ресурсов (index.ejs, style.css, main.js)
+- ✅ Web UI для мониторинга ресурсов (index.ejs)
 - ✅ Версия обновлена до 2.4.0
-- WebSocket клиент для веб-интерфейса с панелью логов реального времени
-- Индикатор подключения WebSocket с авто-переподключением (5 попыток)
-- Переводы для RU, EN, ZH языков
-- Стили для панели логов и WebSocket статуса
-- Все тесты пройдены (61 тест), ESLint: 0 ошибок
-- Слияние dev → main выполнено
+- ✅ WebSocket клиент для веб-интерфейса
+- ✅ Переводы для RU, EN, ZH языков
+- ✅ Слияние dev → main выполнено
 
 ## 📝 Заметки
 
-- **dev:** ahead на 7 коммитов от origin/dev
+- **dev:** ahead на 10 коммитов от origin/dev
+- **main:** синхронизирован с dev
 - **data/metrics.json:** не tracked (опционально для gitignore)
+- **data/resource-stats.json:** не tracked (runtime данные)
 - **Версия:** 2.4.0 — стабильная, готова к релизу
 
 ---

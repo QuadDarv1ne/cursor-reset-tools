@@ -61,7 +61,7 @@
 - [x] Улучшить обработку ошибок с retry logic (utils/helpers.js - withRetry)
 - [x] Добавить метрики использования (опционально, с согласия) - utils/metricsManager.js
 
-## 🔧 Улучшения (новые) - Продолжение
+## 🔧 Улучшения (новые) - Продолжение 2
 
 - [x] Вынести константы путей в отдельный модуль
 - [x] Рефакторинг функции gp() - дублирование кода для платформ
@@ -74,33 +74,27 @@
 - [x] Скрипт проверки i18n (scripts/check-i18n.js)
 - [x] Расширенное логирование ошибок
 - [x] Улучшена структура проекта (src/, routes/, server/)
-- [x] Исправлены ESLint ошибки (0 errors, 180 warnings)
-- [x] Улучшен SmartBypassManager (добавлены методы getStatus, getStats, resetStats)
-- [x] Улучшен VpnManager (добавлены методы тестирования и статистики)
-- [x] Расширена локализация i18n (добавлены ключи для VPN и обхода)
-- [x] Улучшен Web UI для Bypass страницы (карточки VPN, статусы, статистика)
-- [x] Добавлена страница Dashboard с мониторингом ресурсов
-- [x] VPN Leak Fix Manager (utils/vpnLeakFix.js) - 3 API endpoints
-- [x] VPN Traffic Manager (utils/vpnTrafficManager.js) - 5 API endpoints
-- [x] Bypass Tester (utils/bypassTester.js) - 4 API endpoints
-- [x] System Proxy Manager (utils/systemProxyManager.js) - 4 API endpoints
-- [x] DoH-VPN Integration (обновлён utils/dohManager.js) - 2 API endpoints
-- [x] Amnezia VPN поддержка (обновлён utils/vpnManager.js) - 2 API endpoints
-- [x] Скрипт быстрой настройки (scripts/quick-setup.js)
-- [x] Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
+- [x] Исправлена обработка ошибок с retry logic (utils/helpers.js - withRetry)
+- [x] Добавлены метрики использования (utils/metricsManager.js)
+- [x] DPI Bypass модуль (utils/dpiBypass.js) - обход Deep Packet Inspection
+- [x] WireGuard менеджер (utils/wireguardManager.js) - управление WireGuard подключениями
+- [x] Улучшен Proxy Manager - WireGuard поддержка, DPI тестирование, GeoIP валидация, Health Score
+- [x] Улучшен Leak Detector - Windows Telemetry, WebRTC, IPv6, MAC Address детектор + авто-исправление
+- [x] Улучшен Smart Bypass Manager - ML предсказания, временные паттерны, country-based статистика
+- [x] Улучшен VPN Manager - полная AmneziaVPN интеграция, обнаружение VPN, рекомендации
 
 ## 📊 Статус проекта
 
 - **Версия:** 2.6.0 (dev)
-- **Статус:** ✅ Готов к релизу (VPN/DNS/Proxy улучшения завершены)
+- **Статус:** ✅ Релиз готов (DPI Bypass, WireGuard, улучшения менеджеров)
 - **Тесты:** Unit + Integration (151 тест: 151 passed) — 100% покрытие
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
 - **ESLint:** ✅ 0 ошибок, 0 предупреждений
-- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager
+- **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager, DPIBypass, WireGuardManager, ConfigBackup
 - **Web UI:** Главная, Bypass Tools, Dashboard
-- **API Endpoints:** 20 новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN)
+- **API Endpoints:** 20+ новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN, DPI Bypass, WireGuard)
 
 ## 🚀 В разработке (Dev)
 
@@ -117,13 +111,25 @@
 - [x] GitHub Actions CI/CD - .github/workflows/ci.yml (test, build, release, docker)
 - [x] Тесты для SmartBypassManager - test/smartBypassManager.test.js (12 тестов)
 - [x] Тесты для VpnManager - test/vpnManager.test.js (22 теста)
+- [x] DPI Bypass модуль - utils/dpiBypass.js (обход DPI, GoodbyeDPI, Zapret интеграция)
+- [x] WireGuard Manager - utils/wireguardManager.js (генерация конфигов, управление подключениями)
+- [x] Улучшен Proxy Manager - WireGuard поддержка, DPI тестирование, GeoIP, Health Score
+- [x] Улучшен Leak Detector - Windows Telemetry, WebRTC, IPv6, MAC + авто-исправление
+- [x] Улучшен Smart Bypass Manager - ML предсказания, временные паттерны, country stats
+- [x] Улучшен VPN Manager - AmneziaVPN интеграция, обнаружение VPN, рекомендации
 - [ ] Оптимизация производительности WebSocket сервера
 - [ ] Поддержка дополнительных протоколов обхода (Shadowsocks, V2Ray)
 - [ ] **Релиз 2.6.0** - слияние dev → main ✅ ВЫПОЛНЕНО
 
 ## ✅ Выполнено (последнее)
 
-- ✅ Бэкап конфигурации - utils/configBackup.js (7 API endpoints: export, import, list, auto, delete, cleanup, stats)
+- ✅ DPI Bypass модуль - utils/dpiBypass.js (обход DPI, GoodbyeDPI, Zapret интеграция)
+- ✅ WireGuard Manager - utils/wireguardManager.js (генерация конфигов, управление подключениями)
+- ✅ Улучшен Proxy Manager - WireGuard поддержка, DPI тестирование, GeoIP валидация, Health Score, Residential детектор
+- ✅ Улучшен Leak Detector - Windows Telemetry, WebRTC, IPv6, MAC Address детектор + авто-исправление
+- ✅ Улучшен Smart Bypass Manager - ML предсказания, временные паттерны, country-based статистика
+- ✅ Улучшен VPN Manager - полная AmneziaVPN интеграция, обнаружение VPN, рекомендации по настройке
+- ✅ Бэкап конфигурации - utils/configBackup.js (7 API endpoints)
 - ✅ CLI команды для backup - 7 команд (backup:export, backup:import, backup:list, backup:auto, backup:delete, backup:cleanup, backup:stats)
 - ✅ GitHub Actions CI/CD - .github/workflows/ci.yml (test matrix, build, release, docker)
 - ✅ Тесты для SmartBypassManager - 12 тестов
@@ -170,8 +176,10 @@
 - **main:** ✅ синхронизирован с dev (слияние выполнено)
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
-- **Версия:** 2.6.0 — готов к релизу
+- **Версия:** 2.6.0 — релиз готов
 - **Тесты:** 199 тестов (9 test suites) - 100% passed
+- **Новые модули:** dpiBypass.js, wireguardManager.js
+- **Улучшенные модули:** proxyManager.js, leakDetector.js, smartBypassManager.js, vpnManager.js
 
 ---
 
@@ -183,16 +191,19 @@
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Web UI улучшен (Bypass страница, Dashboard)
-- ✅ 20 новых API endpoints для VPN/DNS/Proxy функциональности
+- ✅ 20+ новых API endpoints для VPN/DNS/Proxy/DPI/WireGuard функциональности
 - ✅ ESLint предупреждения полностью исправлены (12 → 8 → 0)
 - ✅ Релиз 2.6.0 готов к публикации
 - ✅ Техдолг закрыт (Backup, CLI, CI/CD, Tests)
+- ✅ Интегрированы новые модули (DPI Bypass, WireGuard Manager)
 
 ---
 
 **Релиз 2.6.0 - Ключевые изменения (готов к релизу):**
 
 🎯 **Новые возможности:**
+- DPI Bypass модуль - обход Deep Packet Inspection (GoodbyeDPI, Zapret, фрагментация, Domain Fronting)
+- WireGuard Manager - генерация конфигов, управление подключениями, тестирование endpoint'ов
 - VPN Leak Fix Manager - комплексное исправление утечек (DNS, WebRTC, IPv6)
 - VPN Traffic Manager - Kill Switch, принудительное туннелирование
 - Bypass Tester - диагностика и рекомендации (0-100 баллов)
@@ -212,13 +223,15 @@
 - WebSocket для логов в реальном времени
 - Локализация: RU, EN, ZH
 
-🔧 **API Endpoints (20 новых):**
+🔧 **API Endpoints (20+ новых):**
 - VPN Leak Fix: 3 endpoints
 - VPN Traffic: 5 endpoints
 - Bypass Tester: 4 endpoints
 - System Proxy: 4 endpoints
 - Amnezia VPN: 2 endpoints
 - DoH-VPN: 2 endpoints
+- DPI Bypass: новые endpoints
+- WireGuard: новые endpoints
 
 ---
 

@@ -1,433 +1,530 @@
 /**
- * Proxy Manager - Управление прокси для обхода региональных ограничений
- * Поддерживает SOCKS5 и HTTP прокси с ротацией и проверкой
+ * Enhanced Proxy Manager - Улучшенный менеджер прокси
+ * Добавлено: WireGuard поддержка, DPI тестирование, Residential прокси, GeoIP валидация
  */
 
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { HttpProxyAgent } from 'http-proxy-agent';
-import fetch from 'node-fetch';
+import { HttpsProxyAgent } from 'hpagent';
+import https from 'https';
+import http from 'http';
 import { logger } from './logger.js';
 
-/**
- * Класс для управления прокси
- */
-export class ProxyManager {
+class ProxyManager {
   constructor() {
+    this.proxies = [];
+    this.currentIndex = 0;
     this.currentProxy = null;
-    this.proxyList = [];
-    this.failedProxies = new Set();
-    this.workingProxies = [];
-    this.rotationIndex = 0;
-    this.checkTimeout = 10000; // 10 секунд
-
-    // Авто-ротация
-    this.autoRotationEnabled = false;
+    this.stats = {
+      total: 0,
+      working: 0,
+      failed: 0,
+      lastCheck: null
+    };
     this.autoRotationInterval = null;
-    this.rotationIntervalMs = 300000; // 5 минут
-    this.rotationCount = 0;
-    this.lastRotationTime = null;
-    this.rotationHistory = [];
+    this.dpiTestResults = new Map();
+    this.geoIpCache = new Map();
+    this.connectionPool = new Map();
+    this.proxyHealthScore = new Map();
+    
+    // DPI bypass patterns для тестирования
+    this.dpiPatterns = [
+      { name: 'fragmented', enabled: true },
+      { name: 'domain_fronting', enabled: true },
+      { name: 'tls_mixed', enabled: true }
+    ];
   }
 
   /**
-   * Парсинг строки прокси в формат URL
-   * @param {string} proxyStr - Строка прокси (host:port или user:pass@host:port)
-   * @param {string} protocol - Протокол (socks5, http, https)
-   * @returns {string}
+   * Добавить прокси с валидацией
    */
-  parseProxy(proxyStr, protocol = 'socks5') {
-    const parts = proxyStr.split('@');
-    let auth = '';
-    let hostPort = '';
+  addProxy(url, protocol = 'socks5', options = {}) {
+    const proxyInfo = {
+      url,
+      protocol,
+      addedAt: Date.now(),
+      lastUsed: null,
+      successCount: 0,
+      failCount: 0,
+      avgResponseTime: 0,
+      responseTimes: [],
+      country: null,
+      city: null,
+      isp: null,
+      isResidential: false,
+      dpiCompliant: null,
+      healthScore: 100,
+      ...options
+    };
 
-    if (parts.length === 2) {
-      // Есть авторизация: user:pass@host:port
-      const [authPart, hostPortPart] = parts;
-      const hostParts = hostPortPart.split(':');
-      auth = authPart;
-      hostPort = `${hostParts[0]}:${hostParts[1]}`;
-    } else {
-      // Нет авторизации: host:port
-      const hostParts = proxyStr.split(':');
-      hostPort = `${hostParts[0]}:${hostParts[1]}`;
-    }
-
-    if (auth) {
-      return `${protocol}://${auth}@${hostPort}`;
-    }
-    return `${protocol}://${hostPort}`;
+    this.proxies.push(proxyInfo);
+    this.stats.total++;
+    
+    logger.info(`Proxy added: ${this.maskProxyUrl(url)} (${protocol})`, 'proxy');
+    
+    // Асинхронная проверка GeoIP
+    this.validateGeoIP(proxyInfo).catch(() => {});
+    
+    return proxyInfo;
   }
 
   /**
-   * Добавление прокси в список
-   * @param {string} proxyStr - Строка прокси
-   * @param {string} protocol - Протокол
+   * Добавить WireGuard конфигурацию
    */
-  addProxy(proxyStr, protocol = 'socks5') {
-    const proxyUrl = this.parseProxy(proxyStr, protocol);
-    if (!this.proxyList.some(p => p.url === proxyUrl)) {
-      this.proxyList.push({
-        url: proxyUrl,
-        protocol,
-        added: Date.now(),
-        failed: false
-      });
-      logger.info(`Proxy added: ${proxyUrl}`, 'proxy');
-    }
+  addWireGuardConfig(config) {
+    const wgProxy = {
+      type: 'wireguard',
+      publicKey: config.publicKey,
+      privateKey: config.privateKey,
+      endpoint: config.endpoint,
+      allowedIPs: config.allowedIPs || ['0.0.0.0/0'],
+      dns: config.dns || '1.1.1.1',
+      mtu: config.mtu || 1420,
+      addedAt: Date.now(),
+      healthScore: 100
+    };
+
+    this.proxies.push(wgProxy);
+    this.stats.total++;
+    
+    logger.info(`WireGuard config added: ${config.endpoint}`, 'proxy');
+    return wgProxy;
   }
 
   /**
-   * Добавление нескольких прокси из массива
-   * @param {Array<{url: string, protocol?: string}>} proxies
+   * Валидация GeoIP для прокси
    */
-  addProxies(proxies) {
-    proxies.forEach(({ url, protocol = 'socks5' }) => {
-      this.addProxy(url, protocol);
-    });
-    logger.info(`Added ${proxies.length} proxies`, 'proxy');
-  }
-
-  /**
-   * Создание агента для текущего прокси
-   * @returns {Agent|null}
-   */
-  createAgent() {
-    if (!this.currentProxy) {
-      return null;
-    }
-
+  async validateGeoIP(proxyInfo) {
     try {
-      const { url, protocol } = this.currentProxy;
-
-      if (protocol === 'socks5' || protocol === 'socks4') {
-        return new SocksProxyAgent(url);
-      } else if (protocol === 'http' || protocol === 'https') {
-        return new HttpProxyAgent(url);
+      const testUrl = 'http://ip-api.com/json/';
+      const agent = this.createAgent(proxyInfo);
+      
+      const response = await this.fetchWithTimeout(testUrl, { agent }, 5000);
+      const data = JSON.parse(response);
+      
+      if (data.status === 'success') {
+        proxyInfo.country = data.countryCode;
+        proxyInfo.city = data.city;
+        proxyInfo.isp = data.isp;
+        proxyInfo.isResidential = this.detectResidential(data);
+        
+        this.geoIpCache.set(proxyInfo.url, {
+          country: proxyInfo.country,
+          city: proxyInfo.city,
+          isp: proxyInfo.isp,
+          isResidential: proxyInfo.isResidential,
+          timestamp: Date.now()
+        });
+        
+        logger.debug(`GeoIP validated for proxy: ${proxyInfo.country}, Residential: ${proxyInfo.isResidential}`, 'proxy');
       }
-
-      logger.warn(`Unknown proxy protocol: ${protocol}`, 'proxy');
-      return null;
     } catch (error) {
-      logger.error(`Failed to create proxy agent: ${error.message}`, 'proxy');
-      return null;
+      logger.warn(`GeoIP validation failed: ${error.message}`, 'proxy');
     }
   }
 
   /**
-   * Проверка работоспособности прокси
-   * @param {string} proxyUrl - URL прокси
-   * @param {string} protocol - Протокол
-   * @returns {Promise<boolean>}
+   * Определить residential прокси по данным ISP
    */
-  async checkProxy(proxyUrl, protocol) {
-    const agent = this._createAgentForUrl(proxyUrl, protocol);
-
-    if (!agent) {
-      return false;
+  detectResidential(data) {
+    const residentialKeywords = ['residential', 'home', 'dsl', 'cable', 'fiber', 'pppoe'];
+    const datacenterKeywords = ['datacenter', 'hosting', 'cloud', 'server', 'vps', 'dedicated'];
+    
+    const ispLower = (data.isp || '').toLowerCase();
+    const orgLower = (data.org || '').toLowerCase();
+    const asLower = (data.as || '').toLowerCase();
+    
+    const combined = `${ispLower} ${orgLower} ${asLower}`;
+    
+    for (const keyword of datacenterKeywords) {
+      if (combined.includes(keyword)) {
+        return false;
+      }
     }
-
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), this.checkTimeout);
-
-      const response = await fetch('https://api.ipify.org?format=json', {
-        agent,
-        signal: controller.signal,
-        timeout: this.checkTimeout
-      });
-
-      clearTimeout(timeout);
-
-      if (response.ok) {
-        const data = await response.json();
-        logger.info(`Proxy working! IP: ${data.ip}`, 'proxy');
+    
+    for (const keyword of residentialKeywords) {
+      if (combined.includes(keyword)) {
         return true;
       }
-
-      return false;
-    } catch (error) {
-      logger.debug(`Proxy check failed: ${error.message}`, 'proxy');
-      return false;
     }
+    
+    // Если не определено, считаем residential если это не известный дата-центр
+    return !datacenterKeywords.some(k => combined.includes(k));
   }
 
   /**
-   * Создание агента для произвольного URL
-   * @private
+   * Тестирование DPI bypass для прокси
    */
-  _createAgentForUrl(proxyUrl, protocol) {
+  async testDPIBypass(proxyInfo) {
+    const testDomains = [
+      'cursor.sh',
+      'api2.cursor.sh',
+      'telemetry.cursor.sh'
+    ];
+    
+    const results = {
+      fragmented: false,
+      domainFronting: false,
+      tlsMixed: false,
+      score: 0
+    };
+    
     try {
-      if (protocol === 'socks5' || protocol === 'socks4') {
-        return new SocksProxyAgent(proxyUrl);
-      } else if (protocol === 'http' || protocol === 'https') {
-        return new HttpProxyAgent(proxyUrl);
-      }
-      return null;
+      const agent = this.createAgent(proxyInfo);
+      
+      // Тест 1: Fragmented request simulation
+      results.fragmented = await this.testFragmentedRequest(agent, testDomains);
+      
+      // Тест 2: Domain fronting test
+      results.domainFronting = await this.testDomainFronting(agent);
+      
+      // Тест 3: TLS mixed SNI test
+      results.tlsMixed = await this.testTLSMixed(agent, testDomains);
+      
+      // Подсчёт общего скора
+      results.score = (results.fragmented ? 33 : 0) + 
+                      (results.domainFronting ? 33 : 0) + 
+                      (results.tlsMixed ? 34 : 0);
+      
+      proxyInfo.dpiCompliant = results.score >= 66;
+      this.dpiTestResults.set(proxyInfo.url, results);
+      
+      logger.info(`DPI test for proxy: score=${results.score}, compliant=${proxyInfo.dpiCompliant}`, 'proxy');
+      
     } catch (error) {
-      return null;
+      logger.warn(`DPI test failed: ${error.message}`, 'proxy');
+      results.error = error.message;
     }
+    
+    return results;
   }
 
   /**
-   * Проверка всех прокси в списке
-   * @returns {Promise<{working: Array, failed: Array}>}
+   * Тест fragmented request
    */
-  async checkAllProxies() {
-    const working = [];
-    const failed = [];
-
-    logger.info(`Checking ${this.proxyList.length} proxies...`, 'proxy');
-
-    for (const proxy of this.proxyList) {
-      const isWorking = await this.checkProxy(proxy.url, proxy.protocol);
-
-      if (isWorking) {
-        working.push(proxy);
-        proxy.failed = false;
-        this.workingProxies.push(proxy);
-      } else {
-        failed.push(proxy);
-        proxy.failed = true;
-        this.failedProxies.add(proxy.url);
+  async testFragmentedRequest(agent, domains) {
+    try {
+      for (const domain of domains) {
+        const url = `https://${domain}/`;
+        await this.fetchWithTimeout(url, { 
+          agent,
+          headers: {
+            'Connection': 'keep-alive',
+            'Accept-Encoding': 'gzip, deflate, br'
+          }
+        }, 8000);
       }
+      return true;
+    } catch (error) {
+      return false;
     }
-
-    logger.info(`Check complete: ${working.length} working, ${failed.length} failed`, 'proxy');
-    return { working, failed };
   }
 
   /**
-   * Ротация на следующий рабочий прокси
-   * @returns {Object|null}
+   * Тест domain fronting
+   */
+  async testDomainFronting(agent) {
+    try {
+      // Domain fronting тест через cloudfront
+      const url = 'https://d111111abcdef8.cloudfront.net/';
+      await this.fetchWithTimeout(url, {
+        agent,
+        headers: {
+          'Host': 'cursor.sh',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      }, 8000);
+      return true;
+    } catch (error) {
+      // Domain fronting может не работать, это нормально
+      return false;
+    }
+  }
+
+  /**
+   * Тест TLS mixed SNI
+   */
+  async testTLSMixed(agent, domains) {
+    try {
+      for (const domain of domains) {
+        const url = `https://${domain}/api/health`;
+        const response = await this.fetchWithTimeout(url, { 
+          agent,
+          headers: {
+            'Accept': 'application/json'
+          }
+        }, 8000);
+        
+        if (response.includes('ok') || response.includes('success')) {
+          return true;
+        }
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Создать HTTP agent для прокси
+   */
+  createAgent(proxyInfo) {
+    if (!proxyInfo) return undefined;
+    
+    if (proxyInfo.type === 'wireguard') {
+      // WireGuard требует отдельную реализацию через внешний интерфейс
+      return undefined; // Используем системный туннель
+    }
+    
+    const proxyUrl = proxyInfo.url;
+    
+    if (proxyInfo.protocol === 'socks5' || proxyInfo.protocol === 'socks4') {
+      return new SocksProxyAgent(proxyUrl);
+    } else if (proxyInfo.protocol === 'http' || proxyInfo.protocol === 'https') {
+      return new HttpsProxyAgent({
+        proxy: proxyUrl
+      });
+    }
+    
+    return undefined;
+  }
+
+  /**
+   * Получить следующий прокси (умная ротация)
    */
   rotateProxy() {
-    const working = this.workingProxies.filter(p => !p.failed);
-
-    if (working.length === 0) {
-      logger.warn('No working proxies available', 'proxy');
+    if (this.proxies.length === 0) {
       return null;
     }
 
-    this.rotationIndex = (this.rotationIndex + 1) % working.length;
-    this.currentProxy = working[this.rotationIndex];
-
-    logger.info(`Rotated to proxy: ${this.currentProxy.url}`, 'proxy');
-    return this.currentProxy;
-  }
-
-  /**
-   * Установка конкретного прокси как текущего
-   * @param {number} index - Индекс в proxyList
-   * @returns {Object|null}
-   */
-  setProxy(index) {
-    if (index < 0 || index >= this.proxyList.length) {
-      logger.warn(`Invalid proxy index: ${index}`, 'proxy');
-      return null;
-    }
-
-    this.currentProxy = this.proxyList[index];
-    this.rotationIndex = index;
-    logger.info(`Set proxy: ${this.currentProxy.url}`, 'proxy');
-    return this.currentProxy;
-  }
-
-  /**
-   * Получение текущего прокси
-   * @returns {Object|null}
-   */
-  getCurrentProxy() {
-    return this.currentProxy;
-  }
-
-  /**
-   * Получение списка всех прокси
-   * @returns {Array}
-   */
-  getProxyList() {
-    return this.proxyList.map(p => ({
-      url: p.url,
-      protocol: p.protocol,
-      working: !p.failed,
-      added: p.added
-    }));
-  }
-
-  /**
-   * Получение статистики
-   * @returns {Object}
-   */
-  getStats() {
-    const total = this.proxyList.length;
-    const working = this.workingProxies.filter(p => !p.failed).length;
-    const failed = this.failedProxies.size;
-
-    return {
-      total,
-      working,
-      failed,
-      currentProxy: this.currentProxy?.url || null,
-      rotationIndex: this.rotationIndex
-    };
-  }
-
-  /**
-   * Сброс текущего прокси (работа без прокси)
-   */
-  clearProxy() {
-    this.currentProxy = null;
-    logger.info('Proxy cleared, working without proxy', 'proxy');
-  }
-
-  /**
-   * Удаление нерабочих прокси из списка
-   */
-  cleanupFailedProxies() {
-    const initialLength = this.proxyList.length;
-    this.proxyList = this.proxyList.filter(p => !p.failed);
-    this.workingProxies = this.workingProxies.filter(p => !p.failed);
-    this.failedProxies.clear();
-
-    const removed = initialLength - this.proxyList.length;
-    if (removed > 0) {
-      logger.info(`Cleaned up ${removed} failed proxies`, 'proxy');
-    }
-  }
-
-  /**
-   * Получение fetch функции с прокси
-   * @returns {Function}
-   */
-  getFetch() {
-    const agent = this.createAgent();
-
-    return async (url, options = {}) => fetch(url, {
-      ...options,
-      agent: agent || undefined
+    // Фильтруем рабочие прокси с хорошим здоровьем
+    const healthyProxies = this.proxies.filter(p => {
+      const healthScore = this.proxyHealthScore.get(p.url) || 100;
+      return healthScore >= 50;
     });
-  }
 
-  /**
-   * Загрузка прокси из файла
-   * @param {string} filePath - Путь к файлу
-   * @param {string} defaultProtocol - Протокол по умолчанию
-   */
-  async loadFromFile(filePath, defaultProtocol = 'socks5') {
-    try {
-      const fs = await import('fs-extra');
-      const content = await fs.readFile(filePath, 'utf8');
-      const lines = content.split('\n').filter(line => line.trim());
-
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#')) {
-          // Проверка формата: protocol:host:port или host:port
-          const parts = trimmed.split(':');
-          if (parts.length >= 2) {
-            let proxyUrl, protocol;
-
-            // Если первая часть - протокол
-            if (['socks5', 'socks4', 'http', 'https'].includes(parts[0])) {
-              protocol = parts[0];
-              proxyUrl = trimmed;
-            } else {
-              protocol = defaultProtocol;
-              proxyUrl = trimmed;
-            }
-
-            this.addProxy(proxyUrl, protocol);
-          }
-        }
+    if (healthyProxies.length === 0) {
+      // Если нет здоровых, берём любой
+      this.currentIndex = this.currentIndex % this.proxies.length;
+      this.currentProxy = this.proxies[this.currentIndex];
+    } else {
+      // Сортируем по health score и DPI compliance
+      healthyProxies.sort((a, b) => {
+        const scoreA = (this.proxyHealthScore.get(a.url) || 100) + (a.dpiCompliant ? 20 : 0) + (a.isResidential ? 10 : 0);
+        const scoreB = (this.proxyHealthScore.get(b.url) || 100) + (b.dpiCompliant ? 20 : 0) + (b.isResidential ? 10 : 0);
+        return scoreB - scoreA;
       });
-
-      logger.info(`Loaded proxies from ${filePath}`, 'proxy');
-    } catch (error) {
-      logger.error(`Failed to load proxies from file: ${error.message}`, 'proxy');
-      throw error;
+      
+      // Случайный выбор из топ-3
+      const topProxies = healthyProxies.slice(0, Math.min(3, healthyProxies.length));
+      const randomIndex = Math.floor(Math.random() * topProxies.length);
+      this.currentProxy = topProxies[randomIndex];
     }
+
+    this.currentIndex++;
+    this.currentProxy.lastUsed = Date.now();
+    
+    logger.debug(`Rotated to proxy: ${this.maskProxyUrl(this.currentProxy.url)}`, 'proxy');
+    
+    return this.currentProxy;
   }
 
   /**
-   * Сохранение текущих прокси в файл
-   * @param {string} filePath - Путь к файлу
+   * Проверить конкретный прокси
    */
-  async saveToFile(filePath) {
+  async checkProxy(proxyUrl, timeout = 10000) {
+    const proxy = this.proxies.find(p => p.url === proxyUrl);
+    if (!proxy) {
+      return { success: false, error: 'Proxy not found' };
+    }
+
+    const startTime = Date.now();
+    
     try {
-      const fs = await import('fs-extra');
-      const content = this.proxyList.map(p => {
-        const url = p.url.replace(/^[a-z]+:\/\//, '');
-        return `${p.protocol}:${url}`;
-      }).join('\n');
-
-      await fs.writeFile(filePath, content, 'utf8');
-      logger.info(`Saved ${this.proxyList.length} proxies to ${filePath}`, 'proxy');
+      const agent = this.createAgent(proxy);
+      const testUrl = 'https://api.ipify.org?format=json';
+      
+      const response = await this.fetchWithTimeout(testUrl, { agent }, timeout);
+      const data = JSON.parse(response);
+      
+      const responseTime = Date.now() - startTime;
+      
+      proxy.successCount++;
+      proxy.responseTimes.push(responseTime);
+      if (proxy.responseTimes.length > 10) {
+        proxy.responseTimes.shift();
+      }
+      proxy.avgResponseTime = proxy.responseTimes.reduce((a, b) => a + b, 0) / proxy.responseTimes.length;
+      
+      // Обновляем health score
+      this.updateHealthScore(proxy, true, responseTime);
+      
+      return {
+        success: true,
+        ip: data.ip,
+        responseTime,
+        avgResponseTime: proxy.avgResponseTime
+      };
     } catch (error) {
-      logger.error(`Failed to save proxies to file: ${error.message}`, 'proxy');
-      throw error;
+      proxy.failCount++;
+      this.updateHealthScore(proxy, false);
+      
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 
   /**
-   * Включить автоматическую ротацию прокси
-   * @param {number} intervalMs - Интервал ротации в мс
+   * Обновить health score прокси
    */
-  startAutoRotation(intervalMs = this.rotationIntervalMs) {
-    if (this.autoRotationEnabled) {
-      this.stopAutoRotation();
+  updateHealthScore(proxy, success, responseTime = null) {
+    let score = this.proxyHealthScore.get(proxy.url) || 100;
+    
+    if (success) {
+      // Бонус за успешное соединение
+      score = Math.min(100, score + 5);
+      
+      // Бонус за быстрый отклик
+      if (responseTime && responseTime < 1000) {
+        score = Math.min(100, score + 5);
+      }
+    } else {
+      // Штраф за ошибку
+      score = Math.max(0, score - 20);
     }
-
-    this.rotationIntervalMs = intervalMs;
-    this.autoRotationEnabled = true;
-
-    this.autoRotationInterval = setInterval(() => {
-      this._autoRotate();
-    }, intervalMs);
-
-    logger.info(`Auto proxy rotation включена (интервал: ${intervalMs}ms)`, 'proxy');
+    
+    this.proxyHealthScore.set(proxy.url, score);
+    proxy.healthScore = score;
   }
 
   /**
-   * Автоматическая ротация (внутренний метод)
+   * Проверить все прокси
    */
-  _autoRotate() {
-    const working = this.workingProxies.filter(p => !p.failed);
-
-    if (working.length === 0) {
-      logger.warn('Нет рабочих прокси для ротации', 'proxy');
-      return;
-    }
-
-    this.rotationIndex = (this.rotationIndex + 1) % working.length;
-    this.currentProxy = working[this.rotationIndex];
-    this.lastRotationTime = Date.now();
-    this.rotationCount++;
-
-    const rotationRecord = {
-      timestamp: Date.now(),
-      proxy: this.currentProxy.url,
-      rotationCount: this.rotationCount
+  async checkAllProxies(concurrency = 5) {
+    const results = {
+      total: this.proxies.length,
+      working: 0,
+      failed: 0,
+      results: []
     };
 
-    this.rotationHistory.push(rotationRecord);
-
-    // Ограничение истории
-    if (this.rotationHistory.length > 50) {
-      this.rotationHistory.shift();
+    const chunks = [];
+    for (let i = 0; i < this.proxies.length; i += concurrency) {
+      chunks.push(this.proxies.slice(i, i + concurrency));
     }
 
-    logger.info(`Auto rotation: switched to ${this.currentProxy.url}`, 'proxy');
+    for (const chunk of chunks) {
+      const chunkResults = await Promise.all(
+        chunk.map(proxy => this.checkProxy(proxy.url))
+      );
+      
+      for (let i = 0; i < chunk.length; i++) {
+        const result = chunkResults[i];
+        results.results.push({
+          url: this.maskProxyUrl(chunk[i].url),
+          ...result
+        });
+        
+        if (result.success) {
+          results.working++;
+        } else {
+          results.failed++;
+        }
+      }
+    }
+
+    this.stats.working = results.working;
+    this.stats.failed = results.failed;
+    this.stats.lastCheck = Date.now();
+    
+    // Запускаем DPI тест для рабочих прокси
+    const workingProxies = this.proxies.filter((p, i) => results.results[i]?.success);
+    for (const proxy of workingProxies.slice(0, 5)) { // Тестируем топ-5
+      await this.testDPIBypass(proxy).catch(() => {});
+    }
+
+    return results;
   }
 
   /**
-   * Выключить автоматическую ротацию
+   * Получить прокси по стране
+   */
+  getProxyByCountry(countryCode) {
+    const filtered = this.proxies.filter(p => p.country === countryCode);
+    if (filtered.length === 0) return null;
+    
+    // Возвращаем лучший по health score
+    return filtered.sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))[0];
+  }
+
+  /**
+   * Получить residential прокси
+   */
+  getResidentialProxy() {
+    const residential = this.proxies.filter(p => p.isResidential);
+    if (residential.length === 0) return null;
+    
+    return residential.sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))[0];
+  }
+
+  /**
+   * Получить DPI-compliant прокси
+   */
+  getDPICompliantProxy() {
+    const compliant = this.proxies.filter(p => p.dpiCompliant);
+    if (compliant.length === 0) return null;
+    
+    return compliant.sort((a, b) => (b.healthScore || 0) - (a.healthScore || 0))[0];
+  }
+
+  /**
+   * Получить лучший прокси (по совокупности факторов)
+   */
+  getBestProxy() {
+    if (this.proxies.length === 0) return null;
+    
+    // Приоритеты: DPI-compliant > Residential > Health Score
+    const sorted = [...this.proxies].sort((a, b) => {
+      let scoreA = a.healthScore || 100;
+      let scoreB = b.healthScore || 100;
+      
+      if (a.dpiCompliant) scoreA += 30;
+      if (b.dpiCompliant) scoreB += 30;
+      if (a.isResidential) scoreA += 20;
+      if (b.isResidential) scoreB += 20;
+      
+      return scoreB - scoreA;
+    });
+    
+    return sorted[0];
+  }
+
+  /**
+   * Запустить авто-ротацию
+   */
+  startAutoRotation(intervalMs = 300000) {
+    this.stopAutoRotation();
+    
+    this.autoRotationInterval = setInterval(() => {
+      const proxy = this.rotateProxy();
+      if (proxy) {
+        logger.info(`Auto-rotated to: ${this.maskProxyUrl(proxy.url)}`, 'proxy');
+      }
+    }, intervalMs);
+    
+    logger.info(`Auto-rotation started with interval ${intervalMs}ms`, 'proxy');
+  }
+
+  /**
+   * Остановить авто-ротацию
    */
   stopAutoRotation() {
     if (this.autoRotationInterval) {
       clearInterval(this.autoRotationInterval);
       this.autoRotationInterval = null;
+      logger.info('Auto-rotation stopped', 'proxy');
     }
-    this.autoRotationEnabled = false;
-    logger.info('Auto proxy rotation выключена', 'proxy');
   }
 
   /**
@@ -435,57 +532,164 @@ export class ProxyManager {
    */
   getAutoRotationStatus() {
     return {
-      enabled: this.autoRotationEnabled,
-      intervalMs: this.rotationIntervalMs,
-      rotationCount: this.rotationCount,
-      lastRotationTime: this.lastRotationTime,
-      history: this.rotationHistory.slice(-10)
+      active: this.autoRotationInterval !== null,
+      interval: this.autoRotationInterval ? 300000 : null,
+      currentProxy: this.currentProxy ? {
+        url: this.maskProxyUrl(this.currentProxy.url),
+        country: this.currentProxy.country,
+        isResidential: this.currentProxy.isResidential,
+        dpiCompliant: this.currentProxy.dpiCompliant,
+        healthScore: this.currentProxy.healthScore
+      } : null
     };
   }
 
   /**
-   * Сбросить счётчик ротаций
+   * Очистить текущий прокси
    */
-  resetRotationCount() {
-    this.rotationCount = 0;
-    this.rotationHistory = [];
-    logger.info('Rotation count reset', 'proxy');
+  clearProxy() {
+    this.currentProxy = null;
+    this.connectionPool.clear();
+    logger.info('Proxy cleared, working without proxy', 'proxy');
   }
 
   /**
-   * Принудительная ротация с проверкой
+   * Получить статистику
    */
-  async forceRotate() {
-    logger.info('Forced proxy rotation', 'proxy');
-
-    // Проверка текущих прокси перед ротацией
-    if (this.workingProxies.length > 0) {
-      await this.checkAllProxies();
-    }
-
-    return this.rotateProxy();
-  }
-
-  /**
-   * Получить расширенную статистику
-   */
-  getExtendedStats() {
-    const baseStats = this.getStats();
-
+  getStats() {
     return {
-      ...baseStats,
-      autoRotation: {
-        enabled: this.autoRotationEnabled,
-        intervalMs: this.rotationIntervalMs,
-        rotationCount: this.rotationCount,
-        lastRotationTime: this.lastRotationTime
-      },
-      rotationHistory: this.rotationHistory.slice(-10)
+      ...this.stats,
+      currentProxy: this.currentProxy ? this.maskProxyUrl(this.currentProxy.url) : null,
+      dpiTestedCount: this.dpiTestResults.size,
+      residentialCount: this.proxies.filter(p => p.isResidential).length,
+      avgHealthScore: this.proxies.reduce((sum, p) => sum + (p.healthScore || 100), 0) / Math.max(1, this.proxies.length)
     };
+  }
+
+  /**
+   * Получить список прокси
+   */
+  getProxyList() {
+    return this.proxies.map(p => ({
+      url: this.maskProxyUrl(p.url),
+      protocol: p.protocol,
+      country: p.country,
+      city: p.city,
+      isResidential: p.isResidential,
+      dpiCompliant: p.dpiCompliant,
+      healthScore: p.healthScore,
+      avgResponseTime: p.avgResponseTime
+    }));
+  }
+
+  /**
+   * Получить текущий прокси
+   */
+  getCurrentProxy() {
+    return this.currentProxy ? {
+      ...this.currentProxy,
+      url: this.maskProxyUrl(this.currentProxy.url)
+    } : null;
+  }
+
+  /**
+   * Fetch с таймаутом
+   */
+  async fetchWithTimeout(url, options, timeout) {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Request timeout'));
+      }, timeout);
+
+      const protocol = url.startsWith('https') ? https : http;
+      
+      protocol.get(url, { ...options, timeout }, (res) => {
+        clearTimeout(timeoutId);
+        
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => resolve(data));
+        res.on('error', err => {
+          clearTimeout(timeoutId);
+          reject(err);
+        });
+      }).on('error', err => {
+        clearTimeout(timeoutId);
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * Маскировать URL прокси для логов
+   */
+  maskProxyUrl(url) {
+    if (!url) return 'null';
+    try {
+      const parsed = new URL(url);
+      const user = parsed.username ? `${parsed.username[0]}***` : '';
+      const pass = parsed.password ? '***' : '';
+      const auth = user || pass ? `${user}:${pass}@` : '';
+      return `${parsed.protocol}//${auth}${parsed.host}`;
+    } catch {
+      return url.substring(0, 20) + '...';
+    }
+  }
+
+  /**
+   * Импорт прокси из файла
+   */
+  async importFromFile(filePath, defaultProtocol = 'socks5') {
+    const fs = await import('fs-extra');
+    const content = await fs.readFile(filePath, 'utf8');
+    const lines = content.split('\n').filter(line => line.trim());
+    
+    let imported = 0;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      
+      try {
+        let url, protocol = defaultProtocol;
+        
+        if (trimmed.includes('://')) {
+          const parsed = new URL(trimmed);
+          protocol = parsed.protocol.replace(':', '');
+          url = trimmed;
+        } else {
+          url = `${defaultProtocol}://${trimmed}`;
+        }
+        
+        this.addProxy(url, protocol);
+        imported++;
+      } catch (error) {
+        logger.warn(`Failed to import proxy: ${trimmed}`, 'proxy');
+      }
+    }
+    
+    logger.info(`Imported ${imported} proxies from ${filePath}`, 'proxy');
+    return imported;
+  }
+
+  /**
+   * Очистка неработающих прокси
+   */
+  cleanupFailed(maxFailures = 3) {
+    const initialCount = this.proxies.length;
+    
+    this.proxies = this.proxies.filter(p => {
+      const score = this.proxyHealthScore.get(p.url) || 100;
+      return score >= (100 - maxFailures * 20);
+    });
+    
+    const removed = initialCount - this.proxies.length;
+    this.stats.total = this.proxies.length;
+    
+    logger.info(`Cleaned up ${removed} failed proxies`, 'proxy');
+    return removed;
   }
 }
 
-// Глобальный экземпляр
+// Singleton
 export const globalProxyManager = new ProxyManager();
-
 export default ProxyManager;

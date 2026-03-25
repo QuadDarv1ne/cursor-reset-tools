@@ -4,33 +4,303 @@
       "cpu": null,
       "memory": {
         "total": 16365133824,
-        "free": 8115163136,
-        "used": 8249970688,
-        "percent": 50.41
+        "free": 8703610880,
+        "used": 7661522944,
+        "percent": 46.82
       },
       "disk": {
         "total": 313629077504,
-        "free": 7024795648,
-        "used": 306604281856,
-        "percent": 97.76
+        "free": 7006580736,
+        "used": 306622496768,
+        "percent": 97.77
       },
-      "uptime": 3090.359,
+      "uptime": 3398.968,
       "load": [
         0,
         0,
         0
       ],
-      "timestamp": 1774453043074
+      "timestamp": 1774453351662
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8893636608,
+        "used": 7471497216,
+        "percent": 45.65
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6451982336,
+        "used": 307177095168,
+        "percent": 97.94
+      },
+      "uptime": 2368.312,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457616019
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8809447424,
+        "used": 7555686400,
+        "percent": 46.17
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6451109888,
+        "used": 307177967616,
+        "percent": 97.94
+      },
+      "uptime": 2375.843,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457623547
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8832872448,
+        "used": 7532261376,
+        "percent": 46.03
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449991680,
+        "used": 307179085824,
+        "percent": 97.94
+      },
+      "uptime": 2380.859,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457628560
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8983097344,
+        "used": 7382036480,
+        "percent": 45.11
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449926144,
+        "used": 307179151360,
+        "percent": 97.94
+      },
+      "uptime": 2385.859,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457633567
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8949825536,
+        "used": 7415308288,
+        "percent": 45.31
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449913856,
+        "used": 307179163648,
+        "percent": 97.94
+      },
+      "uptime": 2390.875,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457638579
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8723968000,
+        "used": 7641165824,
+        "percent": 46.69
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449905664,
+        "used": 307179171840,
+        "percent": 97.94
+      },
+      "uptime": 2395.89,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457643594
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 8709419008,
+        "used": 7655714816,
+        "percent": 46.78
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449893376,
+        "used": 307179184128,
+        "percent": 97.94
+      },
+      "uptime": 2400.89,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457648595
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 9970200576,
+        "used": 6394933248,
+        "percent": 39.08
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449889280,
+        "used": 307179188224,
+        "percent": 97.94
+      },
+      "uptime": 2405.906,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457653600
+    },
+    {
+      "cpu": null,
+      "memory": {
+        "total": 16365133824,
+        "free": 9923080192,
+        "used": 6442053632,
+        "percent": 39.36
+      },
+      "disk": {
+        "total": 313629077504,
+        "free": 6449840128,
+        "used": 307179237376,
+        "percent": 97.94
+      },
+      "uptime": 2410.906,
+      "load": [
+        0,
+        0,
+        0
+      ],
+      "timestamp": 1774457658603
     }
   ],
   "alerts": [
     {
       "type": "disk",
       "severity": "error",
-      "message": "Критическое заполнение диска: 97.76%",
+      "message": "Критическое заполнение диска: 97.77%",
       "threshold": 90,
-      "value": 97.76,
-      "timestamp": 1774453045576
+      "value": 97.77,
+      "timestamp": 1774453354176
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457618533
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457626050
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457631073
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457636074
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457641092
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457646105
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457651097
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457656113
+    },
+    {
+      "type": "disk",
+      "severity": "error",
+      "message": "Критическое заполнение диска: 97.94%",
+      "threshold": 90,
+      "value": 97.94,
+      "timestamp": 1774457661113
     }
   ]
 }

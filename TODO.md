@@ -91,7 +91,7 @@
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
-- **ESLint:** ✅ 0 ошибок, 9 предупреждений (некритичные)
+- **ESLint:** ✅ 0 ошибок, 0 предупреждений
 - **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager, DPIBypass, WireGuardManager, ConfigBackup
 - **Web UI:** Главная, Bypass Tools, Dashboard
 - **API Endpoints:** 20+ новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN, DPI Bypass, WireGuard)
@@ -153,7 +153,7 @@
 - ✅ Скрипт quick-setup.js для быстрой настройки
 - ✅ Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Исправлены failing тесты (151/151 passed)
-- ✅ Исправлены ESLint ошибки (0 errors, 12 → 8 → 0 → 9 warnings autofix)
+- ✅ Исправлены ESLint ошибки (0 errors, 12 → 8 → 0 → 9 warnings autofix → 0)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Добавлена страница Dashboard с мониторингом ресурсов
 - ✅ Интеграция кэширования в API endpoints (7 endpoints)
@@ -246,4 +246,4 @@
 **Автор:** Dupley Maxim Igorevich  
 **Год:** 2026  
 **Копирайт:** © 2026 Все права защищены  
-**Последний коммит:** d20b266 — docs: обновлена пометка ESLint в TODO.md
+**Последний коммит:** a3acbe9 — fix: исправлены ESLint warning (9 → 0)

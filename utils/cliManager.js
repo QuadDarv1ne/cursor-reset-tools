@@ -13,6 +13,7 @@ import { globalVPNManager } from './vpnManager.js';
 import { globalCursorRegistrar } from './cursorRegistrar.js';
 import { globalUpdater } from './updater.js';
 import { globalBypassServer } from '../server/bypassServer.js';
+import { globalConfigBackup } from './configBackup.js';
 import { logger } from './logger.js';
 import fs from 'fs-extra';
 import path from 'path';
@@ -316,6 +317,43 @@ export const CLI_COMMANDS = {
     description: 'Помощь',
     usage: 'help [command]',
     handler: handleHelp
+  },
+
+  // Config Backup команды
+  'backup:export': {
+    description: 'Экспорт конфигурации',
+    usage: 'backup:export [--file <path>]',
+    handler: handleBackupExport
+  },
+  'backup:import': {
+    description: 'Импорт конфигурации',
+    usage: 'backup:import <file>',
+    handler: handleBackupImport
+  },
+  'backup:list': {
+    description: 'Список бэкапов',
+    usage: 'backup:list',
+    handler: handleBackupList
+  },
+  'backup:auto': {
+    description: 'Автобэкап',
+    usage: 'backup:auto',
+    handler: handleBackupAuto
+  },
+  'backup:delete': {
+    description: 'Удалить бэкап',
+    usage: 'backup:delete <filename>',
+    handler: handleBackupDelete
+  },
+  'backup:cleanup': {
+    description: 'Очистка старых бэкапов',
+    usage: 'backup:cleanup',
+    handler: handleBackupCleanup
+  },
+  'backup:stats': {
+    description: 'Статистика бэкапов',
+    usage: 'backup:stats',
+    handler: handleBackupStats
   }
 };
 
@@ -1179,6 +1217,108 @@ async function handleInfo() {
   console.log(`  Мониторинг: ${monitorStatus.isMonitoring ? 'Запущен' : 'Остановлен'}`);
 }
 
+// Config Backup обработчики
+async function handleBackupExport(args) {
+  const { flags } = args;
+  const filePath = flags.file;
+
+  output('Экспорт конфигурации...', 'process');
+  const result = await globalConfigBackup.export(filePath);
+
+  if (result.success) {
+    output(`Конфигурация экспортирована: ${result.path}`, 'success');
+  } else {
+    output(`Ошибка экспорта: ${result.error}`, 'error');
+  }
+}
+
+async function handleBackupImport(args) {
+  const { params } = args;
+
+  if (params.length < 1) {
+    output('Укажите файл: backup:import <file>', 'error');
+    return;
+  }
+
+  const filePath = params[0];
+  output(`Импорт конфигурации из ${filePath}...`, 'process');
+  const result = await globalConfigBackup.import(filePath);
+
+  if (result.success) {
+    output('Конфигурация импортирована (применится после перезапуска)', 'success');
+  } else {
+    output(`Ошибка импорта: ${result.error}`, 'error');
+  }
+}
+
+async function handleBackupList() {
+  output('Загрузка списка бэкапов...', 'process');
+  const backups = await globalConfigBackup.listBackups();
+
+  if (backups.length === 0) {
+    output('Бэкапы не найдены', 'warning');
+    return;
+  }
+
+  output(`Найдено бэкапов: ${backups.length}`, 'info');
+  backups.forEach((b, i) => {
+    const sizeKB = (b.size / 1024).toFixed(2);
+    const date = new Date(b.modifiedAt).toLocaleString('ru-RU');
+    console.log(`  ${i + 1}. ${b.filename} (${sizeKB} KB) - ${date}`);
+  });
+}
+
+async function handleBackupAuto() {
+  output('Создание автобэкапа...', 'process');
+  const result = await globalConfigBackup.autoBackup();
+
+  if (result.success) {
+    output(`Автобэкап создан: ${result.path}`, 'success');
+  } else {
+    output(`Ошибка автобэкапа: ${result.error}`, 'error');
+  }
+}
+
+async function handleBackupDelete(args) {
+  const { params } = args;
+
+  if (params.length < 1) {
+    output('Укажите файл: backup:delete <filename>', 'error');
+    return;
+  }
+
+  const filename = params[0];
+  output(`Удаление бэкапа ${filename}...`, 'process');
+  const success = await globalConfigBackup.deleteBackup(filename);
+
+  if (success) {
+    output('Бэкап удалён', 'success');
+  } else {
+    output('Ошибка удаления бэкапа', 'error');
+  }
+}
+
+async function handleBackupCleanup() {
+  output('Очистка старых бэкапов...', 'process');
+  const deleted = await globalConfigBackup.cleanup();
+  output(`Удалено бэкапов: ${deleted}`, 'success');
+}
+
+async function handleBackupStats() {
+  const stats = await globalConfigBackup.getStats();
+
+  output('Статистика бэкапов:', 'info');
+  console.log(`  Всего бэкапов: ${stats.totalBackups}`);
+  console.log(`  Общий размер: ${(stats.totalSize / 1024).toFixed(2)} KB`);
+  console.log(`  Максимум бэкапов: ${stats.maxBackups}`);
+  if (stats.newestBackup) {
+    console.log(`  Последний: ${stats.newestBackup.filename} (${new Date(stats.newestBackup.modifiedAt).toLocaleString('ru-RU')})`);
+  }
+  if (stats.oldestBackup) {
+    console.log(`  Старейший: ${stats.oldestBackup.filename}`);
+  }
+}
+
 async function handleHelp(args) {
   const { params } = args;
 
@@ -1215,6 +1355,7 @@ async function handleHelp(args) {
     'Email': ['email:create', 'email:check', 'email:wait'],
     'Monitor': ['monitor:check', 'monitor:start', 'monitor:stop', 'monitor:status'],
     'Reset': ['reset', 'reset:all'],
+    'Backup': ['backup:export', 'backup:import', 'backup:list', 'backup:auto', 'backup:delete', 'backup:cleanup', 'backup:stats'],
     'Info': ['info', 'help']
   };
 

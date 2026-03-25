@@ -112,16 +112,24 @@
 - [x] Amnezia VPN поддержка (статус, рекомендации)
 - [x] DoH-VPN Integration (автоматическое включение DoH при VPN)
 - [x] Скрипт quick-setup.js для быстрой настройки
-- [ ] Бэкап конфигурации (экспорт/импорт настроек в JSON)
-- [ ] CLI команды для управления менеджерами
-- [ ] GitHub Actions CI/CD
-- [ ] Тесты для SmartBypassManager и VpnManager
+- [x] Бэкап конфигурации (экспорт/импорт настроек в JSON) - utils/configBackup.js + 7 API endpoints
+- [x] CLI команды для управления менеджерами - backup:* команды (7 штук)
+- [x] GitHub Actions CI/CD - .github/workflows/ci.yml (test, build, release, docker)
+- [x] Тесты для SmartBypassManager - test/smartBypassManager.test.js (12 тестов)
+- [x] Тесты для VpnManager - test/vpnManager.test.js (22 теста)
 - [ ] Оптимизация производительности WebSocket сервера
 - [ ] Поддержка дополнительных протоколов обхода (Shadowsocks, V2Ray)
 - [ ] **Релиз 2.6.0** - слияние dev → main ✅ ВЫПОЛНЕНО
 
 ## ✅ Выполнено (последнее)
 
+- ✅ Бэкап конфигурации - utils/configBackup.js (7 API endpoints: export, import, list, auto, delete, cleanup, stats)
+- ✅ CLI команды для backup - 7 команд (backup:export, backup:import, backup:list, backup:auto, backup:delete, backup:cleanup, backup:stats)
+- ✅ GitHub Actions CI/CD - .github/workflows/ci.yml (test matrix, build, release, docker)
+- ✅ Тесты для SmartBypassManager - 12 тестов
+- ✅ Тесты для VpnManager - 22 теста
+- ✅ Тесты для ConfigBackupManager - 24 теста
+- ✅ Общее количество тестов: 199 (9 test suites)
 - ✅ Добавлена поддержка VPN/DNS/Proxy (20 новых API endpoints)
 - ✅ VPN Leak Fix Manager - исправление DNS/WebRTC/IPv6 утечек
 - ✅ VPN Traffic Manager - Kill Switch, туннелирование трафика
@@ -158,18 +166,19 @@
 
 ## 📝 Заметки
 
-- **dev:** ✅ синхронизирован с origin/dev (22 коммита)
+- **dev:** ✅ синхронизирован с origin/dev (23 коммита)
 - **main:** ✅ синхронизирован с dev (слияние выполнено)
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
 - **Версия:** 2.6.0 — готов к релизу
+- **Тесты:** 199 тестов (9 test suites) - 100% passed
 
 ---
 
 **Текущий статус:**
-- ✅ Все тесты пройдены (151/151)
+- ✅ Все тесты пройдены (199/199)
 - ✅ ESLint: 0 ошибок, 0 предупреждений ✅
-- ✅ Dev: 22 коммита, синхронизирован с origin/dev
+- ✅ Dev: 23 коммита, синхронизирован с origin/dev
 - ✅ Main: синхронизирован с dev ✅
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
@@ -177,6 +186,7 @@
 - ✅ 20 новых API endpoints для VPN/DNS/Proxy функциональности
 - ✅ ESLint предупреждения полностью исправлены (12 → 8 → 0)
 - ✅ Релиз 2.6.0 готов к публикации
+- ✅ Техдолг закрыт (Backup, CLI, CI/CD, Tests)
 
 ---
 

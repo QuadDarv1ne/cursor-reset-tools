@@ -423,6 +423,61 @@ sudo npm start</div>
       </div>
     </section>
 
+    <!-- Resource Monitor Section -->
+    <section id="resources" style="margin-top: 2rem;">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-cpu-line"></i> <%= typeof t !== 'undefined' ? t('resourcesTitle') || 'Мониторинг ресурсов' : '' %></h2>
+        </div>
+        <div class="card-body">
+          <div class="resource-grid">
+            <div class="resource-card">
+              <div class="resource-icon cpu-icon"><i class="ri-cpu-line"></i></div>
+              <div class="resource-info">
+                <h3>CPU</h3>
+                <div class="resource-value" id="cpu-value">--%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="cpu-bar" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="resource-card">
+              <div class="resource-icon memory-icon"><i class="ri-ram-line"></i></div>
+              <div class="resource-info">
+                <h3>RAM</h3>
+                <div class="resource-value" id="memory-value">--%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="memory-bar" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="resource-card">
+              <div class="resource-icon disk-icon"><i class="ri-database-line"></i></div>
+              <div class="resource-info">
+                <h3>Disk</h3>
+                <div class="resource-value" id="disk-value">--%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="disk-bar" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="resource-alerts" id="resource-alerts" style="margin-top: 1rem; display: none;">
+            <h4 style="margin-bottom: 0.5rem;"><i class="ri-alert-line"></i> Предупреждения</h4>
+            <div id="alerts-list"></div>
+          </div>
+          
+          <div class="resource-stats" style="margin-top: 1rem; font-size: 0.875rem; color: #666;">
+            <span id="resource-samples">Samples: 0</span> | 
+            <span id="resource-uptime">Uptime: --</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="actions">
       <div class="action-buttons">
         <a href="https://github.com/QuadDarv1ne/cursor-reset-tools" target="_blank" class="action-btn github-btn">

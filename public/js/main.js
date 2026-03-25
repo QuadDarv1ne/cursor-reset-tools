@@ -563,6 +563,9 @@ document.addEventListener('DOMContentLoaded', () => {
   du.addEventListener('click', dz);
   pc.addEventListener('click', pt);
 
+  // Инициализация мониторинга ресурсов
+  initResourceMonitor();
+
   setTimeout(() => {
     ta();
     ib();
@@ -620,4 +623,82 @@ function showToast(message, type = 'info') {
       }
     }, 300);
   });
+}
+
+// Resource Monitor - обновление данных в реальном времени
+function updateResourceMonitor() {
+  fetch('/api/resources/summary')
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {return;}
+
+      // CPU
+      const cpuValue = document.getElementById('cpu-value');
+      const cpuBar = document.getElementById('cpu-bar');
+      if (cpuValue && cpuBar) {
+        cpuValue.textContent = `${data.cpu.current}%`;
+        cpuBar.style.width = `${data.cpu.current}%`;
+        cpuBar.className = `progress-fill${data.cpu.current > 80 ? ' warning' : ''}${data.cpu.current > 90 ? ' danger' : ''}`;
+      }
+
+      // Memory
+      const memoryValue = document.getElementById('memory-value');
+      const memoryBar = document.getElementById('memory-bar');
+      if (memoryValue && memoryBar) {
+        memoryValue.textContent = `${data.memory.current}%`;
+        memoryBar.style.width = `${data.memory.current}%`;
+        memoryBar.className = `progress-fill${data.memory.current > 80 ? ' warning' : ''}${data.memory.current > 90 ? ' danger' : ''}`;
+      }
+
+      // Disk
+      const diskValue = document.getElementById('disk-value');
+      const diskBar = document.getElementById('disk-bar');
+      if (diskValue && diskBar) {
+        diskValue.textContent = `${data.disk.current}%`;
+        diskBar.style.width = `${data.disk.current}%`;
+        diskBar.className = `progress-fill${data.disk.current > 80 ? ' warning' : ''}${data.disk.current > 90 ? ' danger' : ''}`;
+      }
+
+      // Stats
+      const samplesEl = document.getElementById('resource-samples');
+      const uptimeEl = document.getElementById('resource-uptime');
+      if (samplesEl) {samplesEl.textContent = `Samples: ${data.samples}`;}
+      if (uptimeEl) {
+        const uptimeSec = Math.floor(data.uptime);
+        const hrs = Math.floor(uptimeSec / 3600);
+        const mins = Math.floor((uptimeSec % 3600) / 60);
+        const secs = uptimeSec % 60;
+        uptimeEl.textContent = `Uptime: ${hrs}h ${mins}m ${secs}s`;
+      }
+
+      // Alerts
+      fetch('/api/resources/alerts?limit=5')
+        .then(res => res.json())
+        .then(alertsData => {
+          if (!alertsData.success) {return;}
+          const alertsContainer = document.getElementById('resource-alerts');
+          const alertsList = document.getElementById('alerts-list');
+          if (alertsContainer && alertsList) {
+            if (alertsData.alerts.length > 0) {
+              alertsList.innerHTML = alertsData.alerts.map(alert => `
+                <div class="alert-item">
+                  <i class="ri-alert-line"></i>
+                  <span>${alert.message}</span>
+                </div>
+              `).join('');
+              alertsContainer.style.display = 'block';
+            } else {
+              alertsContainer.style.display = 'none';
+            }
+          }
+        })
+        .catch(() => {});
+    })
+    .catch(() => {});
+}
+
+// Запуск мониторинга ресурсов (вызывается из основного DOMContentLoaded)
+function initResourceMonitor() {
+  updateResourceMonitor();
+  setInterval(updateResourceMonitor, 5000);
 }

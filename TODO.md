@@ -97,7 +97,7 @@
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
-- **ESLint:** ✅ 0 ошибок, 8 предупреждений (некритичные unused vars)
+- **ESLint:** ✅ 0 ошибок, 0 предупреждений
 - **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager
 - **Web UI:** Главная, Bypass Tools, Dashboard
 - **API Endpoints:** 20 новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN)
@@ -132,7 +132,7 @@
 - ✅ Скрипт quick-setup.js для быстрой настройки
 - ✅ Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Исправлены failing тесты (151/151 passed)
-- ✅ Исправлены ESLint ошибки (0 errors, 12 → 8 warnings)
+- ✅ Исправлены ESLint ошибки (0 errors, 12 → 8 → 0 warnings)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Добавлена страница Dashboard с мониторингом ресурсов
 - ✅ Интеграция кэширования в API endpoints (7 endpoints)
@@ -158,7 +158,7 @@
 
 ## 📝 Заметки
 
-- **dev:** ✅ синхронизирован с origin/dev (20 коммитов)
+- **dev:** ✅ синхронизирован с origin/dev (21 коммитов)
 - **main:** требует обновления (слияние dev → main)
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
@@ -168,14 +168,14 @@
 
 **Текущий статус:**
 - ✅ Все тесты пройдены (151/151)
-- ✅ ESLint: 0 ошибок, 8 предупреждений (некритичные)
-- ✅ Dev: 20 коммитов, синхронизирован с origin/dev
+- ✅ ESLint: 0 ошибок, 0 предупреждений ✅
+- ✅ Dev: 21 коммитов, синхронизирован с origin/dev
 - ✅ Main: требует обновления (слияние dev → main)
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Web UI улучшен (Bypass страница, Dashboard)
 - ✅ 20 новых API endpoints для VPN/DNS/Proxy функциональности
-- ✅ ESLint предупреждения сокращены (12 → 8)
+- ✅ ESLint предупреждения полностью исправлены (12 → 8 → 0)
 
 ---
 

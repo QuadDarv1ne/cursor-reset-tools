@@ -254,7 +254,7 @@ class VPNLeakFix {
     let md = '# Инструкция по отключению WebRTC\n\n';
     md += '> WebRTC может показывать ваш реальный IP адрес даже при включенном VPN\n\n';
 
-    for (const [_browser, config] of Object.entries(instructions)) {
+    for (const config of Object.values(instructions)) {
       md += `## ${config.title}\n\n`;
 
       if (config.steps) {

@@ -9,7 +9,7 @@ import { globalDNSManager } from './dnsManager.js';
 import { globalDoHManager } from './dohManager.js';
 import { globalProxyManager } from './proxyManager.js';
 import { globalLeakDetector } from './leakDetector.js';
-import { globalSmartBypassManager } from './smartBypassManager.js';
+import { _globalSmartBypassManager } from './smartBypassManager.js';
 
 /**
  * Комплексный тестер для диагностики блокировок
@@ -524,7 +524,7 @@ class BypassTester {
 
     if (this.testResults.recommendations.length > 0) {
       text += '💡 Рекомендации:\n';
-      this.testResults.recommendations.forEach((rec, i) => {
+      this.testResults.recommendations.forEach((rec, _i) => {
         const icon = rec.priority === 'critical' ? '🔴' :
           rec.priority === 'high' ? '🟠' :
             rec.priority === 'medium' ? '🟡' : '🟢';

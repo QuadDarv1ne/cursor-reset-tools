@@ -80,7 +80,7 @@ class LeakDetector {
    * Резолвинг домена через конкретный DNS (эмуляция)
    * @private
    */
-  async _resolveWithDNS(dnsServer) {
+  async _resolveWithDNS(_dnsServer) {
     try {
       // Используем DoH для эмуляции
       const { globalDoHManager } = await import('./dohManager.js');

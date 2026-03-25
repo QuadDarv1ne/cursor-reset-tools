@@ -153,7 +153,7 @@
 - ✅ Скрипт quick-setup.js для быстрой настройки
 - ✅ Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Исправлены failing тесты (151/151 passed)
-- ✅ Исправлены ESLint ошибки (0 errors, 12 → 8 → 0 warnings)
+- ✅ Исправлены ESLint ошибки (0 errors, 12 → 8 → 0 → 9 warnings autofix)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Добавлена страница Dashboard с мониторингом ресурсов
 - ✅ Интеграция кэширования в API endpoints (7 endpoints)

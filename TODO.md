@@ -87,7 +87,7 @@
 
 - **Версия:** 2.7.0 ✅ (выпущена)
 - **Статус:** ✅ Релиз выпущен (Auto Rollback + File Validator)
-- **Тесты:** 186/199 passed (9 test suites) — ⚠️ vpnManager тесты требуют доработки (12 failing)
+- **Тесты:** ✅ 199/199 passed (9 test suites) — все тесты исправлены
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
@@ -110,7 +110,7 @@
 - [x] CLI команды для управления менеджерами - backup:* команды (7 штук)
 - [x] GitHub Actions CI/CD - .github/workflows/ci.yml (test, build, release, docker)
 - [x] Тесты для SmartBypassManager - test/smartBypassManager.test.js (12 тестов)
-- [ ] Тесты для VpnManager - test/vpnManager.test.js (12/22 тестов failing - API несоответствие)
+- [x] Тесты для VpnManager - test/vpnManager.test.js (22 теста) ✅ все тесты passing
 - [x] DPI Bypass модуль - utils/dpiBypass.js (обход DPI, GoodbyeDPI, Zapret интеграция)
 - [x] WireGuard Manager - utils/wireguardManager.js (генерация конфигов, управление подключениями)
 - [x] Улучшен Proxy Manager - WireGuard поддержка, DPI тестирование, GeoIP, Health Score
@@ -188,7 +188,7 @@
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
 - **Версия:** 2.7.0 — релиз выпущен ✅
-- **Тесты:** 186/199 passed (9 test suites) — ⚠️ vpnManager тесты требуют доработки (12 failing: API несоответствие)
+- **Тесты:** ✅ 199/199 passed (9 test suites) — все тесты исправлены
 - **Новые модули:** dpiBypass.js, wireguardManager.js, autoRollback.js, fileValidator.js
 - **Оптимизации:** память -400MB, bypass тест 15→5 сек, I/O в 10 раз меньше
 
@@ -207,7 +207,7 @@
 - ✅ Техдолг закрыт (Backup, CLI, CI/CD, Tests)
 - ✅ Интегрированы новые модули (DPI Bypass, WireGuard Manager, Auto Rollback, File Validator)
 - ✅ Критические исправления: утечки памяти, race conditions, производительность
-- ⚠️ vpnManager тесты требуют доработки (12 failing: несоответствие API - missing методы и свойства)
+- ✅ **vpnManager тесты исправлены** (199/199 тестов passed)
 
 ---
 
@@ -229,10 +229,10 @@
   - Генерация отчётов
 
 🧪 **Тесты:**
-- 186/199 тестов passed (⚠️ 12 failing в vpnManager.test.js - API несоответствие)
+- ✅ 199/199 тестов passed (все тесты исправлены)
 - Unit тесты для всех новых менеджеров
 - Integration тесты для API endpoints
-- ⚠️ vpnManager тесты требуют доработки (missing методы: createWireGuardConfig, createOpenVPNConfig, checkWireGuard, checkOpenVPN, checkAmneziaVPN, quickConnect; missing свойства: platform, currentConnection, connections, configPath)
+- ✅ vpnManager тесты исправлены (добавлены missing методы и свойства)
 
 🌐 **Web UI:**
 - 3 страницы: Главная, Bypass Tools, Dashboard

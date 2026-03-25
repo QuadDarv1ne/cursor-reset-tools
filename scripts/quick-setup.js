@@ -9,7 +9,6 @@ import { globalVPNManager } from '../utils/vpnManager.js';
 import { globalDNSManager } from '../utils/dnsManager.js';
 import { globalLeakDetector } from '../utils/leakDetector.js';
 import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
-import { _logger } from '../utils/logger.js';
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -108,7 +107,7 @@ async function testBypass() {
   const status = globalSmartBypassManager.getStatus();
 
   log(COLORS.cyan, '\nВеса методов:');
-  for (const [_key, method] of Object.entries(status.methods)) {
+  for (const method of Object.values(status.methods)) {
     const icon = method.weight > 50 ? '✓' : method.weight > 0 ? '⚠' : '✗';
     const color = method.weight > 50 ? COLORS.green : method.weight > 0 ? COLORS.yellow : COLORS.red;
     log(color, `  ${icon} ${method.name}: ${method.weight}`);

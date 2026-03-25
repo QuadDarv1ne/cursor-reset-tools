@@ -16,10 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentLang = localStorage.getItem('lang') || 'ru';
   const t = key => window.i18n?.t(key, currentLang) || key;
 
-  // Чтение конфигурации
-  const configEl = document.getElementById('app-config');
-  const _appConfig = configEl ? JSON.parse(configEl.textContent) : {};
-
   // WebSocket клиент
   let ws = null;
   let wsReconnectAttempts = 0;

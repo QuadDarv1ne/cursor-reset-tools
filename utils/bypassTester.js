@@ -9,7 +9,6 @@ import { globalDNSManager } from './dnsManager.js';
 import { globalDoHManager } from './dohManager.js';
 import { globalProxyManager } from './proxyManager.js';
 import { globalLeakDetector } from './leakDetector.js';
-import { _globalSmartBypassManager } from './smartBypassManager.js';
 
 /**
  * Комплексный тестер для диагностики блокировок

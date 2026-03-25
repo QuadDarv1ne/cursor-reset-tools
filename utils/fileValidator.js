@@ -512,7 +512,7 @@ export class FileValidator {
       }
     }
 
-    report.push('\n' + '='.repeat(60));
+    report.push(`\n${'='.repeat(60)}`);
     return report.join('\n');
   }
 }

@@ -4,7 +4,6 @@
  */
 
 import fs from 'fs-extra';
-import path from 'path';
 import crypto from 'crypto';
 import { logger } from './logger.js';
 import { globalBackupManager } from './rollback.js';
@@ -208,7 +207,7 @@ export class AutoRollbackManager {
    */
   async createBackups(files, operationId) {
     const backupResults = await Promise.allSettled(
-      files.map(async (file) => {
+      files.map(async file => {
         if (!await fs.pathExists(file)) {
           logger.debug(`File not found for backup: ${file}`, 'autoRollback');
           return { file, backup: null, exists: false };
@@ -362,7 +361,7 @@ export class AutoRollbackManager {
    */
   getActiveOperations() {
     const operations = [];
-    for (const [id, context] of this.operationStack.entries()) {
+    for (const [id] of this.operationStack.entries()) {
       operations.push(this.getOperationStatus(id));
     }
     return operations;
@@ -387,7 +386,7 @@ export class AutoRollbackManager {
     this.operationStack.clear();
 
     if (deleteBackups) {
-      return await this.backupManager.clearAll(true);
+      return this.backupManager.clearAll(true);
     }
 
     return count;

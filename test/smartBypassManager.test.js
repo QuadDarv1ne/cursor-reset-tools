@@ -75,7 +75,7 @@ describe('SmartBypassManager', () => {
   describe('getMethods', () => {
     it('должен возвращать все методы', () => {
       const methods = manager.getMethods();
-      expect(Object.keys(methods).length).toBe(5);
+      expect(Object.keys(methods).length).toBe(6);
       expect(methods).toEqual(manager.methods);
     });
   });

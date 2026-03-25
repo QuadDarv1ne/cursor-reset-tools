@@ -92,12 +92,12 @@
 ## 📊 Статус проекта
 
 - **Версия:** 2.6.0 (dev)
-- **Статус:** ✅ В разработке (VPN/DNS/Proxy улучшения)
+- **Статус:** ✅ Готов к релизу (VPN/DNS/Proxy улучшения завершены)
 - **Тесты:** Unit + Integration (151 тест: 151 passed) — 100% покрытие
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
 - **Последнее обновление:** 25 марта 2026 г.
-- **ESLint:** ✅ 0 ошибок, 1 предупреждение (unused var в main.js)
+- **ESLint:** ✅ 0 ошибок, 12 предупреждений (некритичные unused vars)
 - **Менеджеры:** ResourceMonitor, StatsCache, NotificationManager, ProxyManager, MonitorManager, FingerprintManager, DnsManager, EmailManager, SmartBypassManager, VpnManager, VpnLeakFix, VpnTrafficManager, BypassTester, SystemProxyManager, LeakDetector, DoHManager
 - **Web UI:** Главная, Bypass Tools, Dashboard
 - **API Endpoints:** 20 новых (VPN Leak Fix, VPN Traffic, Bypass Tester, System Proxy, Amnezia, DoH-VPN)
@@ -118,6 +118,7 @@
 - [ ] Тесты для SmartBypassManager и VpnManager
 - [ ] Оптимизация производительности WebSocket сервера
 - [ ] Поддержка дополнительных протоколов обхода (Shadowsocks, V2Ray)
+- [ ] **Релиз 2.6.0** - слияние dev → main
 
 ## ✅ Выполнено (последнее)
 
@@ -131,11 +132,8 @@
 - ✅ Скрипт quick-setup.js для быстрой настройки
 - ✅ Документация VPN/Bypass (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Исправлены failing тесты (151/151 passed)
-- ✅ Исправлены ESLint ошибки (0 errors, 1 warning)
-- ✅ Улучшен SmartBypassManager (getStatus, getStats, resetStats методы)
-- ✅ Улучшен VpnManager (testConnection, getStatistics, resetStatistics методы)
-- ✅ Расширена i18n локализация (VPN и bypass ключи)
-- ✅ Улучшен Web UI bypass страницы (карточки VPN, статусы, тестирование)
+- ✅ Исправлены ESLint ошибки (0 errors, 12 warnings)
+- ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Добавлена страница Dashboard с мониторингом ресурсов
 - ✅ Интеграция кэширования в API endpoints (7 endpoints)
 - ✅ Экспорт статистики в JSON/CSV
@@ -160,19 +158,19 @@
 
 ## 📝 Заметки
 
-- **dev:** ahead на 14 коммитов от origin/dev
-- **main:** синхронизирован с dev ✅
+- **dev:** ✅ синхронизирован с origin/dev (18 коммитов)
+- **main:** требует обновления (слияние dev → main)
 - **data/metrics.json:** не tracked (опционально для gitignore)
 - **data/resource-stats.json:** не tracked (runtime данные)
-- **Версия:** 2.5.0 — релиз готов
+- **Версия:** 2.6.0 — готов к релизу
 
 ---
 
 **Текущий статус:**
 - ✅ Все тесты пройдены (151/151)
-- ✅ ESLint: 0 ошибок, 1 предупреждение
-- ✅ Dev: 17 коммитов ahead от origin/dev (VPN/DNS/Proxy улучшения)
-- ✅ Main: синхронизирован с предыдущей версией
+- ✅ ESLint: 0 ошибок, 12 предупреждений (некритичные)
+- ✅ Dev: 18 коммитов, синхронизирован с origin/dev
+- ✅ Main: требует обновления (слияние dev → main)
 - ✅ Документация обновлена (VPN_BYPASS_GUIDE_RU.md, BYPASS_GUIDE_RU.md)
 - ✅ Улучшены менеджеры обхода (SmartBypass, VpnManager, VpnLeakFix, VpnTrafficManager)
 - ✅ Web UI улучшен (Bypass страница, Dashboard)
@@ -180,7 +178,7 @@
 
 ---
 
-**Релиз 2.6.0 - Ключевые изменения (в разработке):**
+**Релиз 2.6.0 - Ключевые изменения (готов к релизу):**
 
 🎯 **Новые возможности:**
 - VPN Leak Fix Manager - комплексное исправление утечек (DNS, WebRTC, IPv6)

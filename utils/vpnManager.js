@@ -1,6 +1,6 @@
 /**
  * VPN Manager - Управление VPN подключениями
- * Поддержка WireGuard и OpenVPN
+ * Поддержка WireGuard, OpenVPN, Amnezia VPN
  */
 
 import { exec } from 'child_process';
@@ -39,6 +39,19 @@ export const VPN_CONFIG = {
       darwin: '/usr/local/bin/openvpn',
       linux: '/usr/sbin/openvpn'
     }
+  },
+  amnezia: {
+    configDir: {
+      win32: '%APPDATA%\\AmneziaVPN',
+      darwin: '~/Library/Application Support/AmneziaVPN',
+      linux: '~/.config/AmneziaVPN'
+    },
+    binary: {
+      win32: 'C:\\Program Files\\AmneziaVPN\\AmneziaVPN.exe',
+      darwin: '/Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN',
+      linux: '/usr/bin/amneziavpn'
+    },
+    processes: ['amnezia', 'amneziavpn', 'awg', 'openvpn']
   }
 };
 
@@ -379,46 +392,221 @@ export class VPNManager {
       type: null,
       name: null,
       ip: null,
-      country: null
+      country: null,
+      countryCode: null,
+      isp: null,
+      isVPN: false,
+      isProxy: false,
+      isTor: false,
+      threat: null,
+      vpnMethod: null,
+      details: {}
     };
 
     try {
       const fetch = (await import('node-fetch')).default;
 
-      // Получаем IP и информацию
-      const response = await fetch('https://ipapi.co/json/', { timeout: 5000 });
-      const data = await response.json();
+      // Параллельный запрос к нескольким сервисам для надёжности
+      const services = [
+        { name: 'ipapi', url: 'https://ipapi.co/json/', timeout: 5000 },
+        { name: 'ipwho', url: 'https://ipwho.is/', timeout: 5000 },
+        { name: 'ipinfo', url: 'https://ipinfo.io/json', timeout: 5000 }
+      ];
 
-      result.ip = data.ip;
-      result.country = data.country_name;
-      result.countryCode = data.country_code;
-      result.isp = data.org || data.isp;
+      let ipData = null;
+      let usedService = null;
 
-      // Проверка на известные VPN провайдеры по ISP
+      for (const service of services) {
+        try {
+          const response = await fetch(service.url, { timeout: service.timeout });
+          if (response.ok) {
+            ipData = await response.json();
+            usedService = service.name;
+            break;
+          }
+        } catch (error) {
+          logger.debug(`IP service ${service.name} failed: ${error.message}`, 'vpn');
+          continue;
+        }
+      }
+
+      if (!ipData) {
+        logger.warn('All IP services failed, VPN may be blocking access', 'vpn');
+        result.detected = true;
+        result.type = 'blocked_ip_services';
+        result.vpnMethod = 'blocked_services';
+        return result;
+      }
+
+      result.ip = ipData.ip || ipData.query;
+      result.country = ipData.country_name || ipData.country;
+      result.countryCode = ipData.country_code || ipData.countryCode;
+      result.isp = ipData.org || ipData.isp || ipData.asn;
+      result.details = ipData;
+
+      // Метод 1: Проверка на известные VPN провайдеры по ISP
       const vpnProviders = [
         'Mullvad', 'NordVPN', 'ExpressVPN', 'Surfshark',
         'ProtonVPN', 'CyberGhost', 'PIA', 'Windscribe',
-        'Amnezia', 'WireGuard', 'OpenVPN'
+        'Amnezia', 'WireGuard', 'OpenVPN', 'TunnelBear',
+        'Hotspot Shield', 'Betternet', 'Psiphon', 'Lantern',
+        'Astrill', 'VyprVPN', 'IPVanish', 'StrongVPN',
+        'Private Internet Access', 'Cyberghost', 'Kaspersky'
       ];
 
-      const isVPN = vpnProviders.some(v =>
-        result.isp?.toLowerCase().includes(v.toLowerCase())
-      );
+      const ispLower = (result.isp || '').toLowerCase();
+      result.isVPN = vpnProviders.some(v => ispLower.includes(v.toLowerCase()));
 
-      // Проверка через IP (некоторые страны = VPN)
-      const vpnCountries = ['KZ', 'SG', 'NL', 'DE', 'US', 'GB', 'FR'];
-      const isForeignIP = vpnCountries.includes(data.country_code);
+      // Метод 2: Проверка через ipapi.co (если доступно поле vpn)
+      if (ipData.vpn !== undefined) {
+        result.isVPN = result.isVPN || ipData.vpn;
+      }
 
-      result.detected = isVPN || isForeignIP;
-      result.type = isVPN ? 'known_vpn' : (isForeignIP ? 'foreign_ip' : 'local');
-      result.name = result.isp;
+      // Метод 3: Проверка на прокси
+      if (ipData.proxy !== undefined) {
+        result.isProxy = ipData.proxy;
+      }
 
-      logger.info(`VPN detection: ${JSON.stringify(result)}`, 'vpn');
+      // Метод 4: Проверка на Tor
+      if (ipData.tor !== undefined) {
+        result.isTor = ipData.tor;
+      }
+
+      // Метод 5: Проверка на угрозы
+      if (ipData.threat !== undefined) {
+        result.threat = ipData.threat;
+      }
+
+      // Метод 6: Проверка через IP (некоторые страны = VPN)
+      const vpnCountries = ['KZ', 'SG', 'NL', 'DE', 'US', 'GB', 'FR', 'FI', 'SE', 'NO', 'DK', 'CH', 'AT', 'BE', 'IT', 'ES', 'PT', 'PL', 'CZ', 'RO', 'HU', 'BG', 'HR', 'SK', 'SI', 'LT', 'LV', 'EE', 'CY', 'MT', 'LU', 'IS', 'IE', 'NZ', 'AU', 'JP', 'KR', 'TW', 'HK', 'AE', 'IL', 'TR', 'ZA', 'BR', 'MX', 'AR', 'CL', 'CO', 'PE'];
+      const isForeignIP = vpnCountries.includes(result.countryCode);
+
+      // Метод 7: Проверка через процессы (Windows)
+      let processDetected = false;
+      if (this.platform === 'win32') {
+        processDetected = await this._checkVPNProcesses();
+      }
+
+      // Метод 8: Проверка через сетевые интерфейсы
+      const interfaceDetected = await this._checkVPNInterfaces();
+
+      // Итоговое определение
+      result.detected = result.isVPN || result.isProxy || result.isTor || isForeignIP || processDetected || interfaceDetected;
+
+      if (result.isVPN) {
+        result.type = 'known_vpn';
+        result.vpnMethod = 'isp_match';
+      } else if (result.isProxy) {
+        result.type = 'proxy';
+        result.vpnMethod = 'proxy_detected';
+      } else if (result.isTor) {
+        result.type = 'tor';
+        result.vpnMethod = 'tor_detected';
+      } else if (processDetected) {
+        result.type = 'vpn_process';
+        result.vpnMethod = 'process_detected';
+      } else if (interfaceDetected) {
+        result.type = 'vpn_interface';
+        result.vpnMethod = 'interface_detected';
+      } else if (isForeignIP) {
+        result.type = 'foreign_ip';
+        result.vpnMethod = 'geo_location';
+      } else {
+        result.type = 'local';
+        result.vpnMethod = 'none';
+      }
+
+      result.name = result.isp || result.type;
+      result.usedService = usedService;
+
+      logger.info(`VPN detection (${usedService}): ${JSON.stringify({ detected: result.detected, type: result.type, country: result.country, vpn: result.isVPN })}`, 'vpn');
 
       return result;
     } catch (error) {
       logger.debug(`VPN detection failed: ${error.message}`, 'vpn');
+      result.detected = false;
+      result.error = error.message;
       return result;
+    }
+  }
+
+  /**
+   * Проверка процессов VPN (Windows)
+   * @private
+   */
+  async _checkVPNProcesses() {
+    if (this.platform !== 'win32') {
+      return false;
+    }
+
+    try {
+      const { stdout } = await execPromise('tasklist /FI "STATUS eq RUNNING" 2>nul');
+      const processes = stdout.toLowerCase();
+
+      const vpnProcesses = [
+        'amnezia', 'wireguard', 'openvpn', 'nordvpn',
+        'expressvpn', 'surfshark', 'protonvpn', 'cyberghost',
+        'pia', 'windscribe', 'tunnelbear', 'hotspot',
+        'betternet', 'psiphon', 'lantern', 'astrill',
+        'vyprvpn', 'ipvanish', 'strongvpn', 'kaspersky'
+      ];
+
+      const processFound = vpnProcesses.some(proc => processes.includes(proc));
+
+      // Дополнительная проверка для Amnezia через PowerShell
+      if (!processFound) {
+        try {
+          const { stdout: psOutput } = await execPromise(
+            'Get-Process | Where-Object {$_.ProcessName -like "*amnezia*" -or $_.ProcessName -like "*awg*"}',
+            { shell: 'powershell.exe' }
+          );
+          return psOutput.trim().length > 0;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      return processFound;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Проверка сетевых интерфейсов на наличие VPN
+   * @private
+   */
+  async _checkVPNInterfaces() {
+    try {
+      const interfaces = os.networkInterfaces();
+
+      for (const [name, iface] of Object.entries(interfaces)) {
+        const nameLower = name.toLowerCase();
+        // Проверка имён интерфейсов (WireGuard, TAP, TUN)
+        if (nameLower.includes('wireguard') ||
+            nameLower.includes('wg') ||
+            nameLower.includes('tun') ||
+            nameLower.includes('tap') ||
+            nameLower.includes('vpn') ||
+            nameLower.includes('amnezia')) {
+          return true;
+        }
+
+        // Проверка IP адресов интерфейсов
+        if (iface) {
+          for (const addr of iface) {
+            // WireGuard использует специфические диапазоны
+            if (addr.address && addr.address.startsWith('10.')) {
+              // Дополнительная проверка - если шлюз отличается от стандартного
+              return false; // Нужна дополнительная проверка
+            }
+          }
+        }
+      }
+
+      return false;
+    } catch (error) {
+      return false;
     }
   }
 
@@ -518,11 +706,12 @@ export class VPNManager {
     // Проверка доступных VPN
     const wireguard = await this.checkWireGuard();
     const openvpn = await this.checkOpenVPN();
+    const amnezia = await this.checkAmneziaVPN();
 
-    if (!wireguard && !openvpn) {
+    if (!wireguard && !openvpn && !amnezia) {
       return {
         success: false,
-        error: 'No VPN client installed. Install WireGuard or OpenVPN.'
+        error: 'No VPN client installed. Install WireGuard, OpenVPN or Amnezia VPN.'
       };
     }
 
@@ -539,6 +728,97 @@ export class VPNManager {
       message: 'Quick connect completed',
       ...status
     };
+  }
+
+  /**
+   * Проверка установки Amnezia VPN
+   */
+  async checkAmneziaVPN() {
+    try {
+      const binary = VPN_CONFIG.amnezia.binary[this.platform];
+
+      if (this.platform === 'win32') {
+        // Проверка через PowerShell
+        try {
+          const { stdout } = await execPromise(
+            `Test-Path "${binary}"`,
+            { shell: 'powershell.exe' }
+          );
+          return stdout.trim().toLowerCase() === 'true';
+        } catch (e) {
+          return false;
+        }
+      } else {
+        await execPromise(`"${binary}" --version 2>&1 || true`);
+        return true;
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Получение статуса Amnezia VPN
+   */
+  async getAmneziaStatus() {
+    const result = {
+      installed: await this.checkAmneziaVPN(),
+      running: false,
+      connected: false,
+      config: null
+    };
+
+    if (!result.installed) {
+      return result;
+    }
+
+    // Проверка запущенных процессов
+    try {
+      if (this.platform === 'win32') {
+        const { stdout } = await execPromise(
+          'Get-Process | Where-Object {$_.ProcessName -like "*amnezia*"}',
+          { shell: 'powershell.exe' }
+        );
+        result.running = stdout.trim().length > 0;
+      } else {
+        const { stdout } = await execPromise('pgrep -l amnezia || true');
+        result.running = stdout.trim().length > 0;
+      }
+    } catch (e) {
+      result.running = false;
+    }
+
+    // Проверка подключения через detectActiveVPN
+    const activeVPN = await this.detectActiveVPN();
+    result.connected = activeVPN.detected && (
+      activeVPN.type?.includes('amnezia') ||
+      activeVPN.vpnMethod?.includes('amnezia') ||
+      activeVPN.isp?.toLowerCase().includes('amnezia')
+    );
+
+    return result;
+  }
+
+  /**
+   * Рекомендации для Amnezia VPN
+   */
+  getAmneziaRecommendations() {
+    const recommendations = [];
+
+    // Amnezia использует WireGuard протокол по умолчанию
+    recommendations.push({
+      type: 'amnezia',
+      title: 'Amnezia VPN обнаружен',
+      description: 'Amnezia использует модифицированный WireGuard для обхода блокировок',
+      tips: [
+        'Используйте протокол AmneziaWG для лучшей производительности',
+        'Включите "Maskobka" для маскировки VPN трафика',
+        'Настройте DNS через Amnezia (1.1.1.1 или 9.9.9.9)',
+        'Включите Kill Switch в настройках Amnezia'
+      ]
+    });
+
+    return recommendations;
   }
 }
 

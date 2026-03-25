@@ -1,5 +1,6 @@
 /**
  * DNS over HTTPS Manager - Обход блокировок DNS через HTTPS
+ * Интеграция с VPN для автоматического включения при подключении
  */
 
 import fetch from 'node-fetch';
@@ -8,19 +9,23 @@ import { logger } from './logger.js';
 const DOH_PROVIDERS = {
   cloudflare: {
     url: 'https://cloudflare-dns.com/dns-query',
-    name: 'Cloudflare DoH'
+    name: 'Cloudflare DoH',
+    priority: 1
   },
   google: {
     url: 'https://dns.google/resolve',
-    name: 'Google DoH'
+    name: 'Google DoH',
+    priority: 2
   },
   quad9: {
     url: 'https://dns.quad9.net/dns-query',
-    name: 'Quad9 DoH'
+    name: 'Quad9 DoH',
+    priority: 3
   },
   adguard: {
     url: 'https://dns.adguard.com/resolve',
-    name: 'AdGuard DoH'
+    name: 'AdGuard DoH',
+    priority: 4
   }
 };
 
@@ -170,6 +175,92 @@ class DoHManager {
       currentProvider: this.currentProvider,
       cacheSize: this.cache.size,
       providers: Object.keys(DOH_PROVIDERS).length
+    };
+  }
+
+  /**
+   * Автоматическое включение DoH при VPN подключении
+   */
+  async enableForVPN(vpnStatus) {
+    logger.info('Enabling DoH for VPN connection...', 'doh');
+
+    try {
+      // Проверка доступных провайдеров
+      const providers = await this.getAvailableProviders();
+      const available = providers.filter(p => p.available);
+
+      if (available.length === 0) {
+        logger.warn('No available DoH providers for VPN', 'doh');
+        return { success: false, error: 'No available DoH providers' };
+      }
+
+      // Выбор лучшего провайдера (по приоритету)
+      available.sort((a, b) => a.priority - b.priority);
+      const best = available[0];
+
+      this.setProvider(best.key);
+
+      logger.info(`DoH enabled for VPN: ${best.name}`, 'doh');
+
+      return {
+        success: true,
+        provider: best.key,
+        name: best.name
+      };
+    } catch (error) {
+      logger.error(`DoH enable for VPN failed: ${error.message}`, 'doh');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Интеграция с VPN Manager
+   */
+  async integrateWithVPN() {
+    logger.info('Integrating DoH with VPN Manager...', 'doh');
+
+    try {
+      const { globalVPNManager } = await import('./vpnManager.js');
+      const vpnStatus = await globalVPNManager.detectActiveVPN();
+
+      if (vpnStatus.detected) {
+        const result = await this.enableForVPN(vpnStatus);
+
+        if (result.success) {
+          logger.info(`DoH integrated with VPN (${vpnStatus.type})`, 'doh');
+        }
+
+        return {
+          vpnDetected: true,
+          vpnType: vpnStatus.type,
+          vpnCountry: vpnStatus.country,
+          doh: result
+        };
+      }
+
+      return {
+        vpnDetected: false,
+        message: 'No active VPN connection'
+      };
+    } catch (error) {
+      logger.error(`DoH-VPN integration failed: ${error.message}`, 'doh');
+      return { error: error.message };
+    }
+  }
+
+  /**
+   * Получить рекомендуемые настройки для VPN
+   */
+  getVPNRecommendations() {
+    return {
+      recommendedProvider: 'cloudflare',
+      reason: 'Лучшая производительность и поддержка VPN',
+      settings: {
+        enableDoH: true,
+        enableDNSCache: true,
+        cacheTTL: this.cacheTTL,
+        fallbackProvider: 'google'
+      }
     };
   }
 }

@@ -96,13 +96,14 @@ export class DNSManager {
    */
   async _getWindowsDNS() {
     try {
-      const { stdout } = await execPromise('ipconfig /all');
-      const lines = stdout.split('\n');
+      // Метод 1: ipconfig /all
+      const { stdout: ipconfigOut } = await execPromise('ipconfig /all');
+      const lines = ipconfigOut.split('\n');
       const dnsServers = [];
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].toLowerCase();
-        if (line.includes('dns servers')) {
+        if (line.includes('dns servers') || line.includes('серверы dns')) {
           // Извлечение DNS серверов из следующих строк
           for (let j = i + 1; j < lines.length && j < i + 5; j++) {
             const dnsLine = lines[j].trim();
@@ -110,20 +111,63 @@ export class DNSManager {
             if (match) {
               dnsServers.push(match[1]);
             }
-            if (!dnsLine.startsWith(' ')) {break;}
+            if (!dnsLine.startsWith(' ') && dnsLine.trim() !== '') {break;}
           }
           break;
+        }
+      }
+
+      // Метод 2: PowerShell (если ipconfig не дал результата)
+      if (dnsServers.length === 0) {
+        try {
+          const { stdout: psOut } = await execPromise(
+            'Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses',
+            { shell: 'powershell.exe' }
+          );
+          const psServers = psOut.trim().split('\r\n').filter(s => s.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/));
+          if (psServers.length > 0) {
+            return {
+              primary: psServers[0] || 'unknown',
+              secondary: psServers[1] || 'unknown',
+              servers: psServers,
+              method: 'powershell'
+            };
+          }
+        } catch (e) {
+          logger.debug(`PowerShell DNS detection failed: ${e.message}`, 'dns');
+        }
+      }
+
+      // Метод 3: WMI (резервный)
+      if (dnsServers.length === 0) {
+        try {
+          const { stdout: wmiOut } = await execPromise(
+            'wmic nicconfig where "IPEnabled=true" get DNSServerSearchOrder',
+            { shell: 'cmd.exe' }
+          );
+          const wmiMatch = wmiOut.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g);
+          if (wmiMatch) {
+            return {
+              primary: wmiMatch[0] || 'unknown',
+              secondary: wmiMatch[1] || 'unknown',
+              servers: wmiMatch,
+              method: 'wmi'
+            };
+          }
+        } catch (e) {
+          logger.debug(`WMI DNS detection failed: ${e.message}`, 'dns');
         }
       }
 
       return {
         primary: dnsServers[0] || 'unknown',
         secondary: dnsServers[1] || 'unknown',
-        servers: dnsServers
+        servers: dnsServers,
+        method: 'ipconfig'
       };
     } catch (error) {
       logger.debug(`Windows DNS detection failed: ${error.message}`, 'dns');
-      return { primary: 'unknown', secondary: 'unknown' };
+      return { primary: 'unknown', secondary: 'unknown', method: 'failed' };
     }
   }
 

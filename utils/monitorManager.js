@@ -53,11 +53,28 @@ class MonitorManager {
       const timeoutId = setTimeout(() => controller.abort(), target.timeout || 5000);
 
       const startTime = Date.now();
-      const response = await fetch(target.url, {
+
+      // Для DoH запросов используем специальный агент
+      const fetchOptions = {
         method: 'HEAD',
         signal: controller.signal,
         timeout: target.timeout
-      });
+      };
+
+      // Если это DoH запрос, пробуем без строгой проверки SSL
+      if (target.url.includes('/dns-query')) {
+        try {
+          const https = await import('https');
+          const HttpsAgent = https.Agent || class { constructor() {} };
+          fetchOptions.agent = new HttpsAgent({
+            rejectUnauthorized: false
+          });
+        } catch (e) {
+          // Игнорируем если нет модуля
+        }
+      }
+
+      const response = await fetch(target.url, fetchOptions);
       clearTimeout(timeoutId);
 
       const responseTime = Date.now() - startTime;

@@ -28,6 +28,8 @@ import { globalVPNTrafficManager } from './utils/vpnTrafficManager.js';
 import { globalBypassTester } from './utils/bypassTester.js';
 import { globalSystemProxyManager } from './utils/systemProxyManager.js';
 import { globalConfigBackup } from './utils/configBackup.js';
+import { globalDPIBypass } from './utils/dpiBypass.js';
+import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { logger } from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1153,11 +1155,13 @@ const startServer = async () => {
       globalResourceMonitor.init(),
       globalStatsCache.init(),
       globalNotificationManager.init(),
-      globalConfigBackup.init()
+      globalConfigBackup.init(),
+      globalDPIBypass.init(),
+      globalWireGuardManager.init()
     ]);
 
     // Логирование результатов инициализации
-    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup'];
+    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup', 'DPIBypass', 'WireGuard'];
     for (let i = 0; i < initResults.length; i++) {
       const result = initResults[i];
       if (result.status === 'rejected') {

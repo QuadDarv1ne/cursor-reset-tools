@@ -1,23 +1,35 @@
 /**
  * WebSocket Server - Реальное время для клиентов
  * Стриминг логов, статуса, уведомлений
+ * Оптимизации: сжатие, кэширование, дедупликация, rate limiting
  */
 
 import { WebSocketServer } from 'ws';
+import { createHash } from 'crypto';
+import { gzip, gunzip } from 'zlib';
+import { promisify } from 'util';
 import { logger } from './logger.js';
 import { globalMonitorManager } from './monitorManager.js';
 import { globalIPManager } from './ipManager.js';
 import { globalSmartBypassManager } from './smartBypassManager.js';
 
+const compress = promisify(gzip);
+const decompress = promisify(gunzip);
+
 /**
  * Конфигурация WebSocket сервера
  */
 const WS_CONFIG = {
-  maxClients: 100, // Максимальное количество клиентов
-  clientTimeout: 300000, // Таймаут неактивности (5 минут)
-  pingInterval: 30000, // Интервал ping (30 секунд)
-  maxMessageSize: 1024 * 1024, // Максимальный размер сообщения (1MB)
-  maxSubscriptions: 10 // Максимум подписок на клиента
+  maxClients: 100,
+  clientTimeout: 300000,
+  pingInterval: 30000,
+  maxMessageSize: 1024 * 1024,
+  maxSubscriptions: 10,
+  compressionThreshold: 1024, // Сжимать сообщения > 1KB
+  cacheTTL: 5000, // Кэш статуса на 5 секунд
+  dedupWindow: 1000, // Окно дедупликации 1 секунда
+  rateLimit: 50, // Максимум сообщений в секунду
+  broadcastThrottle: 100 // Минимальный интервал вещания (мс)
 };
 
 class WSServer {
@@ -27,6 +39,22 @@ class WSServer {
     this.broadcastInterval = null;
     this.pingInterval = null;
     this.maxClients = WS_CONFIG.maxClients;
+    
+    // Оптимизации
+    this.statusCache = { data: null, timestamp: 0 };
+    this.messageHashes = new Map(); // Дедупликация
+    this.lastBroadcast = 0;
+    this.stats = {
+      totalConnections: 0,
+      totalDisconnections: 0,
+      messagesSent: 0,
+      messagesReceived: 0,
+      bytesSent: 0,
+      bytesReceived: 0,
+      compressedMessages: 0,
+      deduplicatedMessages: 0,
+      rateLimitedClients: 0
+    };
   }
 
   /**

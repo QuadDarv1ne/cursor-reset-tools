@@ -1,390 +1,134 @@
 /**
- * VPN Manager - Управление VPN подключениями
- * Поддержка WireGuard, OpenVPN, Amnezia VPN
+ * Enhanced VPN Manager - Улучшенный менеджер VPN с поддержкой AmneziaVPN
+ * Обнаружение VPN, интеграция с AmneziaVPN, рекомендации по настройке
  */
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import fs from 'fs-extra';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+import fs from 'fs-extra';
+import https from 'https';
+import http from 'http';
 import { logger } from './logger.js';
 
 const execPromise = promisify(exec);
 
-/**
- * Конфигурация VPN
- */
-export const VPN_CONFIG = {
-  wireguard: {
-    configDir: {
-      win32: 'C:\\Program Files\\WireGuard\\Data\\Configurations',
-      darwin: '/usr/local/etc/wireguard',
-      linux: '/etc/wireguard'
-    },
-    binary: {
-      win32: 'C:\\Program Files\\WireGuard\\wireguard.exe',
-      darwin: '/usr/local/bin/wg',
-      linux: '/usr/bin/wg'
-    }
-  },
-  openvpn: {
-    configDir: {
-      win32: 'C:\\Program Files\\OpenVPN\\config',
-      darwin: '/usr/local/etc/openvpn',
-      linux: '/etc/openvpn'
-    },
-    binary: {
-      win32: 'C:\\Program Files\\OpenVPN\\bin\\openvpn.exe',
-      darwin: '/usr/local/bin/openvpn',
-      linux: '/usr/sbin/openvpn'
-    }
-  },
-  amnezia: {
-    configDir: {
-      win32: '%APPDATA%\\AmneziaVPN',
-      darwin: '~/Library/Application Support/AmneziaVPN',
-      linux: '~/.config/AmneziaVPN'
-    },
-    binary: {
-      win32: 'C:\\Program Files\\AmneziaVPN\\AmneziaVPN.exe',
-      darwin: '/Applications/AmneziaVPN.app/Contents/MacOS/AmneziaVPN',
-      linux: '/usr/bin/amneziavpn'
-    },
-    processes: ['amnezia', 'amneziavpn', 'awg', 'openvpn']
-  }
-};
-
-/**
- * Класс для управления VPN
- */
-export class VPNManager {
+class VPNManager {
   constructor() {
-    this.platform = os.platform();
-    this.currentConnection = null;
-    this.connections = new Map();
-    this.configPath = path.join(process.cwd(), 'data', 'vpn-configs');
-  }
-
-  /**
-   * Инициализация менеджера
-   */
-  async init() {
-    logger.info('Initializing VPN Manager...', 'vpn');
-
-    // Создание директории для конфигов
-    await fs.ensureDir(this.configPath);
-
-    // Проверка установленных VPN клиентов
-    const wireguardInstalled = await this.checkWireGuard();
-    const openvpnInstalled = await this.checkOpenVPN();
-
-    logger.info(`WireGuard: ${wireguardInstalled ? 'installed' : 'not installed'}`, 'vpn');
-    logger.info(`OpenVPN: ${openvpnInstalled ? 'installed' : 'not installed'}`, 'vpn');
-
-    return { wireguard: wireguardInstalled, openvpn: openvpnInstalled };
-  }
-
-  /**
-   * Проверка установки WireGuard
-   */
-  async checkWireGuard() {
-    try {
-      const binary = VPN_CONFIG.wireguard.binary[this.platform];
-      await execPromise(`"${binary}" --version 2>&1 || wg --version 2>&1`);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Проверка установки OpenVPN
-   */
-  async checkOpenVPN() {
-    try {
-      const binary = VPN_CONFIG.openvpn.binary[this.platform];
-      await execPromise(`"${binary}" --version 2>&1 || openvpn --version 2>&1`);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Создание WireGuard конфигурации
-   * @param {Object} config - Конфигурация
-   * @returns {string} - Путь к файлу конфигурации
-   */
-  createWireGuardConfig(config) {
-    const {
-      name,
-      privateKey,
-      address,
-      dns = '1.1.1.1',
-      peers = []
-    } = config;
-
-    let wgConfig = `[Interface]\n`;
-    wgConfig += `PrivateKey = ${privateKey}\n`;
-    wgConfig += `Address = ${address}\n`;
-    wgConfig += `DNS = ${dns}\n`;
-
-    for (const peer of peers) {
-      wgConfig += `\n[Peer]\n`;
-      wgConfig += `PublicKey = ${peer.publicKey}\n`;
-      if (peer.presharedKey) {
-        wgConfig += `PresharedKey = ${peer.presharedKey}\n`;
-      }
-      wgConfig += `Endpoint = ${peer.endpoint}\n`;
-      wgConfig += `AllowedIPs = ${peer.allowedIPs || '0.0.0.0/0'}\n`;
-      if (peer.persistentKeepalive) {
-        wgConfig += `PersistentKeepalive = ${peer.persistentKeepalive}\n`;
-      }
-    }
-
-    const configFile = path.join(this.configPath, `${name}.conf`);
-
-    fs.writeFileSync(configFile, wgConfig);
-    logger.info(`WireGuard config created: ${configFile}`, 'vpn');
-
-    return configFile;
-  }
-
-  /**
-   * Импорт WireGuard конфигурации
-   * @param {string} configFile - Путь к файлу
-   * @returns {Promise<boolean>}
-   */
-  async importWireGuardConfig(configFile) {
-    try {
-      if (this.platform === 'win32') {
-        const binary = VPN_CONFIG.wireguard.binary[this.platform];
-        await execPromise(`"${binary}" /installtunnelservice "${configFile}"`);
-      } else {
-        // Для Linux/macOS копируем в системную директорию
-        const dest = path.join(VPN_CONFIG.wireguard.configDir[this.platform], path.basename(configFile));
-        await fs.copy(configFile, dest);
-        await fs.chmod(dest, 0o600);
-      }
-
-      logger.info(`WireGuard config imported: ${configFile}`, 'vpn');
-      return true;
-    } catch (error) {
-      logger.error(`WireGuard import failed: ${error.message}`, 'vpn');
-      return false;
-    }
-  }
-
-  /**
-   * Подключение WireGuard
-   * @param {string} tunnelName - Имя туннеля
-   * @returns {Promise<boolean>}
-   */
-  async connectWireGuard(tunnelName) {
-    try {
-      if (this.platform === 'win32') {
-        const binary = VPN_CONFIG.wireguard.binary[this.platform];
-        await execPromise(`"${binary}" /settunnelstate "${tunnelName}" on`);
-      } else if (this.platform === 'darwin') {
-        await execPromise(`sudo wg-quick up ${tunnelName}`);
-      } else {
-        await execPromise(`sudo wg-quick up ${tunnelName}`);
-      }
-
-      this.currentConnection = { type: 'wireguard', name: tunnelName };
-      logger.info(`WireGuard connected: ${tunnelName}`, 'vpn');
-      return true;
-    } catch (error) {
-      logger.error(`WireGuard connect failed: ${error.message}`, 'vpn');
-      return false;
-    }
-  }
-
-  /**
-   * Отключение WireGuard
-   * @param {string} tunnelName - Имя туннеля
-   * @returns {Promise<boolean>}
-   */
-  async disconnectWireGuard(tunnelName) {
-    try {
-      if (this.platform === 'win32') {
-        const binary = VPN_CONFIG.wireguard.binary[this.platform];
-        await execPromise(`"${binary}" /settunnelstate "${tunnelName}" off`);
-      } else if (this.platform === 'darwin') {
-        await execPromise(`sudo wg-quick down ${tunnelName}`);
-      } else {
-        await execPromise(`sudo wg-quick down ${tunnelName}`);
-      }
-
-      this.currentConnection = null;
-      logger.info(`WireGuard disconnected: ${tunnelName}`, 'vpn');
-      return true;
-    } catch (error) {
-      logger.error(`WireGuard disconnect failed: ${error.message}`, 'vpn');
-      return false;
-    }
-  }
-
-  /**
-   * Создание OpenVPN конфигурации
-   * @param {Object} config - Конфигурация
-   * @returns {string} - Путь к файлу конфигурации
-   */
-  createOpenVPNConfig(config) {
-    const {
-      name,
-      remote,
-      port = 1194,
-      proto = 'udp',
-      dev = 'tun',
-      ca,
-      cert,
-      key,
-      tlsAuth,
-      cipher = 'AES-256-GCM',
-      auth = 'SHA256',
-      compress = 'lz4-v2'
-    } = config;
-
-    let ovpnConfig = `client\ndev ${dev}\nproto ${proto}\n`;
-    ovpnConfig += `remote ${remote} ${port}\n`;
-    ovpnConfig += `resolv-retry infinite\nnobind\npersist-key\npersist-tun\n`;
-    ovpnConfig += `cipher ${cipher}\nauth ${auth}\ncomp-lzo\nverb 3\n`;
-
-    if (compress) {
-      ovpnConfig += `compress ${compress}\n`;
-    }
-
-    // Вставка сертификатов
-    if (ca) {
-      ovpnConfig += `<ca>\n${ca}\n</ca>\n`;
-    }
-    if (cert) {
-      ovpnConfig += `<cert>\n${cert}\n</cert>\n`;
-    }
-    if (key) {
-      ovpnConfig += `<key>\n${key}\n</key>\n`;
-    }
-    if (tlsAuth) {
-      ovpnConfig += `<tls-auth>\n${tlsAuth}\n</tls-auth>\nkey-direction 1\n`;
-    }
-
-    const configFile = path.join(this.configPath, `${name}.ovpn`);
-    fs.writeFileSync(configFile, ovpnConfig);
-    logger.info(`OpenVPN config created: ${configFile}`, 'vpn');
-
-    return configFile;
-  }
-
-  /**
-   * Подключение OpenVPN
-   * @param {string} configFile - Путь к конфигурации
-   * @param {Object} options - Опции
-   * @returns {Promise<Object>}
-   */
-  async connectOpenVPN(configFile, options = {}) {
-    const { authUserPass } = options;
-
-    try {
-      const binary = VPN_CONFIG.openvpn.binary[this.platform];
-      const args = [`--config "${configFile}"`, '--daemon'];
-
-      if (authUserPass) {
-        const authFile = path.join(this.configPath, 'auth.txt');
-        fs.writeFileSync(authFile, authUserPass);
-        args.push(`--auth-user-pass "${authFile}"`);
-      }
-
-      const command = `"${binary}" ${args.join(' ')}`;
-
-      // Запуск в фоне
-      exec(command, error => {
-        if (error) {
-          logger.error(`OpenVPN error: ${error.message}`, 'vpn');
+    this.detected = false;
+    this.vpnType = null;
+    this.vpnInfo = {};
+    
+    // Поддерживаемые VPN клиенты
+    this.vpnClients = {
+      amnezia: {
+        name: 'AmneziaVPN',
+        processes: ['AmneziaVPN', 'AmneziaVPNService'],
+        configPaths: {
+          win32: [
+            path.join(os.homedir(), 'AppData', 'Local', 'AmneziaVPN'),
+            path.join(os.homedir(), 'AppData', 'Roaming', 'AmneziaVPN')
+          ],
+          darwin: [
+            path.join(os.homedir(), 'Library', 'Application Support', 'AmneziaVPN')
+          ],
+          linux: [
+            path.join(os.homedir(), '.config', 'AmneziaVPN'),
+            '/etc/amneziavpn'
+          ]
         }
-      });
-
-      // Ожидание подключения
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      this.currentConnection = { type: 'openvpn', config: configFile };
-      logger.info(`OpenVPN connected: ${configFile}`, 'vpn');
-
-      return { success: true, pid: null };
-    } catch (error) {
-      logger.error(`OpenVPN connect failed: ${error.message}`, 'vpn');
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Отключение OpenVPN
-   * @returns {Promise<boolean>}
-   */
-  async disconnectOpenVPN() {
-    try {
-      if (this.platform === 'win32') {
-        await execPromise('taskkill /F /IM openvpn.exe');
-      } else {
-        await execPromise('sudo pkill openvpn');
+      },
+      openvpn: {
+        name: 'OpenVPN',
+        processes: ['openvpn', 'openvpn-gui'],
+        configPaths: {
+          win32: [
+            path.join(os.homedir(), 'OpenVPN', 'config'),
+            'C:\\Program Files\\OpenVPN\\config'
+          ],
+          darwin: [
+            '/usr/local/etc/openvpn'
+          ],
+          linux: [
+            '/etc/openvpn'
+          ]
+        }
+      },
+      wireguard: {
+        name: 'WireGuard',
+        processes: ['wireguard', 'wg', 'WireGuard'],
+        configPaths: {
+          win32: [
+            path.join(os.homedir(), 'AppData', 'Local', 'WireGuard')
+          ],
+          darwin: [
+            '/etc/wireguard',
+            '/usr/local/etc/wireguard'
+          ],
+          linux: [
+            '/etc/wireguard'
+          ]
+        }
+      },
+      v2ray: {
+        name: 'V2Ray/XRay',
+        processes: ['v2ray', 'xray', 'v2rayN'],
+        configPaths: {
+          win32: [
+            path.join(os.homedir(), 'AppData', 'Local', 'v2rayN')
+          ],
+          darwin: [
+            path.join(os.homedir(), '.config', 'v2ray')
+          ],
+          linux: [
+            path.join(os.homedir(), '.config', 'v2ray'),
+            '/etc/v2ray'
+          ]
+        }
+      },
+      clash: {
+        name: 'Clash',
+        processes: ['clash', 'clash-for-windows', 'Clash'],
+        configPaths: {
+          win32: [
+            path.join(os.homedir(), '.config', 'clash'),
+            path.join(os.homedir(), 'AppData', 'Local', 'clash')
+          ],
+          darwin: [
+            path.join(os.homedir(), '.config', 'clash')
+          ],
+          linux: [
+            path.join(os.homedir(), '.config', 'clash')
+          ]
+        }
       }
-
-      this.currentConnection = null;
-      logger.info('OpenVPN disconnected', 'vpn');
-      return true;
-    } catch (error) {
-      logger.error(`OpenVPN disconnect failed: ${error.message}`, 'vpn');
-      return false;
-    }
-  }
-
-  /**
-   * Отключение любого VPN
-   * @returns {Promise<boolean>}
-   */
-  async disconnect() {
-    if (this.currentConnection?.type === 'wireguard') {
-      return this.disconnectWireGuard(this.currentConnection.name);
-    } else if (this.currentConnection?.type === 'openvpn') {
-      return this.disconnectOpenVPN();
-    }
-    return true;
-  }
-
-  /**
-   * Проверка статуса подключения
-   * @returns {Promise<Object>}
-   */
-  async getStatus() {
-    const status = {
-      connected: !!this.currentConnection,
-      type: this.currentConnection?.type || null,
-      name: this.currentConnection?.name || null,
-      ip: null,
-      country: null
     };
 
-    if (this.currentConnection) {
-      try {
-        // Получение внешнего IP
-        const fetch = (await import('node-fetch')).default;
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
+    // AmneziaVPN протоколы
+    this.amneziaProtocols = [
+      { id: 'awg', name: 'AmneziaWG', recommended: true, obfuscation: true },
+      { id: 'openvpn', name: 'OpenVPN over Cloak', recommended: true, obfuscation: true },
+      { id: 'xray', name: 'XRay', recommended: true, obfuscation: true },
+      { id: 'wireguard', name: 'WireGuard', recommended: false, obfuscation: false },
+      { id: 'openvpn-adtls', name: 'OpenVPN over AmneziaTLS', recommended: true, obfuscation: true }
+    ];
 
-        status.ip = data.ip;
-        status.country = data.country_name;
-      } catch (error) {
-        logger.debug(`Failed to get VPN status: ${error.message}`, 'vpn');
+    // Рекомендуемые конфигурации для Cursor
+    this.cursorOptimizedConfigs = {
+      preferredProtocol: 'awg',
+      preferredCountries: ['NL', 'DE', 'FI', 'CH', 'SG', 'JP'],
+      avoidCountries: ['RU', 'BY', 'CN', 'IR'],
+      features: {
+        killSwitch: true,
+        dns: '1.1.1.1',
+        splitTunneling: false
       }
-    }
-
-    return status;
+    };
   }
 
   /**
-   * Проверка любого активного VPN подключения (включая Amnezia, NordVPN, и др.)
-   * @returns {Promise<Object>}
+   * Обнаружение активного VPN
    */
   async detectActiveVPN() {
     const result = {
@@ -394,435 +138,527 @@ export class VPNManager {
       ip: null,
       country: null,
       countryCode: null,
-      isp: null,
-      isVPN: false,
-      isProxy: false,
-      isTor: false,
-      threat: null,
-      vpnMethod: null,
-      details: {}
+      city: null,
+      isObfuscated: false,
+      protocols: []
     };
 
     try {
-      const fetch = (await import('node-fetch')).default;
-
-      // Параллельный запрос к нескольким сервисам для надёжности
-      const services = [
-        { name: 'ipapi', url: 'https://ipapi.co/json/', timeout: 5000 },
-        { name: 'ipwho', url: 'https://ipwho.is/', timeout: 5000 },
-        { name: 'ipinfo', url: 'https://ipinfo.io/json', timeout: 5000 }
-      ];
-
-      let ipData = null;
-      let usedService = null;
-
-      for (const service of services) {
-        try {
-          const response = await fetch(service.url, { timeout: service.timeout });
-          if (response.ok) {
-            ipData = await response.json();
-            usedService = service.name;
-            break;
-          }
-        } catch (error) {
-          logger.debug(`IP service ${service.name} failed: ${error.message}`, 'vpn');
-          continue;
-        }
+      // 1. Проверяем IP адрес
+      const ipInfo = await this.getIPInfo();
+      
+      if (ipInfo) {
+        result.ip = ipInfo.ip;
+        result.country = ipInfo.country;
+        result.countryCode = ipInfo.countryCode;
+        result.city = ipInfo.city;
       }
 
-      if (!ipData) {
-        logger.warn('All IP services failed, VPN may be blocking access', 'vpn');
+      // 2. Проверяем запущенные процессы VPN
+      const runningVPNs = await this.detectRunningVPNProcesses();
+      
+      if (runningVPNs.length > 0) {
         result.detected = true;
-        result.type = 'blocked_ip_services';
-        result.vpnMethod = 'blocked_services';
-        return result;
+        result.type = runningVPNs[0].type;
+        result.name = runningVPNs[0].name;
+        result.isObfuscated = this.checkObfuscation(runningVPNs[0].type);
       }
 
-      result.ip = ipData.ip || ipData.query;
-      result.country = ipData.country_name || ipData.country;
-      result.countryCode = ipData.country_code || ipData.countryCode;
-      result.isp = ipData.org || ipData.isp || ipData.asn;
-      result.details = ipData;
-
-      // Метод 1: Проверка на известные VPN провайдеры по ISP
-      const vpnProviders = [
-        'Mullvad', 'NordVPN', 'ExpressVPN', 'Surfshark',
-        'ProtonVPN', 'CyberGhost', 'PIA', 'Windscribe',
-        'Amnezia', 'WireGuard', 'OpenVPN', 'TunnelBear',
-        'Hotspot Shield', 'Betternet', 'Psiphon', 'Lantern',
-        'Astrill', 'VyprVPN', 'IPVanish', 'StrongVPN',
-        'Private Internet Access', 'Cyberghost', 'Kaspersky'
-      ];
-
-      const ispLower = (result.isp || '').toLowerCase();
-      result.isVPN = vpnProviders.some(v => ispLower.includes(v.toLowerCase()));
-
-      // Метод 2: Проверка через ipapi.co (если доступно поле vpn)
-      if (ipData.vpn !== undefined) {
-        result.isVPN = result.isVPN || ipData.vpn;
+      // 3. Проверяем сетевые интерфейсы
+      const interfaces = this.checkVPNInterfaces();
+      if (interfaces.length > 0) {
+        result.detected = true;
+        result.interfaces = interfaces;
       }
 
-      // Метод 3: Проверка на прокси
-      if (ipData.proxy !== undefined) {
-        result.isProxy = ipData.proxy;
-      }
-
-      // Метод 4: Проверка на Tor
-      if (ipData.tor !== undefined) {
-        result.isTor = ipData.tor;
-      }
-
-      // Метод 5: Проверка на угрозы
-      if (ipData.threat !== undefined) {
-        result.threat = ipData.threat;
-      }
-
-      // Метод 6: Проверка через IP (некоторые страны = VPN)
-      const vpnCountries = ['KZ', 'SG', 'NL', 'DE', 'US', 'GB', 'FR', 'FI', 'SE', 'NO', 'DK', 'CH', 'AT', 'BE', 'IT', 'ES', 'PT', 'PL', 'CZ', 'RO', 'HU', 'BG', 'HR', 'SK', 'SI', 'LT', 'LV', 'EE', 'CY', 'MT', 'LU', 'IS', 'IE', 'NZ', 'AU', 'JP', 'KR', 'TW', 'HK', 'AE', 'IL', 'TR', 'ZA', 'BR', 'MX', 'AR', 'CL', 'CO', 'PE'];
-      const isForeignIP = vpnCountries.includes(result.countryCode);
-
-      // Метод 7: Проверка через процессы (Windows)
-      let processDetected = false;
-      if (this.platform === 'win32') {
-        processDetected = await this._checkVPNProcesses();
-      }
-
-      // Метод 8: Проверка через сетевые интерфейсы
-      const interfaceDetected = await this._checkVPNInterfaces();
-
-      // Итоговое определение
-      result.detected = result.isVPN || result.isProxy || result.isTor || isForeignIP || processDetected || interfaceDetected;
-
-      if (result.isVPN) {
-        result.type = 'known_vpn';
-        result.vpnMethod = 'isp_match';
-      } else if (result.isProxy) {
-        result.type = 'proxy';
-        result.vpnMethod = 'proxy_detected';
-      } else if (result.isTor) {
-        result.type = 'tor';
-        result.vpnMethod = 'tor_detected';
-      } else if (processDetected) {
-        result.type = 'vpn_process';
-        result.vpnMethod = 'process_detected';
-      } else if (interfaceDetected) {
-        result.type = 'vpn_interface';
-        result.vpnMethod = 'interface_detected';
-      } else if (isForeignIP) {
-        result.type = 'foreign_ip';
-        result.vpnMethod = 'geo_location';
-      } else {
-        result.type = 'local';
-        result.vpnMethod = 'none';
-      }
-
-      result.name = result.isp || result.type;
-      result.usedService = usedService;
-
-      logger.info(`VPN detection (${usedService}): ${JSON.stringify({ detected: result.detected, type: result.type, country: result.country, vpn: result.isVPN })}`, 'vpn');
-
-      return result;
-    } catch (error) {
-      logger.debug(`VPN detection failed: ${error.message}`, 'vpn');
-      result.detected = false;
-      result.error = error.message;
-      return result;
-    }
-  }
-
-  /**
-   * Проверка процессов VPN (Windows)
-   * @private
-   */
-  async _checkVPNProcesses() {
-    if (this.platform !== 'win32') {
-      return false;
-    }
-
-    try {
-      const { stdout } = await execPromise('tasklist /FI "STATUS eq RUNNING" 2>nul');
-      const processes = stdout.toLowerCase();
-
-      const vpnProcesses = [
-        'amnezia', 'wireguard', 'openvpn', 'nordvpn',
-        'expressvpn', 'surfshark', 'protonvpn', 'cyberghost',
-        'pia', 'windscribe', 'tunnelbear', 'hotspot',
-        'betternet', 'psiphon', 'lantern', 'astrill',
-        'vyprvpn', 'ipvanish', 'strongvpn', 'kaspersky'
-      ];
-
-      const processFound = vpnProcesses.some(proc => processes.includes(proc));
-
-      // Дополнительная проверка для Amnezia через PowerShell
-      if (!processFound) {
-        try {
-          const { stdout: psOutput } = await execPromise(
-            'Get-Process | Where-Object {$_.ProcessName -like "*amnezia*" -or $_.ProcessName -like "*awg*"}',
-            { shell: 'powershell.exe' }
-          );
-          return psOutput.trim().length > 0;
-        } catch (e) {
-          return false;
+      // 4. Проверяем AmneziaVPN отдельно
+      const amneziaStatus = await this.getAmneziaStatus();
+      if (amneziaStatus.installed) {
+        result.amneziaInstalled = true;
+        if (amneziaStatus.connected) {
+          result.detected = true;
+          result.type = 'amnezia';
+          result.name = 'AmneziaVPN';
+          result.protocol = amneziaStatus.protocol;
+          result.isObfuscated = amneziaStatus.isObfuscated;
         }
       }
 
-      return processFound;
-    } catch (error) {
-      return false;
-    }
-  }
+      this.detected = result.detected;
+      this.vpnType = result.type;
+      this.vpnInfo = result;
 
-  /**
-   * Проверка сетевых интерфейсов на наличие VPN
-   * @private
-   */
-  async _checkVPNInterfaces() {
-    try {
-      const interfaces = os.networkInterfaces();
-
-      for (const [name, iface] of Object.entries(interfaces)) {
-        const nameLower = name.toLowerCase();
-        // Проверка имён интерфейсов (WireGuard, TAP, TUN)
-        if (nameLower.includes('wireguard') ||
-            nameLower.includes('wg') ||
-            nameLower.includes('tun') ||
-            nameLower.includes('tap') ||
-            nameLower.includes('vpn') ||
-            nameLower.includes('amnezia')) {
-          return true;
-        }
-
-        // Проверка IP адресов интерфейсов
-        if (iface) {
-          for (const addr of iface) {
-            // WireGuard использует специфические диапазоны
-            if (addr.address && addr.address.startsWith('10.')) {
-              // Дополнительная проверка - если шлюз отличается от стандартного
-              return false; // Нужна дополнительная проверка
-            }
-          }
-        }
-      }
-
-      return false;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Получение списка конфигураций
-   * @returns {Promise<Array>}
-   */
-  async getConfigs() {
-    try {
-      const files = await fs.readdir(this.configPath);
-      const configs = [];
-
-      for (const file of files) {
-        if (file.endsWith('.conf')) {
-          configs.push({
-            name: file.replace('.conf', ''),
-            type: 'wireguard',
-            path: path.join(this.configPath, file)
-          });
-        } else if (file.endsWith('.ovpn')) {
-          configs.push({
-            name: file.replace('.ovpn', ''),
-            type: 'openvpn',
-            path: path.join(this.configPath, file)
-          });
-        }
-      }
-
-      return configs;
-    } catch (error) {
-      return [];
-    }
-  }
-
-  /**
-   * Удаление конфигурации
-   * @param {string} name - Имя конфигурации
-   * @returns {Promise<boolean>}
-   */
-  async deleteConfig(name) {
-    try {
-      const confFile = path.join(this.configPath, `${name}.conf`);
-      const ovpnFile = path.join(this.configPath, `${name}.ovpn`);
-
-      if (await fs.pathExists(confFile)) {
-        await fs.remove(confFile);
-      }
-      if (await fs.pathExists(ovpnFile)) {
-        await fs.remove(ovpnFile);
-      }
-
-      logger.info(`VPN config deleted: ${name}`, 'vpn');
-      return true;
-    } catch (error) {
-      logger.error(`Delete config failed: ${error.message}`, 'vpn');
-      return false;
-    }
-  }
-
-  /**
-   * Генерация ключей WireGuard
-   * @returns {Promise<Object>}
-   */
-  async generateWireGuardKeys() {
-    try {
-      if (this.platform === 'win32') {
-        // Windows требует установленный WireGuard для генерации ключей
-        const { stdout: privateKey } = await execPromise('wgen privatekey');
-        const { stdout: publicKey } = await execPromise(`echo ${privateKey.trim()} | wgen publickey`);
-
-        return {
-          privateKey: privateKey.trim(),
-          publicKey: publicKey.trim()
-        };
-      }
-      const { stdout: privateKey } = await execPromise('wg genkey');
-      const { stdout: publicKey } = await execPromise(`echo ${privateKey.trim()} | wg pubkey`);
-
-      return {
-        privateKey: privateKey.trim(),
-        publicKey: publicKey.trim()
-      };
+      logger.info(`VPN detection: ${result.detected ? result.name : 'Not detected'}`, 'vpn');
 
     } catch (error) {
-      logger.error(`Key generation failed: ${error.message}`, 'vpn');
-      return null;
+      logger.warn(`VPN detection error: ${error.message}`, 'vpn');
     }
-  }
-
-  /**
-   * Быстрое подключение к бесплатному VPN
-   * @returns {Promise<Object>}
-   */
-  async quickConnect() {
-    logger.info('Quick connect initiated...', 'vpn');
-
-    // Проверка доступных VPN
-    const wireguard = await this.checkWireGuard();
-    const openvpn = await this.checkOpenVPN();
-    const amnezia = await this.checkAmneziaVPN();
-
-    if (!wireguard && !openvpn && !amnezia) {
-      return {
-        success: false,
-        error: 'No VPN client installed. Install WireGuard, OpenVPN or Amnezia VPN.'
-      };
-    }
-
-    // Отключение текущего подключения
-    if (this.currentConnection) {
-      await this.disconnect();
-    }
-
-    // Получение статуса
-    const status = await this.getStatus();
-
-    return {
-      success: true,
-      message: 'Quick connect completed',
-      ...status
-    };
-  }
-
-  /**
-   * Проверка установки Amnezia VPN
-   */
-  async checkAmneziaVPN() {
-    try {
-      const binary = VPN_CONFIG.amnezia.binary[this.platform];
-
-      if (this.platform === 'win32') {
-        // Проверка через PowerShell
-        try {
-          const { stdout } = await execPromise(
-            `Test-Path "${binary}"`,
-            { shell: 'powershell.exe' }
-          );
-          return stdout.trim().toLowerCase() === 'true';
-        } catch (e) {
-          return false;
-        }
-      } else {
-        await execPromise(`"${binary}" --version 2>&1 || true`);
-        return true;
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Получение статуса Amnezia VPN
-   */
-  async getAmneziaStatus() {
-    const result = {
-      installed: await this.checkAmneziaVPN(),
-      running: false,
-      connected: false,
-      config: null
-    };
-
-    if (!result.installed) {
-      return result;
-    }
-
-    // Проверка запущенных процессов
-    try {
-      if (this.platform === 'win32') {
-        const { stdout } = await execPromise(
-          'Get-Process | Where-Object {$_.ProcessName -like "*amnezia*"}',
-          { shell: 'powershell.exe' }
-        );
-        result.running = stdout.trim().length > 0;
-      } else {
-        const { stdout } = await execPromise('pgrep -l amnezia || true');
-        result.running = stdout.trim().length > 0;
-      }
-    } catch (e) {
-      result.running = false;
-    }
-
-    // Проверка подключения через detectActiveVPN
-    const activeVPN = await this.detectActiveVPN();
-    result.connected = activeVPN.detected && (
-      activeVPN.type?.includes('amnezia') ||
-      activeVPN.vpnMethod?.includes('amnezia') ||
-      activeVPN.isp?.toLowerCase().includes('amnezia')
-    );
 
     return result;
   }
 
   /**
-   * Рекомендации для Amnezia VPN
+   * Получение информации об IP
+   */
+  async getIPInfo() {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(null), 5000);
+
+      http.get('http://ip-api.com/json/', (res) => {
+        clearTimeout(timeout);
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.status === 'success') {
+              resolve({
+                ip: json.query,
+                country: json.country,
+                countryCode: json.countryCode,
+                city: json.city,
+                isp: json.isp,
+                org: json.org
+              });
+            } else {
+              resolve(null);
+            }
+          } catch {
+            resolve(null);
+          }
+        });
+      }).on('error', () => {
+        clearTimeout(timeout);
+        resolve(null);
+      });
+    });
+  }
+
+  /**
+   * Обнаружение запущенных VPN процессов
+   */
+  async detectRunningVPNProcesses() {
+    const running = [];
+    const platform = os.platform();
+
+    try {
+      let processList = '';
+
+      if (platform === 'win32') {
+        const { stdout } = await execPromise('tasklist 2>nul');
+        processList = stdout.toLowerCase();
+      } else {
+        const { stdout } = await execPromise('ps aux 2>/dev/null || ps -ef 2>/dev/null');
+        processList = stdout.toLowerCase();
+      }
+
+      for (const [type, client] of Object.entries(this.vpnClients)) {
+        for (const proc of client.processes) {
+          if (processList.includes(proc.toLowerCase())) {
+            running.push({ type, name: client.name, process: proc });
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      logger.debug(`Process detection error: ${error.message}`, 'vpn');
+    }
+
+    return running;
+  }
+
+  /**
+   * Проверка VPN интерфейсов
+   */
+  checkVPNInterfaces() {
+    const interfaces = os.networkInterfaces();
+    const vpnInterfaces = [];
+
+    const vpnInterfaceNames = ['tun', 'tap', 'wg', 'ppp', 'utun', 'en0', 'wintun'];
+
+    for (const [name, addrs] of Object.entries(interfaces)) {
+      const nameLower = name.toLowerCase();
+      
+      if (vpnInterfaceNames.some(vpn => nameLower.includes(vpn))) {
+        vpnInterfaces.push({
+          name,
+          addresses: addrs.filter(a => !a.internal).map(a => ({
+            address: a.address,
+            family: a.family,
+            mac: a.mac
+          }))
+        });
+      }
+    }
+
+    return vpnInterfaces;
+  }
+
+  /**
+   * Проверка обфускации
+   */
+  checkObfuscation(vpnType) {
+    const obfuscatedTypes = ['amnezia', 'v2ray', 'clash'];
+    return obfuscatedTypes.includes(vpnType);
+  }
+
+  /**
+   * Получение статуса AmneziaVPN
+   */
+  async getAmneziaStatus() {
+    const result = {
+      installed: false,
+      running: false,
+      connected: false,
+      protocol: null,
+      country: null,
+      isObfuscated: true
+    };
+
+    const platform = os.platform();
+    const amnezia = this.vpnClients.amnezia;
+
+    try {
+      // Проверка установки
+      const configPaths = amnezia.configPaths[platform] || [];
+      
+      for (const configPath of configPaths) {
+        if (await fs.pathExists(configPath)) {
+          result.installed = true;
+          result.configPath = configPath;
+
+          // Проверяем конфигурацию
+          const config = await this.parseAmneziaConfig(configPath);
+          if (config) {
+            result.protocol = config.protocol;
+            result.country = config.country;
+          }
+          break;
+        }
+      }
+
+      // Проверка процесса
+      let processList = '';
+      if (platform === 'win32') {
+        const { stdout } = await execPromise('tasklist 2>nul');
+        processList = stdout.toLowerCase();
+      } else {
+        const { stdout } = await execPromise('ps aux 2>/dev/null || ps -ef 2>/dev/null');
+        processList = stdout.toLowerCase();
+      }
+
+      for (const proc of amnezia.processes) {
+        if (processList.includes(proc.toLowerCase())) {
+          result.running = true;
+          break;
+        }
+      }
+
+      // Проверка соединения через API (если доступен)
+      try {
+        const { stdout } = await execPromise(
+          platform === 'win32' 
+            ? 'curl -s http://127.0.0.1:15015/api/v1/state 2>nul' 
+            : 'curl -s http://127.0.0.1:15015/api/v1/state 2>/dev/null'
+        );
+        
+        const state = JSON.parse(stdout);
+        result.connected = state.connected || false;
+        result.protocol = state.protocol || result.protocol;
+      } catch {
+        // API недоступен, проверяем через интерфейсы
+        const vpnInterfaces = this.checkVPNInterfaces();
+        result.connected = vpnInterfaces.length > 0;
+      }
+
+    } catch (error) {
+      logger.debug(`AmneziaVPN check error: ${error.message}`, 'vpn');
+    }
+
+    return result;
+  }
+
+  /**
+   * Парсинг конфигурации AmneziaVPN
+   */
+  async parseAmneziaConfig(configPath) {
+    try {
+      const config = await fs.readFile(path.join(configPath, 'config.json'), 'utf8');
+      const json = JSON.parse(config);
+
+      return {
+        protocol: json.protocol || json.currentProtocol || 'unknown',
+        country: json.countryCode || json.country,
+        server: json.server,
+        port: json.port
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Рекомендации по AmneziaVPN для Cursor
    */
   getAmneziaRecommendations() {
-    const recommendations = [];
-
-    // Amnezia использует WireGuard протокол по умолчанию
-    recommendations.push({
-      type: 'amnezia',
-      title: 'Amnezia VPN обнаружен',
-      description: 'Amnezia использует модифицированный WireGuard для обхода блокировок',
+    return {
+      preferredProtocols: this.amneziaProtocols.filter(p => p.recommended),
+      optimalSettings: {
+        protocol: 'awg',
+        dns: '1.1.1.1',
+        killSwitch: true,
+        splitTunneling: {
+          enabled: true,
+          apps: ['Cursor.exe', 'cursor']
+        }
+      },
+      serverSelection: {
+        preferred: this.cursorOptimizedConfigs.preferredCountries,
+        avoid: this.cursorOptimizedConfigs.avoidCountries
+      },
       tips: [
-        'Используйте протокол AmneziaWG для лучшей производительности',
-        'Включите "Maskobka" для маскировки VPN трафика',
-        'Настройте DNS через Amnezia (1.1.1.1 или 9.9.9.9)',
-        'Включите Kill Switch в настройках Amnezia'
+        {
+          title: 'Используйте AmneziaWG',
+          description: 'Протокол AmneziaWG обеспечивает лучшую обфускацию и скорость для Cursor'
+        },
+        {
+          title: 'Включите Kill Switch',
+          description: 'Защитит от утечек при разрыве соединения'
+        },
+        {
+          title: 'Выберите сервер в Нидерландах или Германии',
+          description: 'Минимальная задержка и стабильное соединение'
+        },
+        {
+          title: 'Настройте DNS на 1.1.1.1',
+          description: 'Предотвратит утечки DNS запросов'
+        }
       ]
-    });
+    };
+  }
 
-    return recommendations;
+  /**
+   * Генерация конфигурации для Cursor
+   */
+  generateCursorConfig(protocol = 'awg') {
+    return {
+      protocol,
+      settings: {
+        dns: '1.1.1.1',
+        killSwitch: true,
+        splitTunneling: false,
+        autoConnect: true,
+        preferredServers: this.cursorOptimizedConfigs.preferredCountries
+      },
+      optimizations: {
+        mtu: 1420,
+        keepalive: 25,
+        timeout: 30
+      }
+    };
+  }
+
+  /**
+   * Проверка оптимальности VPN для Cursor
+   */
+  async checkVPNForCursor() {
+    const vpnStatus = await this.detectActiveVPN();
+    const analysis = {
+      suitable: false,
+      score: 0,
+      issues: [],
+      recommendations: []
+    };
+
+    if (!vpnStatus.detected) {
+      analysis.issues.push({
+        type: 'no_vpn',
+        severity: 'critical',
+        message: 'VPN не обнаружен'
+      });
+      analysis.recommendations.push({
+        priority: 'high',
+        action: 'install_vpn',
+        message: 'Установите AmneziaVPN для обхода блокировок'
+      });
+      return analysis;
+    }
+
+    // Проверка обфускации
+    if (!vpnStatus.isObfuscated) {
+      analysis.issues.push({
+        type: 'no_obfuscation',
+        severity: 'high',
+        message: 'VPN без обфускации может быть заблокирован'
+      });
+      analysis.score -= 30;
+    } else {
+      analysis.score += 40;
+    }
+
+    // Проверка страны
+    if (vpnStatus.countryCode) {
+      if (this.cursorOptimizedConfigs.avoidCountries.includes(vpnStatus.countryCode)) {
+        analysis.issues.push({
+          type: 'blocked_country',
+          severity: 'high',
+          message: `Страна ${vpnStatus.country} может иметь ограничения`
+        });
+        analysis.score -= 20;
+      } else if (this.cursorOptimizedConfigs.preferredCountries.includes(vpnStatus.countryCode)) {
+        analysis.score += 30;
+      }
+    }
+
+    // Проверка утечек
+    const leakCheck = await this.checkVPNLeaks();
+    if (leakCheck.hasLeaks) {
+      analysis.issues.push({
+        type: 'leak',
+        severity: 'critical',
+        message: 'Обнаружены утечки через VPN'
+      });
+      analysis.score -= 40;
+    }
+
+    // Финальная оценка
+    analysis.suitable = analysis.score >= 50;
+    analysis.score = Math.max(0, Math.min(100, analysis.score + 50));
+
+    return analysis;
+  }
+
+  /**
+   * Проверка утечек через VPN
+   */
+  async checkVPNLeaks() {
+    const result = {
+      hasLeaks: false,
+      dns: false,
+      webrtc: false,
+      ipv6: false
+    };
+
+    try {
+      // Проверка DNS утечек
+      const dnsIP = await this.getDNSLeakIP();
+      const vpnIP = await this.getVPNIP();
+      
+      if (dnsIP && vpnIP && dnsIP !== vpnIP) {
+        result.dns = true;
+        result.hasLeaks = true;
+      }
+
+      // Проверка IPv6
+      const interfaces = os.networkInterfaces();
+      for (const addrs of Object.values(interfaces)) {
+        for (const addr of addrs) {
+          if (addr.family === 'IPv6' && !addr.internal && !addr.address.startsWith('fe80:')) {
+            result.ipv6 = true;
+            result.hasLeaks = true;
+          }
+        }
+      }
+    } catch (error) {
+      logger.debug(`Leak check error: ${error.message}`, 'vpn');
+    }
+
+    return result;
+  }
+
+  /**
+   * Получение IP через DNS
+   */
+  async getDNSLeakIP() {
+    try {
+      const { stdout } = await execPromise('nslookup whoami.akamai.net. 2>nul');
+      const match = stdout.match(/Address:\s*(\d+\.\d+\.\d+\.\d+)/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Получение VPN IP
+   */
+  async getVPNIP() {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(null), 5000);
+
+      https.get('https://api.ipify.org?format=json', (res) => {
+        clearTimeout(timeout);
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve(json.ip);
+          } catch {
+            resolve(null);
+          }
+        });
+      }).on('error', () => {
+        clearTimeout(timeout);
+        resolve(null);
+      });
+    });
+  }
+
+  /**
+   * Инструкция по установке AmneziaVPN
+   */
+  getInstallationGuide() {
+    const platform = os.platform();
+    
+    const guides = {
+      win32: {
+        download: 'https://amnezia.org/ru/downloads',
+        steps: [
+          'Скачайте AmneziaVPN с официального сайта',
+          'Запустите установщик и следуйте инструкциям',
+          'Настройте свой сервер или используйте готовый конфиг',
+          'Выберите протокол AmneziaWG для лучшей обфускации',
+          'Подключитесь к серверу в Нидерландах или Германии'
+        ]
+      },
+      darwin: {
+        download: 'https://amnezia.org/ru/downloads',
+        steps: [
+          'Скачайте AmneziaVPN для macOS',
+          'Переместите приложение в Applications',
+          'Запустите и разрешите VPN конфигурацию',
+          'Настройте подключение через AmneziaWG',
+          'Подключитесь к серверу'
+        ]
+      },
+      linux: {
+        download: 'https://amnezia.org/ru/downloads',
+        steps: [
+          'Скачайте .AppImage или используйте Flatpak',
+          'chmod +x AmneziaVPN.AppImage',
+          'Запустите ./AmneziaVPN.AppImage',
+          'Настройте подключение',
+          'Подключитесь к серверу'
+        ]
+      }
+    };
+
+    return guides[platform] || guides.win32;
+  }
+
+  /**
+   * Получить статус
+   */
+  getStatus() {
+    return {
+      detected: this.detected,
+      type: this.vpnType,
+      info: this.vpnInfo
+    };
   }
 }
 
-// Глобальный экземпляр
+// Singleton
 export const globalVPNManager = new VPNManager();
-
 export default VPNManager;

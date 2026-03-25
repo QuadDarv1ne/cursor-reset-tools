@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Cursor Reset Tools</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body {
+      font-family: 'Google Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .card-header h2 { font-size: 18px; font-weight: 500; margin: 0; }
+    .card-body { padding: 20px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-card {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value { font-size: 24px; font-weight: 700; color: #667eea; margin-bottom: 4px; }
+    .stat-label { font-size: 13px; color: #6b7280; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .status-success { background: #d1fae5; color: #065f46; }
+    .status-warning { background: #fef3c7; color: #92400e; }
+    .status-error { background: #fee2e2; color: #991b1b; }
+    .status-info { background: #dbeafe; color: #1e40af; }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+    .btn-success { background: #10b981; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-warning { background: #f59e0b; color: white; }
+    .progress-bar {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease, background 0.3s;
+      background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    }
+    .progress-fill.warning { background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%); }
+    .progress-fill.danger { background: linear-gradient(90deg, #ef4444 0%, #f87171 100%); }
+    .log-container {
+      background: #1f2937;
+      color: #10b981;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry { margin: 4px 0; display: flex; gap: 8px; }
+    .log-time { color: #6b7280; }
+    .nav-bar {
+      background: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .nav-links { display: flex; gap: 8px; }
+    .nav-link {
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #667eea;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .nav-link:hover { background: #f3f4f6; }
+    .nav-link.active { background: #667eea; color: white; }
+    .chart-container { position: relative; height: 200px; margin-top: 16px; }
+    .metric-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .metric-item:last-child { border-bottom: none; }
+    .metric-label { font-size: 14px; color: #6b7280; }
+    .metric-value { font-weight: 600; color: #1f2937; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Navigation -->
+    <div class="nav-bar">
+      <h1 style="font-size: 20px; margin: 0;"><i class="ri-dashboard-line"></i> Dashboard</h1>
+      <div class="nav-links">
+        <a href="/" class="nav-link"><i class="ri-home-line"></i> Главная</a>
+        <a href="/bypass" class="nav-link"><i class="ri-global-line"></i> Bypass Tools</a>
+        <a href="/dashboard" class="nav-link active"><i class="ri-dashboard-line"></i> Dashboard</a>
+      </div>
+      <button class="btn btn-primary" onclick="refreshAll()">
+        <i class="ri-refresh-line"></i> Обновить
+      </button>
+    </div>
+
+    <!-- System Overview -->
+    <div class="grid-4">
+      <div class="stat-card">
+        <div class="stat-value" id="uptime">--</div>
+        <div class="stat-label"><i class="ri-time-line"></i> Uptime</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="memory-usage">--</div>
+        <div class="stat-label"><i class="ri-ram-line"></i> Память</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="active-clients">--</div>
+        <div class="stat-label"><i class="ri-group-line"></i> Клиенты</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="cache-hit-rate">--</div>
+        <div class="stat-label"><i class="ri-database-2-line"></i> Cache Hit</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Resource Monitor -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-cpu-line"></i> Ресурсы системы</h2>
+          <span id="resource-status" class="status-badge status-success">
+            <i class="ri-wifi-line"></i> OK
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="metric-item">
+            <span class="metric-label"><i class="ri-cpu-line"></i> CPU</span>
+            <div style="flex: 1; margin: 0 16px;">
+              <div class="progress-bar">
+                <div class="progress-fill" id="cpu-bar" style="width: 0%"></div>
+              </div>
+            </div>
+            <span class="metric-value" id="cpu-value">--%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label"><i class="ri-ram-line"></i> RAM</span>
+            <div style="flex: 1; margin: 0 16px;">
+              <div class="progress-bar">
+                <div class="progress-fill" id="memory-bar" style="width: 0%"></div>
+              </div>
+            </div>
+            <span class="metric-value" id="memory-value">--%</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label"><i class="ri-database-line"></i> Disk</span>
+            <div style="flex: 1; margin: 0 16px;">
+              <div class="progress-bar">
+                <div class="progress-fill" id="disk-bar" style="width: 0%"></div>
+              </div>
+            </div>
+            <span class="metric-value" id="disk-value">--%</span>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <span class="status-badge status-info" id="resource-samples">Samples: 0</span>
+            <span class="status-badge status-info" id="resource-alerts-count">Alerts: 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cache Statistics -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-database-2-line"></i> Кэш статистика</h2>
+          <span id="cache-status" class="status-badge status-success">
+            <i class="ri-check-line"></i> Активен
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="grid-2" style="margin-bottom: 16px;">
+            <div class="stat-card">
+              <div class="stat-value" id="cache-hits">0</div>
+              <div class="stat-label">Hits</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="cache-misses">0</div>
+              <div class="stat-label">Misses</div>
+            </div>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Размер кэша</span>
+            <span class="metric-value" id="cache-size">0</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Установок</span>
+            <span class="metric-value" id="cache-sets">0</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Удалений</span>
+            <span class="metric-value" id="cache-deletes">0</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Истечений TTL</span>
+            <span class="metric-value" id="cache-expirations">0</span>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button class="btn btn-warning" onclick="clearCache()">
+              <i class="ri-delete-bin-line"></i> Очистить
+            </button>
+            <button class="btn btn-primary" onclick="resetCacheStats()">
+              <i class="ri-restart-line"></i> Сбросить
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Notifications Status -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-notification-3-line"></i> Уведомления</h2>
+        </div>
+        <div class="card-body">
+          <div class="metric-item">
+            <span class="metric-label"><i class="ri-telegram-line"></i> Telegram</span>
+            <span class="status-badge status-error" id="telegram-status">✗ Не настроен</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label"><i class="ri-discord-line"></i> Discord</span>
+            <span class="status-badge status-error" id="discord-status">✗ Не настроен</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Отправлено</span>
+            <span class="metric-value" id="notifications-sent">0</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Ошибок</span>
+            <span class="metric-value" id="notifications-failed">0</span>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <a href="/bypass" class="btn btn-primary">
+              <i class="ri-settings-line"></i> Настроить
+            </a>
+            <button class="btn btn-success" onclick="testNotification()">
+              <i class="ri-send-plane-line"></i> Тест
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proxy Status -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-global-line"></i> Прокси</h2>
+        </div>
+        <div class="card-body">
+          <div class="metric-item">
+            <span class="metric-label">Всего прокси</span>
+            <span class="metric-value" id="proxy-total">0</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Рабочих</span>
+            <span class="metric-value" id="proxy-working">0</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Авто-ротация</span>
+            <span class="status-badge status-error" id="proxy-rotation">✗ Выключена</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Ротаций</span>
+            <span class="metric-value" id="proxy-rotation-count">0</span>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <a href="/bypass" class="btn btn-primary">
+              <i class="ri-list-settings-line"></i> Управление
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monitor Status -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-radar-line"></i> Мониторинг сервисов</h2>
+        <span id="monitor-status" class="status-badge status-success">
+          <i class="ri-check-line"></i> Активен
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="grid-3" id="monitor-services">
+          <div class="stat-card">
+            <div class="stat-label">Cursor API</div>
+            <div class="stat-value" id="monitor-cursor">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">DNS</div>
+            <div class="stat-value" id="monitor-dns">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">GitHub</div>
+            <div class="stat-value" id="monitor-github">--</div>
+          </div>
+        </div>
+        <div id="monitor-recommendations" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+
+    <!-- Live Logs -->
+    <div class="card">
+      <div class="card-header">
+        <h2><i class="ri-terminal-box-line"></i> Логи в реальном времени</h2>
+        <div style="display: flex; gap: 8px;">
+          <span id="ws-status" class="status-badge status-error">
+            <i class="ri-wifi-off-line"></i> Отключен
+          </span>
+          <button class="btn btn-warning" onclick="clearLogs()">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="log-container" id="live-logs">
+          <div class="log-entry">
+            <span class="log-time">[--:--:--]</span>
+            <span>Ожидание подключения...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer style="text-align: center; color: white; padding: 20px;">
+      <p>© 2026 Cursor Reset Tools v2.4.0</p>
+    </footer>
+  </div>
+
+  <script>
+    const api = async (endpoint, options = {}) => {
+      const res = await fetch(endpoint, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...options.headers }
+      });
+      return res.json();
+    };
+
+    // WebSocket
+    let ws = null;
+    let wsReconnectAttempts = 0;
+    const WS_MAX_RECONNECT = 5;
+
+    function initWebSocket() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/ws`;
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        wsReconnectAttempts = 0;
+        document.getElementById('ws-status').innerHTML = '<i class="ri-wifi-line"></i> Подключен';
+        document.getElementById('ws-status').className = 'status-badge status-success';
+        addLog('WebSocket подключен', 'success');
+      };
+      
+      ws.onclose = () => {
+        document.getElementById('ws-status').innerHTML = '<i class="ri-wifi-off-line"></i> Отключен';
+        document.getElementById('ws-status').className = 'status-badge status-error';
+        addLog('WebSocket отключен', 'warning');
+        
+        if (wsReconnectAttempts < WS_MAX_RECONNECT) {
+          wsReconnectAttempts++;
+          setTimeout(initWebSocket, 2000);
+        }
+      };
+      
+      ws.onerror = () => {
+        addLog('WebSocket ошибка', 'error');
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'log') {
+            addLog(data.message, data.level);
+          } else if (data.type === 'status_update') {
+            refreshAll();
+          }
+        } catch (e) {}
+      };
+    }
+
+    function addLog(message, level = 'info') {
+      const container = document.getElementById('live-logs');
+      const time = new Date().toLocaleTimeString();
+      const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌', system: '🔧' };
+      
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">[${time}]</span><span>${icons[level] || 'ℹ️'} ${message}</span>`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+      
+      while (container.children.length > 100) {
+        container.removeChild(container.firstChild);
+      }
+    }
+
+    function clearLogs() {
+      document.getElementById('live-logs').innerHTML = '';
+    }
+
+    // Refresh functions
+    async function refreshAll() {
+      await Promise.all([
+        refreshSystemOverview(),
+        refreshResources(),
+        refreshCache(),
+        refreshNotifications(),
+        refreshProxy(),
+        refreshMonitor()
+      ]);
+    }
+
+    async function refreshSystemOverview() {
+      try {
+        const health = await api('/health');
+        if (health.uptime) {
+          const hrs = Math.floor(health.uptime / 3600);
+          const mins = Math.floor((health.uptime % 3600) / 60);
+          document.getElementById('uptime').textContent = `${hrs}ч ${mins}м`;
+        }
+        if (health.memory) {
+          const mb = Math.round(health.memory.heapUsed / 1024 / 1024);
+          document.getElementById('memory-usage').textContent = `${mb} MB`;
+        }
+        if (health.clients !== undefined) {
+          document.getElementById('active-clients').textContent = health.clients;
+        }
+      } catch (e) {}
+    }
+
+    async function refreshResources() {
+      try {
+        const summary = await api('/api/resources/summary');
+        if (summary.success) {
+          updateResourceBar('cpu', summary.cpu.current);
+          updateResourceBar('memory', summary.memory.current);
+          updateResourceBar('disk', summary.disk.current);
+          
+          document.getElementById('resource-samples').textContent = `Samples: ${summary.samples}`;
+        }
+        
+        const alerts = await api('/api/resources/alerts?limit=10');
+        if (alerts.success) {
+          document.getElementById('resource-alerts-count').textContent = `Alerts: ${alerts.alerts.length}`;
+        }
+      } catch (e) {}
+    }
+
+    function updateResourceBar(type, value) {
+      const bar = document.getElementById(`${type}-bar`);
+      const val = document.getElementById(`${type}-value`);
+      if (bar && val) {
+        bar.style.width = `${value}%`;
+        bar.className = 'progress-fill' + (value > 80 ? ' warning' : '') + (value > 90 ? ' danger' : '');
+        val.textContent = `${value}%`;
+      }
+    }
+
+    async function refreshCache() {
+      try {
+        const stats = await api('/api/cache/status');
+        if (stats.success) {
+          document.getElementById('cache-hits').textContent = stats.hits;
+          document.getElementById('cache-misses').textContent = stats.misses;
+          document.getElementById('cache-size').textContent = stats.size;
+          document.getElementById('cache-sets').textContent = stats.sets;
+          document.getElementById('cache-deletes').textContent = stats.deletes;
+          document.getElementById('cache-expirations').textContent = stats.expirations;
+          document.getElementById('cache-hit-rate').textContent = stats.hitRate;
+        }
+      } catch (e) {}
+    }
+
+    async function refreshNotifications() {
+      try {
+        const status = await api('/api/notifications/status');
+        if (status.success) {
+          const tgEl = document.getElementById('telegram-status');
+          const dcEl = document.getElementById('discord-status');
+          
+          if (tgEl) {
+            tgEl.textContent = status.telegram.configured ? '✓ Настроен' : '✗ Не настроен';
+            tgEl.className = `status-badge ${status.telegram.configured ? 'status-success' : 'status-error'}`;
+          }
+          
+          if (dcEl) {
+            dcEl.textContent = status.discord.configured ? '✓ Настроен' : '✗ Не настроен';
+            dcEl.className = `status-badge ${status.discord.configured ? 'status-success' : 'status-error'}`;
+          }
+          
+          document.getElementById('notifications-sent').textContent = status.sentCount;
+          document.getElementById('notifications-failed').textContent = status.failedCount;
+        }
+      } catch (e) {}
+    }
+
+    async function refreshProxy() {
+      try {
+        const rotation = await api('/api/proxy/rotation/status');
+        if (rotation.success) {
+          const rotEl = document.getElementById('proxy-rotation');
+          if (rotEl) {
+            rotEl.textContent = rotation.enabled ? '✓ Включена' : '✗ Выключена';
+            rotEl.className = `status-badge ${rotation.enabled ? 'status-success' : 'status-error'}`;
+          }
+          document.getElementById('proxy-rotation-count').textContent = rotation.rotationCount;
+        }
+      } catch (e) {}
+    }
+
+    async function refreshMonitor() {
+      try {
+        const status = await api('/api/monitor/status');
+        if (status.success) {
+          // Update monitor services status
+          if (status.status?.cursor) {
+            const cursorAvailable = status.status.cursor.available > 0;
+            document.getElementById('monitor-cursor').textContent = cursorAvailable ? '✓' : '✗';
+            document.getElementById('monitor-cursor').style.color = cursorAvailable ? '#10b981' : '#ef4444';
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Actions
+    async function clearCache() {
+      if (confirm('Очистить весь кэш?')) {
+        await api('/api/cache/clear', { method: 'POST' });
+        refreshCache();
+        addLog('Кэш очищен', 'success');
+      }
+    }
+
+    async function resetCacheStats() {
+      await api('/api/cache/reset-stats', { method: 'POST' });
+      refreshCache();
+      addLog('Статистика кэша сброшена', 'success');
+    }
+
+    async function testNotification() {
+      addLog('Отправка тестового уведомления...', 'info');
+      const result = await api('/api/notifications/test', { method: 'POST' });
+      if (result.success) {
+        addLog('Тестовое уведомление отправлено', 'success');
+      } else {
+        addLog('Ошибка отправки уведомления', 'error');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initWebSocket();
+      refreshAll();
+      setInterval(refreshAll, 5000);
+      addLog('Dashboard загружен', 'success');
+    });
+  </script>
+</body>
+</html>

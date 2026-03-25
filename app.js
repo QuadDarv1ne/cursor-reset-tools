@@ -138,6 +138,14 @@ app.get('/api/smart/status', (req, res) => {
   });
 });
 
+// Monitor status
+app.get('/api/monitor/status', (req, res) => {
+  res.json({
+    success: true,
+    status: globalMonitorManager.getStatus()
+  });
+});
+
 // Smart bypass test
 app.post('/api/smart/test', async (req, res) => {
   try {
@@ -201,6 +209,10 @@ app.get('/', (req, res) => {
 
 app.get('/bypass', (req, res) => {
   res.render('bypass', { port, wsPort });
+});
+
+app.get('/dashboard', (req, res) => {
+  res.render('dashboard', {});
 });
 
 // Updater API endpoints

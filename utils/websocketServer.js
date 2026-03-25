@@ -39,7 +39,7 @@ class WSServer {
     this.broadcastInterval = null;
     this.pingInterval = null;
     this.maxClients = WS_CONFIG.maxClients;
-    
+
     // Оптимизации
     this.statusCache = { data: null, timestamp: 0 };
     this.messageHashes = new Map(); // Дедупликация
@@ -267,7 +267,7 @@ class WSServer {
         clearTimeout(client.timeoutId);
         client.timeoutId = null;
       }
-      
+
       // Очистка подписок для предотвращения утечек памяти
       if (client.subscriptions) {
         client.subscriptions.clear();
@@ -301,13 +301,13 @@ class WSServer {
    */
   broadcast(message, channel = null) {
     let count = 0;
-    
+
     // Копируем ключи для безопасной итерации (защита от изменения Map во время итерации)
     const clientIds = Array.from(this.clients.keys());
 
     for (const clientId of clientIds) {
       const client = this.clients.get(clientId);
-      
+
       // Пропускаем если клиент не подписан на канал
       if (channel && (!client || !client.subscriptions.has(channel))) {
         continue;

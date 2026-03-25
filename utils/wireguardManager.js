@@ -46,13 +46,13 @@ class WireGuardManager {
    * Инициализация менеджера
    */
   async init() {
-    if (this.initialized) return true;
+    if (this.initialized) {return true;}
 
     logger.info('Initializing WireGuard manager...', 'wireguard');
 
     // Находим WireGuard
     this.wgPath = await this.findWireGuard();
-    
+
     if (!this.wgPath) {
       logger.warn('WireGuard not found, some features will be unavailable', 'wireguard');
       this.initialized = true;
@@ -68,7 +68,7 @@ class WireGuardManager {
 
     this.initialized = true;
     logger.info(`WireGuard manager initialized, ${this.configs.length} configs loaded`, 'wireguard');
-    
+
     return true;
   }
 
@@ -123,9 +123,9 @@ class WireGuardManager {
       return path.join(home, 'Documents', '.cursor-free-vip', 'wireguard');
     } else if (platform === 'darwin') {
       return path.join(home, '.cursor-free-vip', 'wireguard');
-    } else {
-      return path.join(home, '.config', 'cursor-free-vip', 'wireguard');
     }
+    return path.join(home, '.config', 'cursor-free-vip', 'wireguard');
+
   }
 
   /**
@@ -134,7 +134,7 @@ class WireGuardManager {
   async loadConfigs() {
     try {
       const files = await fs.readdir(this.configDir);
-      
+
       for (const file of files) {
         if (file.endsWith('.conf')) {
           const configPath = path.join(this.configDir, file);
@@ -166,13 +166,13 @@ class WireGuardManager {
 
       for (const line of content.split('\n')) {
         const trimmed = line.trim();
-        
+
         if (trimmed.startsWith('[')) {
           section = trimmed.replace(/[\[\]]/g, '').toLowerCase();
           continue;
         }
 
-        if (!trimmed || trimmed.startsWith('#')) continue;
+        if (!trimmed || trimmed.startsWith('#')) {continue;}
 
         const [key, ...valueParts] = trimmed.split('=');
         const value = valueParts.join('=').trim();
@@ -323,7 +323,7 @@ class WireGuardManager {
       this.connectionStatus.publicKey = config.peer.publicKey;
 
       logger.info(`WireGuard connected: ${configName}`, 'wireguard');
-      
+
       return { success: true, interface: interfaceName };
     } catch (error) {
       logger.error(`WireGuard connection failed: ${error.message}`, 'wireguard');
@@ -355,7 +355,7 @@ class WireGuardManager {
       this.connectionStatus.interface = null;
 
       logger.info('WireGuard disconnected', 'wireguard');
-      
+
       return { success: true };
     } catch (error) {
       logger.error(`WireGuard disconnection failed: ${error.message}`, 'wireguard');
@@ -373,7 +373,7 @@ class WireGuardManager {
 
     try {
       const { stdout } = await execPromise(`${this.wgPath} show ${this.activeInterface}`);
-      
+
       // Парсинг вывода wg show
       const lines = stdout.split('\n');
       for (const line of lines) {
@@ -402,7 +402,7 @@ class WireGuardManager {
     const startTime = Date.now();
     const net = await import('net');
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const socket = new net.Socket();
       const timeout = setTimeout(() => {
         socket.destroy();
@@ -419,7 +419,7 @@ class WireGuardManager {
         });
       });
 
-      socket.on('error', (error) => {
+      socket.on('error', error => {
         clearTimeout(timeout);
         resolve({ success: false, error: error.message });
       });
@@ -442,8 +442,8 @@ class WireGuardManager {
 
     // Сортировка по времени отклика
     results.sort((a, b) => {
-      if (!a.success) return 1;
-      if (!b.success) return -1;
+      if (!a.success) {return 1;}
+      if (!b.success) {return -1;}
       return a.responseTime - b.responseTime;
     });
 
@@ -484,7 +484,7 @@ class WireGuardManager {
     this.configs.splice(index, 1);
 
     logger.info(`WireGuard config deleted: ${configName}`, 'wireguard');
-    
+
     return { success: true };
   }
 

@@ -16,9 +16,9 @@ class SmartBypassManager {
   constructor() {
     // Методы обхода с расширенными параметрами
     this.methods = {
-      direct: { 
-        name: 'Прямое подключение', 
-        weight: 0, 
+      direct: {
+        name: 'Прямое подключение',
+        weight: 0,
         available: true,
         avgResponseTime: 0,
         successRate: 0,
@@ -26,9 +26,9 @@ class SmartBypassManager {
         lastFail: null,
         consecutiveFails: 0
       },
-      proxy: { 
-        name: 'Через прокси', 
-        weight: 0, 
+      proxy: {
+        name: 'Через прокси',
+        weight: 0,
         available: false,
         avgResponseTime: 0,
         successRate: 0,
@@ -36,9 +36,9 @@ class SmartBypassManager {
         lastFail: null,
         consecutiveFails: 0
       },
-      doh: { 
-        name: 'DNS over HTTPS', 
-        weight: 0, 
+      doh: {
+        name: 'DNS over HTTPS',
+        weight: 0,
         available: true,
         avgResponseTime: 0,
         successRate: 0,
@@ -46,9 +46,9 @@ class SmartBypassManager {
         lastFail: null,
         consecutiveFails: 0
       },
-      dns: { 
-        name: 'Смена DNS', 
-        weight: 0, 
+      dns: {
+        name: 'Смена DNS',
+        weight: 0,
         available: true,
         avgResponseTime: 0,
         successRate: 0,
@@ -56,9 +56,9 @@ class SmartBypassManager {
         lastFail: null,
         consecutiveFails: 0
       },
-      vpn: { 
-        name: 'VPN режим', 
-        weight: 0, 
+      vpn: {
+        name: 'VPN режим',
+        weight: 0,
         available: false,
         avgResponseTime: 0,
         successRate: 0,
@@ -66,9 +66,9 @@ class SmartBypassManager {
         lastFail: null,
         consecutiveFails: 0
       },
-      amnezia: { 
-        name: 'AmneziaVPN', 
-        weight: 0, 
+      amnezia: {
+        name: 'AmneziaVPN',
+        weight: 0,
         available: false,
         avgResponseTime: 0,
         successRate: 0,
@@ -86,7 +86,7 @@ class SmartBypassManager {
     this.hourlyPatterns = new Map();
     this.dailyPatterns = new Map();
     this.countryStats = new Map();
-    
+
     // Лимиты для предотвращения утечек памяти
     this.MAX_PATTERN_SIZE = 48; // 24 часа × 6 методов = 144 max
     this.MAX_COUNTRY_STATS = 50; // Максимум 50 стран
@@ -284,11 +284,11 @@ class SmartBypassManager {
       // Тест резолвинга Cursor доменов
       const domains = ['cursor.sh', 'api2.cursor.sh'];
       let resolved = 0;
-      
+
       for (const domain of domains) {
         try {
           const result = await globalDoHManager.resolveAuto(domain);
-          if (result?.answers?.length > 0) resolved++;
+          if (result?.answers?.length > 0) {resolved++;}
         } catch {
           // Игнорируем ошибки отдельных доменов
         }
@@ -439,15 +439,15 @@ class SmartBypassManager {
    */
   updateMethodStats(methodName, result) {
     const method = this.methods[methodName];
-    if (!method) return;
+    if (!method) {return;}
 
     // Обновляем доступность
     method.available = result.available || false;
 
     // Обновляем время отклика
     if (result.responseTime) {
-      method.avgResponseTime = method.avgResponseTime === 0 
-        ? result.responseTime 
+      method.avgResponseTime = method.avgResponseTime === 0
+        ? result.responseTime
         : Math.round((method.avgResponseTime * 0.8) + (result.responseTime * 0.2));
     }
 
@@ -516,8 +516,8 @@ class SmartBypassManager {
         if (results.proxy?.success) {
           weight = 75;
           // Бонус за residential и DPI compliance
-          if (results.proxy?.isResidential) weight += 10;
-          if (results.proxy?.dpiCompliant) weight += 15;
+          if (results.proxy?.isResidential) {weight += 10;}
+          if (results.proxy?.dpiCompliant) {weight += 15;}
         } else if (results.proxy?.available) {
           weight = 30;
         }
@@ -616,7 +616,7 @@ class SmartBypassManager {
       const hourKey = `${methodName}_${hour}`;
       const hourPattern = this.hourlyPatterns.get(hourKey) || { total: 0, success: 0, successRate: 0.5 };
       hourPattern.total++;
-      if (result.success) hourPattern.success++;
+      if (result.success) {hourPattern.success++;}
       hourPattern.successRate = hourPattern.success / hourPattern.total;
       this.hourlyPatterns.set(hourKey, hourPattern);
 
@@ -624,7 +624,7 @@ class SmartBypassManager {
       const dayKey = `${methodName}_${day}`;
       const dayPattern = this.dailyPatterns.get(dayKey) || { total: 0, success: 0, successRate: 0.5 };
       dayPattern.total++;
-      if (result.success) dayPattern.success++;
+      if (result.success) {dayPattern.success++;}
       dayPattern.successRate = dayPattern.success / dayPattern.total;
       this.dailyPatterns.set(dayKey, dayPattern);
 
@@ -632,11 +632,11 @@ class SmartBypassManager {
       const countryKey = `${methodName}_${country}`;
       const countryStat = this.countryStats.get(countryKey) || { total: 0, success: 0, successRate: 0.5 };
       countryStat.total++;
-      if (result.success) countryStat.success++;
+      if (result.success) {countryStat.success++;}
       countryStat.successRate = countryStat.success / countryStat.total;
       this.countryStats.set(countryKey, countryStat);
     }
-    
+
     // Очистка старых записей
     this._cleanupPatterns();
     this._cleanupHistory();
@@ -879,8 +879,8 @@ class SmartBypassManager {
       if (status.detected) {
         return { success: true, method: 'vpn', type: status.type };
       }
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: 'VPN not connected',
         recommendations: globalVPNManager.getAmneziaRecommendations()
       };
@@ -898,8 +898,8 @@ class SmartBypassManager {
       if (status.connected) {
         return { success: true, method: 'amnezia', protocol: status.protocol };
       }
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: 'AmneziaVPN not connected',
         recommendations: globalVPNManager.getAmneziaRecommendations()
       };
@@ -927,7 +927,7 @@ class SmartBypassManager {
    */
   startAutoTest(intervalMs = 60000) {
     this.stopAutoTest();
-    
+
     this.autoTestInterval = setInterval(async () => {
       try {
         await this.testAllMethods();

@@ -254,17 +254,17 @@ class DPIBypass {
     try {
       // Проверяем установлен ли GoodbyeDPI
       const { stdout } = await execPromise('where goodbyedpi 2>nul || echo not_found');
-      
+
       if (stdout.includes('not_found')) {
         return { success: false, error: 'GoodbyeDPI not installed' };
       }
 
       // Запускаем GoodbyeDPI
       await execPromise('start /b goodbyedpi.exe -p -r -s -f 2 -k 2 -n -e 1 --set-ttls 5');
-      
+
       // Тестируем соединение
       const result = await this.testConnection({});
-      
+
       return {
         success: result.success,
         responseTime: result.responseTime,
@@ -280,12 +280,12 @@ class DPIBypass {
    */
   async testZapret() {
     const platform = os.platform();
-    
+
     try {
       if (platform === 'win32') {
         // Проверяем zapret-winws
         const { stdout } = await execPromise('where winws 2>nul || echo not_found');
-        
+
         if (stdout.includes('not_found')) {
           return { success: false, error: 'Zapret not installed' };
         }
@@ -295,14 +295,14 @@ class DPIBypass {
       } else if (platform === 'linux') {
         // Проверяем nfqws
         const { stdout } = await execPromise('which nfqws 2>/dev/null || echo not_found');
-        
+
         if (stdout.includes('not_found')) {
           return { success: false, error: 'Zapret not installed' };
         }
       }
 
       const result = await this.testConnection({});
-      
+
       return {
         success: result.success,
         responseTime: result.responseTime,
@@ -318,7 +318,7 @@ class DPIBypass {
    */
   async testConnection(options) {
     const startTime = Date.now();
-    
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Connection timeout'));
@@ -338,10 +338,10 @@ class DPIBypass {
         // DPI bypass options
         servername: options.sni || 'cursor.sh',
         rejectUnauthorized: false
-      }, (res) => {
+      }, res => {
         clearTimeout(timeout);
         const responseTime = Date.now() - startTime;
-        
+
         if (res.statusCode >= 200 && res.statusCode < 400) {
           resolve({ success: true, responseTime, statusCode: res.statusCode });
         } else if (res.statusCode >= 400 && res.statusCode < 500) {
@@ -352,7 +352,7 @@ class DPIBypass {
         }
       });
 
-      req.on('error', (error) => {
+      req.on('error', error => {
         clearTimeout(timeout);
         reject(error);
       });
@@ -372,7 +372,7 @@ class DPIBypass {
 
     // Приоритет методов
     const priority = ['zapret', 'goodbyedpi', 'fragmented', 'fake_packet', 'domain_fronting', 'sni_masking'];
-    
+
     for (const method of priority) {
       if (this.status.workingMethods.includes(method)) {
         this.method = method;
@@ -388,7 +388,7 @@ class DPIBypass {
     this.status.currentMethod = this.method;
     this.enabled = true;
     logger.info(`DPI bypass enabled with method: ${this.method}`, 'dpi-bypass');
-    
+
     return true;
   }
 
@@ -408,9 +408,9 @@ class DPIBypass {
     this.method = method;
     this.status.currentMethod = method;
     this.enabled = true;
-    
+
     logger.info(`DPI bypass method set to: ${method}`, 'dpi-bypass');
-    
+
     return { success: true, method };
   }
 
@@ -521,8 +521,8 @@ class DPIBypass {
    */
   async testDomainAccess(domain) {
     const startTime = Date.now();
-    
-    return new Promise((resolve) => {
+
+    return new Promise(resolve => {
       const timeout = setTimeout(() => {
         resolve({ accessible: false, error: 'timeout' });
       }, 8000);
@@ -530,14 +530,14 @@ class DPIBypass {
       https.get(`https://${domain}/`, {
         timeout: 7000,
         rejectUnauthorized: false
-      }, (res) => {
+      }, res => {
         clearTimeout(timeout);
         resolve({
           accessible: res.statusCode < 500,
           statusCode: res.statusCode,
           responseTime: Date.now() - startTime
         });
-      }).on('error', (error) => {
+      }).on('error', error => {
         clearTimeout(timeout);
         resolve({ accessible: false, error: error.message });
       });

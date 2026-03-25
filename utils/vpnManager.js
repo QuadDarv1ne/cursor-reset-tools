@@ -19,7 +19,7 @@ class VPNManager {
     this.detected = false;
     this.vpnType = null;
     this.vpnInfo = {};
-    
+
     // Кэш для IPInfo с TTL для предотвращения частых запросов
     this.ipInfoCache = null;
     this.ipInfoCacheTime = 0;
@@ -151,7 +151,7 @@ class VPNManager {
     try {
       // 1. Проверяем IP адрес
       const ipInfo = await this.getIPInfo();
-      
+
       if (ipInfo) {
         result.ip = ipInfo.ip;
         result.country = ipInfo.country;
@@ -161,7 +161,7 @@ class VPNManager {
 
       // 2. Проверяем запущенные процессы VPN
       const runningVPNs = await this.detectRunningVPNProcesses();
-      
+
       if (runningVPNs.length > 0) {
         result.detected = true;
         result.type = runningVPNs[0].type;
@@ -207,17 +207,17 @@ class VPNManager {
    */
   async getIPInfo() {
     const now = Date.now();
-    
+
     // Проверка кэша
     if (this.ipInfoCache && (now - this.ipInfoCacheTime) < this.IP_INFO_CACHE_TTL) {
       return this.ipInfoCache;
     }
-    
+
     // Запрос к API
-    const result = await new Promise((resolve) => {
+    const result = await new Promise(resolve => {
       const timeout = setTimeout(() => resolve(null), 5000);
 
-      http.get('http://ip-api.com/json/', (res) => {
+      http.get('http://ip-api.com/json/', res => {
         clearTimeout(timeout);
         let data = '';
         res.on('data', chunk => { data += chunk; });
@@ -245,13 +245,13 @@ class VPNManager {
         resolve(null);
       });
     });
-    
+
     // Сохранение в кэш
     if (result) {
       this.ipInfoCache = result;
       this.ipInfoCacheTime = now;
     }
-    
+
     return result;
   }
 
@@ -299,7 +299,7 @@ class VPNManager {
 
     for (const [name, addrs] of Object.entries(interfaces)) {
       const nameLower = name.toLowerCase();
-      
+
       if (vpnInterfaceNames.some(vpn => nameLower.includes(vpn))) {
         vpnInterfaces.push({
           name,
@@ -342,7 +342,7 @@ class VPNManager {
     try {
       // Проверка установки
       const configPaths = amnezia.configPaths[platform] || [];
-      
+
       for (const configPath of configPaths) {
         if (await fs.pathExists(configPath)) {
           result.installed = true;
@@ -378,11 +378,11 @@ class VPNManager {
       // Проверка соединения через API (если доступен)
       try {
         const { stdout } = await execPromise(
-          platform === 'win32' 
-            ? 'curl -s http://127.0.0.1:15015/api/v1/state 2>nul' 
+          platform === 'win32'
+            ? 'curl -s http://127.0.0.1:15015/api/v1/state 2>nul'
             : 'curl -s http://127.0.0.1:15015/api/v1/state 2>/dev/null'
         );
-        
+
         const state = JSON.parse(stdout);
         result.connected = state.connected || false;
         result.protocol = state.protocol || result.protocol;
@@ -564,7 +564,7 @@ class VPNManager {
       // Проверка DNS утечек
       const dnsIP = await this.getDNSLeakIP();
       const vpnIP = await this.getVPNIP();
-      
+
       if (dnsIP && vpnIP && dnsIP !== vpnIP) {
         result.dns = true;
         result.hasLeaks = true;
@@ -604,10 +604,10 @@ class VPNManager {
    * Получение VPN IP
    */
   async getVPNIP() {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const timeout = setTimeout(() => resolve(null), 5000);
 
-      https.get('https://api.ipify.org?format=json', (res) => {
+      https.get('https://api.ipify.org?format=json', res => {
         clearTimeout(timeout);
         let data = '';
         res.on('data', chunk => { data += chunk; });
@@ -631,7 +631,7 @@ class VPNManager {
    */
   getInstallationGuide() {
     const platform = os.platform();
-    
+
     const guides = {
       win32: {
         download: 'https://amnezia.org/ru/downloads',

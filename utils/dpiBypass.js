@@ -6,7 +6,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import https from 'https';
-import http from 'http';
 import os from 'os';
 import { logger } from './logger.js';
 
@@ -141,8 +140,6 @@ class DPIBypass {
    * Тестирование конкретного метода
    */
   async testMethod(method) {
-    const startTime = Date.now();
-
     switch (method) {
       case 'fragmented':
         return this.testFragmented();

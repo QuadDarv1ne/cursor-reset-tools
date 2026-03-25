@@ -134,9 +134,6 @@ class LeakDetector {
       const systemDNS = await this.getSystemDNS();
       result.dnsServers = systemDNS;
 
-      // Получаем реальный IP через DNS запрос
-      const realIP = await this.getRealIPThroughDNS();
-
       // Получаем IP через VPN/прокси (если используется)
       const vpnIP = await this.getVPNIP();
 
@@ -392,7 +389,7 @@ class LeakDetector {
       const interfaces = os.networkInterfaces();
 
       // Проверяем наличие IPv6 адресов
-      for (const [name, addrs] of Object.entries(interfaces)) {
+      for (const addrs of Object.values(interfaces)) {
         for (const addr of addrs) {
           if (addr.family === 'IPv6' && !addr.internal) {
             result.ipv6Enabled = true;

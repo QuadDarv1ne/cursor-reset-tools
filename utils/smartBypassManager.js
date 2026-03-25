@@ -78,16 +78,18 @@ class SmartBypassManager {
       }
     };
 
-    // История тестов для ML
+    // История тестов для ML с ограничениями
     this.testHistory = [];
-    this.maxHistorySize = 1000;
+    this.maxHistorySize = 100; // Уменьшено с 1000 для экономии памяти
 
-    // Временные паттерны для предсказаний
+    // Временные паттерны для предсказаний с лимитами
     this.hourlyPatterns = new Map();
     this.dailyPatterns = new Map();
-
-    // Статистика по странам
     this.countryStats = new Map();
+    
+    // Лимиты для предотвращения утечек памяти
+    this.MAX_PATTERN_SIZE = 48; // 24 часа × 6 методов = 144 max
+    this.MAX_COUNTRY_STATS = 50; // Максимум 50 стран
 
     // Последний тест и рекомендации
     this.lastTest = null;
@@ -109,6 +111,30 @@ class SmartBypassManager {
 
     // Автоматическое тестирование
     this.autoTestInterval = null;
+  }
+
+  /**
+   * Очистка старых паттернов
+   */
+  _cleanupPatterns() {
+    for (const map of [this.hourlyPatterns, this.dailyPatterns, this.countryStats]) {
+      if (map.size > this.MAX_PATTERN_SIZE) {
+        const entries = Array.from(map.entries());
+        const oldest = entries.slice(0, entries.length - this.MAX_PATTERN_SIZE);
+        for (const [key] of oldest) {
+          map.delete(key);
+        }
+      }
+    }
+  }
+
+  /**
+   * Очистка старой истории
+   */
+  _cleanupHistory() {
+    if (this.testHistory.length > this.maxHistorySize) {
+      this.testHistory = this.testHistory.slice(-this.maxHistorySize);
+    }
   }
 
   /**
@@ -186,25 +212,22 @@ class SmartBypassManager {
   }
 
   /**
-   * Тест прямого подключения
+   * Тест прямого подключения (оптимизированный)
    */
   async testDirect() {
     const start = Date.now();
     try {
+      // Быстрая проверка доступности Cursor
       const cursorStatus = await globalMonitorManager.checkCursor();
       const responseTime = Date.now() - start;
 
-      // Дополнительная проверка утечек
-      const leakStatus = await globalLeakDetector.checkAll();
-      const hasLeaks = leakStatus.overallRisk !== 'low';
-
+      // Проверка утечек выполняется отдельно, не блокирует тест
+      // leakStatus можно получить из последнего known state
       return {
-        success: cursorStatus.available && !hasLeaks,
+        success: cursorStatus.available,
         responseTime,
         latency: responseTime,
-        available: cursorStatus.available,
-        hasLeaks,
-        leakRisk: leakStatus.overallRisk
+        available: cursorStatus.available
       };
     } catch (error) {
       return {
@@ -581,7 +604,7 @@ class SmartBypassManager {
   }
 
   /**
-   * Обновление паттернов на основе истории
+   * Обновление паттернов на основе истории (с ограничением размера)
    */
   updatePatterns(entry) {
     const { hour, day, results } = entry;
@@ -613,6 +636,10 @@ class SmartBypassManager {
       countryStat.successRate = countryStat.success / countryStat.total;
       this.countryStats.set(countryKey, countryStat);
     }
+    
+    // Очистка старых записей
+    this._cleanupPatterns();
+    this._cleanupHistory();
   }
 
   /**

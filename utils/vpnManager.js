@@ -20,6 +20,11 @@ class VPNManager {
     this.vpnType = null;
     this.vpnInfo = {};
     
+    // Кэш для IPInfo с TTL для предотвращения частых запросов
+    this.ipInfoCache = null;
+    this.ipInfoCacheTime = 0;
+    this.IP_INFO_CACHE_TTL = 300000; // 5 минут
+
     // Поддерживаемые VPN клиенты
     this.vpnClients = {
       amnezia: {
@@ -198,10 +203,18 @@ class VPNManager {
   }
 
   /**
-   * Получение информации об IP
+   * Получение информации об IP (с кэшированием)
    */
   async getIPInfo() {
-    return new Promise((resolve) => {
+    const now = Date.now();
+    
+    // Проверка кэша
+    if (this.ipInfoCache && (now - this.ipInfoCacheTime) < this.IP_INFO_CACHE_TTL) {
+      return this.ipInfoCache;
+    }
+    
+    // Запрос к API
+    const result = await new Promise((resolve) => {
       const timeout = setTimeout(() => resolve(null), 5000);
 
       http.get('http://ip-api.com/json/', (res) => {
@@ -232,6 +245,14 @@ class VPNManager {
         resolve(null);
       });
     });
+    
+    // Сохранение в кэш
+    if (result) {
+      this.ipInfoCache = result;
+      this.ipInfoCacheTime = now;
+    }
+    
+    return result;
   }
 
   /**

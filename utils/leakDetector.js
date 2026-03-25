@@ -742,8 +742,10 @@ class LeakDetector {
         try {
           await execPromise(`sc stop "${service}" 2>nul`);
           await execPromise(`sc config "${service}" start= disabled 2>nul`);
-        } catch {
-          // Игнорируем ошибки для отдельных служб
+          logger.debug(`Windows telemetry service ${service} disabled`, 'leak-detector');
+        } catch (error) {
+          // Логируем ошибки для отдельных служб
+          logger.debug(`Failed to disable ${service}: ${error.message}`, 'leak-detector');
         }
       }
 
@@ -751,8 +753,10 @@ class LeakDetector {
       for (const task of this.windowsTelemetryTasks) {
         try {
           await execPromise(`schtasks /change /tn "${task}" /disable 2>nul`);
-        } catch {
-          // Игнорируем ошибки
+          logger.debug(`Windows telemetry task ${task} disabled`, 'leak-detector');
+        } catch (error) {
+          // Логируем ошибки
+          logger.debug(`Failed to disable task ${task}: ${error.message}`, 'leak-detector');
         }
       }
 

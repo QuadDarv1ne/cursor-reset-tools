@@ -250,6 +250,11 @@ export class StatsCache {
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, CACHE_CONFIG.cleanupInterval);
+
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.cleanupInterval && typeof this.cleanupInterval.unref === 'function') {
+      this.cleanupInterval.unref();
+    }
   }
 
   /**

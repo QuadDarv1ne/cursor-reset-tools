@@ -301,6 +301,11 @@ export class ResourceMonitor {
       });
     }, interval);
 
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.monitorInterval && typeof this.monitorInterval.unref === 'function') {
+      this.monitorInterval.unref();
+    }
+
     logger.info(`Resource monitoring started (interval: ${interval}ms)`, 'resource');
   }
 

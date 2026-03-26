@@ -3,7 +3,7 @@
  * @jest-environment node
  */
 
-import { describe, test, expect, beforeEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { ResourceMonitor, RESOURCE_CONFIG } from '../utils/resourceMonitor.js';
 
 describe('ResourceMonitor', () => {
@@ -11,6 +11,12 @@ describe('ResourceMonitor', () => {
 
   beforeEach(() => {
     monitor = new ResourceMonitor();
+  });
+
+  afterEach(() => {
+    if (monitor.isMonitoring) {
+      monitor.stopMonitoring();
+    }
   });
 
   describe('Инициализация', () => {

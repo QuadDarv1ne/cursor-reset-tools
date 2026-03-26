@@ -254,7 +254,7 @@ export class Cache {
         logger.debug(`Cache cleanup: removed ${count} expired entries`, 'cache');
       }
     }, CACHE_CONFIG.cleanupInterval);
-    
+
     // Разрешаем процессу завершиться даже с активным интервалом
     if (this.cleanupTimer && typeof this.cleanupTimer.unref === 'function') {
       this.cleanupTimer.unref();

@@ -300,6 +300,11 @@ export class ResourceMonitor {
         logger.error(`Monitor error: ${err.message}`, 'resource');
       });
     }, interval);
+    
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.monitorInterval && typeof this.monitorInterval.unref === 'function') {
+      this.monitorInterval.unref();
+    }
 
     logger.info(`Resource monitoring started (interval: ${interval}ms)`, 'resource');
   }

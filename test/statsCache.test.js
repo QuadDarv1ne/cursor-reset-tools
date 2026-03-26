@@ -92,22 +92,24 @@ describe('StatsCache', () => {
     test('должен очищать просроченные значения', done => {
       cache.set('short-ttl', 'value', 50);
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         const value = cache.get('short-ttl');
         expect(value).toBeNull();
         done();
       }, 100);
+      timeout.unref();
     });
 
     test('должен увеличивать expirations при истечении TTL', done => {
       cache.set('expire-key', 'value', 50);
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         cache.get('expire-key');
         const stats = cache.getStats();
         expect(stats.expirations).toBeGreaterThan(0);
         done();
       }, 100);
+      timeout.unref();
     });
   });
 
@@ -124,10 +126,11 @@ describe('StatsCache', () => {
     test('должен возвращать false для просроченного ключа', done => {
       cache.set('short-ttl', 'value', 50);
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         expect(cache.has('short-ttl')).toBe(false);
         done();
       }, 100);
+      timeout.unref();
     });
   });
 
@@ -195,11 +198,12 @@ describe('StatsCache', () => {
       cache.set('short2', 'value2', 50);
       cache.set('long', 'value', 10000);
 
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         const expired = cache.cleanup();
         expect(expired).toBe(2);
         done();
       }, 100);
+      timeout.unref();
     });
 
     test('должен возвращать 0 если нет просроченных записей', () => {
@@ -231,12 +235,16 @@ describe('StatsCache', () => {
       cache.set('key1', 'value1');
       const info1 = cache.getKeyInfo('key1');
 
-      setTimeout(() => {
-        cache.get('key1');
-        const info2 = cache.getKeyInfo('key1');
+      return new Promise(resolve => {
+        const timeout = setTimeout(() => {
+          cache.get('key1');
+          const info2 = cache.getKeyInfo('key1');
 
-        expect(info2.lastAccess).toBeGreaterThanOrEqual(info1.lastAccess);
-      }, 10);
+          expect(info2.lastAccess).toBeGreaterThanOrEqual(info1.lastAccess);
+          resolve();
+        }, 10);
+        timeout.unref();
+      });
     });
   });
 

@@ -12,11 +12,12 @@
 ### 🟡 Важные (P1) - Улучшение качества
 
 - [ ] TypeScript миграция (начать с utils/validator.js)
-- [ ] E2E тесты (Playwright)
+- [x] E2E тесты (Playwright) ✅ Базовые тесты для homepage и API
 - [ ] Performance тесты (k6)
 - [x] Security аудит (npm audit, Snyk) ✅ Проведён: 10 уязвимостей (8 high требуют breaking changes)
 - [x] Test coverage > 90% (сейчас неизвестно) ✅ Добавлен в jest.config.json (70% threshold)
 - [x] Input санитизация (HTML encode, trim, escape) ✅ Реализовано в utils/validator.js
+- [x] npm audit fix ✅ Устранено 10 уязвимостей (sqlite3@6.0.1, nodemon@3.1.14)
 
 ### 🟢 Улучшения (P2) - UX
 
@@ -59,16 +60,16 @@
 
 ### В работе
 
-1. **E2E тесты** - Playwright для критических сценариев _(не начато)_
-2. **TypeScript миграция** - начать с utils/validator.js _(не начато)_
-3. **Performance тесты** - k6 для API endpoints _(не начато)_
+1. **TypeScript миграция** - начать с utils/validator.js _(не начато)_
+2. **Performance тесты** - k6 для API endpoints _(не начато)_
+3. **CI/CD** - настроить GitHub Actions для автотестов _(требуется)_
 
 ### Следующие шаги
 
-1. ⚠️ **npm audit fix** - 8 high уязвимостей (sqlite3@6, nodemon@3)
-2. **E2E тесты** - базовые сценарии для /api/reset и /api/bypass
-3. **TypeScript** - добавить typescript в devDependencies, начать с validator.js
-4. **CI/CD** - настроить GitHub Actions для автотестов
+1. **TypeScript** - добавить typescript в devDependencies, начать с validator.js
+2. **CI/CD** - настроить GitHub Actions для автотестов (test, lint, e2e)
+3. **Performance тесты** - k6 для API endpoints
+4. **Swagger/OpenAPI** - документация для /api/* endpoints
 
 ---
 
@@ -82,8 +83,8 @@
 
 ---
 
-**Последний коммит:** 394abc1 - docs: обновлён TODO.md - добавлено выполненное Fix test leaks
-**Ветка:** dev (синхронизирована с main)
+**Последний коммит:** 8f3ae5f - feat: добавлены E2E тесты (Playwright)
+**Ветка:** dev (требуется push в main)
 **Следующий релиз:** 2.8.0 (после завершения Фазы 2)
 
 ---
@@ -91,6 +92,8 @@
 ## ✅ Выполнено в Фазе 2
 
 - [x] Fix test leaks - добавлен `.unref()` таймерам и cleanup в afterEach
+- [x] npm audit fix - обновлены sqlite3@6.0.1, nodemon@3.1.14 (0 уязвимостей)
+- [x] E2E тесты - Playwright для homepage и API endpoints
 
 ---
 
@@ -99,13 +102,15 @@
 | Задача | Статус | Приоритет |
 |--------|--------|-----------|
 | Fix test leaks | ✅ Выполнено | P0 |
+| npm audit fix | ✅ Выполнено | P0 |
+| E2E тесты (Playwright) | ✅ Выполнено | P1 |
 | TypeScript миграция | ❌ Не начато | P1 |
-| E2E тесты (Playwright) | ❌ Не начато | P1 |
 | Performance тесты (k6) | ❌ Не начато | P1 |
+| CI/CD (GitHub Actions) | ❌ Не начато | P1 |
 | Swagger/OpenAPI документация | ❌ Не начато | P2 |
 | PWA поддержка | ❌ Не начато | P2 |
 | Тёмная тема в UI | ❌ Не начато | P2 |
 | CLI интерактив | ❌ Не начато | P2 |
 | Redis для production | ❌ Не начато | P2 |
 
-**Прогресс Фазы 2:** 1/9 задач выполнено
+**Прогресс Фазы 2:** 3/11 задач выполнено

@@ -1,5 +1,13 @@
 # 🛡️ Cursor Reset Tools
+
+[![Version](https://img.shields.io/github/package-json/v/QuadDarv1ne/cursor-reset-tools?style=flat-square)](https://github.com/QuadDarv1ne/cursor-reset-tools/releases)
+[![Tests](https://img.shields.io/github/actions/workflow/status/QuadDarv1ne/cursor-reset-tools/ci.yml?branch=main&label=tests&style=flat-square)](https://github.com/QuadDarv1ne/cursor-reset-tools/actions)
+[![License](https://img.shields.io/github/license/QuadDarv1ne/cursor-reset-tools?style=flat-square)](LICENSE)
+[![Docker](https://img.shields.io/docker/pulls/quaddarv1ne/cursor-reset-tools?style=flat-square)](https://hub.docker.com/r/quaddarv1ne/cursor-reset-tools)
+
 > *"Oh, you've banned my country from using Cursor Student? How cute. Let me introduce you to something better."*
+
+**[🇷🇺 Русская версия](README_RU.md)** | **[📝 Changelog](CHANGELOG.md)** | **[🤝 Contributing](CONTRIBUTING.md)**
 
 ## Preview Website 1
 

@@ -143,7 +143,13 @@ app.use('/api', limiter);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Кэширование статических файлов (1 час в production)
+const staticCache = process.env.NODE_ENV === 'production'
+  ? { maxAge: '1h', etag: true, lastModified: true }
+  : { etag: true, lastModified: true };
+
+app.use(express.static(path.join(__dirname, 'public'), staticCache));
 
 // ============================================
 // Input Validation Middleware

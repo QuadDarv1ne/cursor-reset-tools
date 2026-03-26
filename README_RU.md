@@ -1,5 +1,13 @@
 # 🛡️ Cursor Reset Tools
+
+[![Version](https://img.shields.io/github/package-json/v/QuadDarv1ne/cursor-reset-tools?style=flat-square)](https://github.com/QuadDarv1ne/cursor-reset-tools/releases)
+[![Tests](https://img.shields.io/github/actions/workflow/status/QuadDarv1ne/cursor-reset-tools/ci.yml?branch=main&label=tests&style=flat-square)](https://github.com/QuadDarv1ne/cursor-reset-tools/actions)
+[![License](https://img.shields.io/github/license/QuadDarv1ne/cursor-reset-tools?style=flat-square)](LICENSE)
+[![Docker](https://img.shields.io/docker/pulls/quaddarv1ne/cursor-reset-tools?style=flat-square)](https://hub.docker.com/r/quaddarv1ne/cursor-reset-tools)
+
 > *"О, они заблокировали вашу страну для использования Cursor Student? Как мило. Позвольте познакомить вас с чем-то лучшим."*
+
+**[🇬🇧 English version](README.md)** | **[📝 Changelog](CHANGELOG.md)** | **[🤝 Contributing](CONTRIBUTING.md)**
 
 ## Предварительный просмотр Website 1
 
@@ -34,26 +42,48 @@
 
 ## Установка
 
-1. **Клонируйте репозиторий**
+### Быстрый старт
 
 ```bash
+# Клонирование репозитория
 git clone https://github.com/QuadDarv1ne/cursor-reset-tools.git
 cd cursor-reset-tools
-```
 
-2. **Установите зависимости**
-
-```bash
+# Установка зависимостей
 npm install
-```
 
-3. **Запустите приложение**
-
-```bash
+# Запуск приложения
 npm start
 ```
 
 Сервер запустится на http://localhost:3000
+
+### С помощью Make
+
+```bash
+# Установка зависимостей
+make install
+
+# Запуск в режиме разработки
+make dev
+
+# Запуск тестов
+make test
+
+# Сборка Docker образа
+make docker-build
+```
+
+### Docker
+
+```bash
+# Запуск с Docker Compose
+docker-compose up --build
+
+# Или вручную
+docker build -t cursor-reset-tools .
+docker run -p 3000:3000 -v $(pwd)/data:/app/data cursor-reset-tools
+```
 
 ## Быстрая проверка VPN и DNS
 

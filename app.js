@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
 import http from 'http';
+import dotenv from 'dotenv';
 import resetRouter from './routes/reset.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -31,7 +32,19 @@ import { globalConfigBackup } from './utils/configBackup.js';
 import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
-import { logger } from './utils/logger.js';
+import { createLogger } from './utils/logger.js';
+import { validateRequest } from './utils/validator.js';
+
+// Загрузка переменных окружения
+dotenv.config();
+
+// Инициализация логгера
+const logger = createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  filename: process.env.LOG_FILE || 'logs/app.log',
+  maxFiles: parseInt(process.env.LOG_MAX_FILES, 10) || 30,
+  maxSize: process.env.LOG_MAX_SIZE || '10m'
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,10 +89,45 @@ const wsPort = process.env.WS_PORT || ports.ws;
 const app = express();
 const server = http.createServer(app);
 
-// Security middleware
+// ============================================
+// Security Middleware
+// ============================================
+
+// Helmet - security headers с CSP
+const cspDirectives = {
+  defaultSrc: ['\'self\''],
+  scriptSrc: [
+    '\'self\'',
+    '\'unsafe-inline\'', // Для EJS шаблонов
+    '\'unsafe-eval\'', // Для Chart.js (требуется для графиков)
+    'cdn.jsdelivr.net' // Для внешних библиотек
+  ],
+  styleSrc: [
+    '\'self\'',
+    '\'unsafe-inline\'' // Для EJS шаблонов
+  ],
+  imgSrc: [
+    '\'self\'',
+    'data:',
+    'https:'
+  ],
+  connectSrc: [
+    '\'self\'',
+    'ws:',
+    'wss:'
+  ],
+  fontSrc: ['\'self\''],
+  objectSrc: ['\'none\''],
+  upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+};
+
 app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
+  contentSecurityPolicy: {
+    directives: cspDirectives
+  },
+  crossOriginEmbedderPolicy: false, // Отключено для совместимости
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false
 }));
 
 // Rate limiting
@@ -96,6 +144,42 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ============================================
+// Input Validation Middleware
+// ============================================
+// Валидация всех POST/PUT запросов
+app.use((req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PUT') {
+    // Проверка на XSS в теле запроса
+    if (req.body && typeof req.body === 'object') {
+      for (const [key, value] of Object.entries(req.body)) {
+        if (typeof value === 'string') {
+          // Проверка на опасные паттерны
+          const dangerousPatterns = [
+            /<script/i,
+            /javascript:/i,
+            /on\w+\s*=/i,
+            /<iframe/i,
+            /<object/i,
+            /<embed/i
+          ];
+
+          for (const pattern of dangerousPatterns) {
+            if (pattern.test(value)) {
+              logger.warn(`XSS attempt detected in ${key}: ${value.substring(0, 100)}`, 'security');
+              return res.status(400).json({
+                success: false,
+                error: 'Invalid input: potentially malicious content detected'
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+  next();
+});
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -282,10 +366,24 @@ app.get('/api/dns/status', async (req, res) => {
 // DNS set
 app.post('/api/dns/set', async (req, res) => {
   try {
-    const { provider } = req.body;
-    if (!provider) {
-      return res.status(400).json({ success: false, error: 'Provider required' });
+    // Валидация input
+    const validation = validateRequest(req.body, {
+      provider: {
+        type: 'string',
+        required: true,
+        sanitize: true
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors
+      });
     }
+
+    const { provider } = validation.data;
 
     const success = await globalDNSManager.setDNS(provider);
     if (success) {
@@ -649,11 +747,30 @@ app.get('/api/proxy/status', async (req, res) => {
 // Proxy add
 app.post('/api/proxy/add', async (req, res) => {
   try {
-    const { url, protocol = 'socks5' } = req.body;
+    // Валидация input
+    const validation = validateRequest(req.body, {
+      url: {
+        type: 'string',
+        required: true,
+        sanitize: true
+      },
+      protocol: {
+        type: 'string',
+        required: false,
+        default: 'socks5',
+        sanitize: true
+      }
+    });
 
-    if (!url) {
-      return res.status(400).json({ success: false, error: 'Proxy URL required' });
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors
+      });
     }
+
+    const { url, protocol } = validation.data;
 
     globalProxyManager.addProxy(url, protocol);
     return res.json({ success: true, message: 'Proxy added' });
@@ -1098,31 +1215,106 @@ app.post('/api/proxy/rotate', async (req, res) => {
 
 app.use('/api', resetRouter);
 
-// Graceful shutdown
+// ============================================
+// Graceful Shutdown
+// ============================================
+let isShuttingDown = false;
+
 const gracefulShutdown = async signal => {
+  if (isShuttingDown) {
+    logger.warn(`Double shutdown signal received (${signal}), forcing exit...`, 'app');
+    process.exit(1);
+  }
+
+  isShuttingDown = true;
   logger.info(`Graceful shutdown initiated (${signal})`, 'app');
 
-  // Остановка менеджеров
-  globalResourceMonitor.stopMonitoring();
-  globalStatsCache.stop();
-  globalWSServer.stop();
+  try {
+    // Остановка всех менеджеров параллельно
+    await Promise.allSettled([
+      globalResourceMonitor.stopMonitoring(),
+      globalStatsCache.stop(),
+      globalWSServer.stop(),
+      globalMonitorManager.stopAutoCheck?.(),
+      globalProxyManager.cleanup?.(),
+      globalDNSManager.restoreDNS?.(),
+      globalWireGuardManager.disconnect?.()
+    ]);
 
-  server.close(() => {
-    logger.info('HTTP server closed', 'app');
+    logger.info('All managers stopped', 'app');
+
+    // Закрытие HTTP сервера
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close(err => {
+          if (err) {reject(err);}
+          else {resolve();}
+        });
+      });
+      logger.info('HTTP server closed', 'app');
+    }
+
+    // Закрытие WebSocket сервера
+    if (globalWSServer.wss) {
+      globalWSServer.wss.close();
+      logger.info('WebSocket server closed', 'app');
+    }
+
+    logger.info('Graceful shutdown completed successfully', 'app');
     process.exit(0);
-  });
-  setTimeout(() => {
-    logger.error('Forced shutdown due to timeout', 'app');
+  } catch (error) {
+    logger.error(`Graceful shutdown error: ${error.message}`, 'app');
     process.exit(1);
-  }, 10000);
+  }
 };
 
+// Обработка сигналов завершения
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Dynamic error handling
+// ============================================
+// Глобальные обработчики ошибок
+// ============================================
+
+// Необработанные исключения
+process.on('uncaughtException', error => {
+  logger.error(`Uncaught Exception: ${error.message}`, 'app', {
+    stack: error.stack,
+    code: error.code
+  });
+
+  // Попытка graceful shutdown
+  if (!isShuttingDown) {
+    gracefulShutdown('uncaughtException');
+  }
+});
+
+// Необработанные Promise rejection
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error(`Unhandled Rejection: ${reason?.message || reason}`, 'app', {
+    stack: reason?.stack,
+    promise: promise.toString()
+  });
+});
+
+// Предупреждения о производительности
+process.on('warning', warning => {
+  logger.warn(`Process warning: ${warning.message}`, 'app', {
+    stack: warning.stack,
+    type: warning.name
+  });
+});
+
+// ============================================
+// Error handling middleware
+// ============================================
 app.use((err, req, res, _next) => {
-  logger.error(`Request error: ${err.message}`, 'app');
+  logger.error(`Request error: ${err.message}`, 'app', {
+    path: req.path,
+    method: req.method,
+    stack: err.stack
+  });
+
   res.status(err.status || 500).json({
     success: false,
     error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,

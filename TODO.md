@@ -62,15 +62,13 @@
 1. **E2E тесты** - Playwright для критических сценариев _(не начато)_
 2. **TypeScript миграция** - начать с utils/validator.js _(не начато)_
 3. **Performance тесты** - k6 для API endpoints _(не начато)_
-4. **Fix test leaks** - `--detectOpenHandles`, cleanup в afterEach _(требуется)_
 
 ### Следующие шаги
 
 1. ⚠️ **npm audit fix** - 8 high уязвимостей (sqlite3@6, nodemon@3)
-2. **Fix test leaks** - добавить .unref() таймерам, cleanup в тестах
-3. **E2E тесты** - базовые сценарии для /api/reset и /api/bypass
-4. **TypeScript** - добавить typescript в devDependencies, начать с validator.js
-5. **CI/CD** - настроить GitHub Actions для автотестов
+2. **E2E тесты** - базовые сценарии для /api/reset и /api/bypass
+3. **TypeScript** - добавить typescript в devDependencies, начать с validator.js
+4. **CI/CD** - настроить GitHub Actions для автотестов
 
 ---
 
@@ -84,7 +82,7 @@
 
 ---
 
-**Последний коммит:** 0ba2a94 - style: исправлены trailing spaces после lint:fix
+**Последний коммит:** 394abc1 - docs: обновлён TODO.md - добавлено выполненное Fix test leaks
 **Ветка:** dev (синхронизирована с main)
 **Следующий релиз:** 2.8.0 (после завершения Фазы 2)
 

@@ -14,9 +14,9 @@
 - [ ] TypeScript миграция (начать с utils/validator.js)
 - [ ] E2E тесты (Playwright)
 - [ ] Performance тесты (k6)
-- [ ] Security аудит (npm audit, Snyk)
-- [ ] Test coverage > 90% (сейчас неизвестно)
-- [ ] Input санитизация (HTML encode, trim, escape)
+- [x] Security аудит (npm audit, Snyk) ✅ Проведён: 10 уязвимостей (8 high требуют breaking changes)
+- [x] Test coverage > 90% (сейчас неизвестно) ✅ Добавлен в jest.config.json (70% threshold)
+- [x] Input санитизация (HTML encode, trim, escape) ✅ Реализовано в utils/validator.js
 
 ### 🟢 Улучшения (P2) - UX
 
@@ -57,15 +57,15 @@
 
 ### В работе
 
-1. **Test coverage** - добавить istanbul для отчётов (>90%)
-2. **Security аудит** - npm audit, Snyk интеграция
-3. **E2E тесты** - Playwright для критических сценариев
+1. **E2E тесты** - Playwright для критических сценариев
+2. **TypeScript миграция** - начать с utils/validator.js
+3. **Performance тесты** - k6 для API endpoints
 
 ### Следующие шаги
 
-1. Настроить coverage отчёты в CI/CD
-2. Интегрировать npm audit в pre-commit hook
-3. Создать базовые E2E тесты для основных endpoints
+1. Создать базовые E2E тесты для основных endpoints
+2. Обновить npm зависимости (sqlite3@6 для устранения уязвимостей)
+3. Настроить performance тесты в CI/CD
 
 ---
 

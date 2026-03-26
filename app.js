@@ -33,6 +33,7 @@ import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
 import { createLogger } from './utils/logger.js';
+import { validateRequest } from './utils/validator.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -88,10 +89,45 @@ const wsPort = process.env.WS_PORT || ports.ws;
 const app = express();
 const server = http.createServer(app);
 
-// Security middleware
+// ============================================
+// Security Middleware
+// ============================================
+
+// Helmet - security headers с CSP
+const cspDirectives = {
+  defaultSrc: ['\'self\''],
+  scriptSrc: [
+    '\'self\'',
+    '\'unsafe-inline\'', // Для EJS шаблонов
+    '\'unsafe-eval\'', // Для Chart.js (требуется для графиков)
+    'cdn.jsdelivr.net' // Для внешних библиотек
+  ],
+  styleSrc: [
+    '\'self\'',
+    '\'unsafe-inline\'' // Для EJS шаблонов
+  ],
+  imgSrc: [
+    '\'self\'',
+    'data:',
+    'https:'
+  ],
+  connectSrc: [
+    '\'self\'',
+    'ws:',
+    'wss:'
+  ],
+  fontSrc: ['\'self\''],
+  objectSrc: ['\'none\''],
+  upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+};
+
 app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
+  contentSecurityPolicy: {
+    directives: cspDirectives
+  },
+  crossOriginEmbedderPolicy: false, // Отключено для совместимости
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false
 }));
 
 // Rate limiting
@@ -108,6 +144,42 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ============================================
+// Input Validation Middleware
+// ============================================
+// Валидация всех POST/PUT запросов
+app.use((req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PUT') {
+    // Проверка на XSS в теле запроса
+    if (req.body && typeof req.body === 'object') {
+      for (const [key, value] of Object.entries(req.body)) {
+        if (typeof value === 'string') {
+          // Проверка на опасные паттерны
+          const dangerousPatterns = [
+            /<script/i,
+            /javascript:/i,
+            /on\w+\s*=/i,
+            /<iframe/i,
+            /<object/i,
+            /<embed/i
+          ];
+
+          for (const pattern of dangerousPatterns) {
+            if (pattern.test(value)) {
+              logger.warn(`XSS attempt detected in ${key}: ${value.substring(0, 100)}`, 'security');
+              return res.status(400).json({
+                success: false,
+                error: 'Invalid input: potentially malicious content detected'
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+  next();
+});
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -294,10 +366,24 @@ app.get('/api/dns/status', async (req, res) => {
 // DNS set
 app.post('/api/dns/set', async (req, res) => {
   try {
-    const { provider } = req.body;
-    if (!provider) {
-      return res.status(400).json({ success: false, error: 'Provider required' });
+    // Валидация input
+    const validation = validateRequest(req.body, {
+      provider: {
+        type: 'string',
+        required: true,
+        sanitize: true
+      }
+    });
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors
+      });
     }
+
+    const { provider } = validation.data;
 
     const success = await globalDNSManager.setDNS(provider);
     if (success) {
@@ -661,11 +747,30 @@ app.get('/api/proxy/status', async (req, res) => {
 // Proxy add
 app.post('/api/proxy/add', async (req, res) => {
   try {
-    const { url, protocol = 'socks5' } = req.body;
+    // Валидация input
+    const validation = validateRequest(req.body, {
+      url: {
+        type: 'string',
+        required: true,
+        sanitize: true
+      },
+      protocol: {
+        type: 'string',
+        required: false,
+        default: 'socks5',
+        sanitize: true
+      }
+    });
 
-    if (!url) {
-      return res.status(400).json({ success: false, error: 'Proxy URL required' });
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors
+      });
     }
+
+    const { url, protocol } = validation.data;
 
     globalProxyManager.addProxy(url, protocol);
     return res.json({ success: true, message: 'Proxy added' });

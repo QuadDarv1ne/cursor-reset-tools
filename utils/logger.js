@@ -88,6 +88,9 @@ export function createLogger(options = {}) {
 // Логгер по умолчанию для обратной совместимости
 export const logger = createLogger();
 
+// Метод init для обратной совместимости (пустая функция)
+logger.init = () => {};
+
 /**
  * Контекстный логгер для использования в модулях
  * @param {string} context - Контекст для логирования (например, имя модуля)

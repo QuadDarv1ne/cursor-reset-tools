@@ -4,10 +4,10 @@
 
 ### 🔴 Критические (P0) - Требуют внимания
 
-- [ ] Input валидация всех API endpoints (body, query, params)
-- [ ] CSP заголовки (Content Security Policy)
-- [ ] SQL injection защита (parameterized queries для sqlite)
-- [ ] XSS защита в EJS шаблонах
+- [x] Input валидация всех API endpoints (body, query, params)
+- [x] CSP заголовки (Content Security Policy)
+- [x] SQL injection защита (parameterized queries для sqlite) ✅ Аудит проведён: все запросы параметризованы
+- [x] XSS защита в EJS шаблонах ✅ Аудит проведён: используется `<%=` с экранированием
 
 ### 🟡 Важные (P1) - Улучшение качества
 
@@ -16,6 +16,7 @@
 - [ ] Performance тесты (k6)
 - [ ] Security аудит (npm audit, Snyk)
 - [ ] Test coverage > 90% (сейчас неизвестно)
+- [ ] Input санитизация (HTML encode, trim, escape)
 
 ### 🟢 Улучшения (P2) - UX
 
@@ -56,15 +57,15 @@
 
 ### В работе
 
-1. **Input валидация** - utils/validator.js уже есть, нужно интегрировать во все API endpoints
-2. **CSP заголовки** - настроить helmet.contentSecurityPolicy
-3. **Test coverage** - добавить istanbul для отчётов
+1. **Test coverage** - добавить istanbul для отчётов (>90%)
+2. **Security аудит** - npm audit, Snyk интеграция
+3. **E2E тесты** - Playwright для критических сценариев
 
 ### Следующие шаги
 
-1. Интегрировать validator во все POST/PUT endpoints
-2. Настроить CSP с report-only режимом
-3. Добавить coverage отчёты в CI/CD
+1. Настроить coverage отчёты в CI/CD
+2. Интегрировать npm audit в pre-commit hook
+3. Создать базовые E2E тесты для основных endpoints
 
 ---
 
@@ -78,6 +79,6 @@
 
 ---
 
-**Последний коммит:** e84165f - feat(2.8.0): Фаза 1 - Стабильность и DX улучшения  
-**Ветка:** dev  
+**Последний коммит:** a3b5261 - fix(2.8.0): Input валидация, CSP заголовки и logger.init фикс
+**Ветка:** dev
 **Следующий релиз:** 2.8.0 (после завершения Фазы 2)

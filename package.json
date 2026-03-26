@@ -7,6 +7,34 @@
   "bin": {
     "cursor-reset": "./cli.js"
   },
+  "author": {
+    "name": "Dupley Maxim Igorevich",
+    "url": "https://github.com/QuadDarv1ne"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QuadDarv1ne/cursor-reset-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/QuadDarv1ne/cursor-reset-tools/issues"
+  },
+  "homepage": "https://github.com/QuadDarv1ne/cursor-reset-tools#readme",
+  "keywords": [
+    "cursor",
+    "cursor-ide",
+    "machine-id",
+    "reset-tool",
+    "bypass",
+    "token-limit",
+    "pro-trial",
+    "vpn-bypass",
+    "dns-changer",
+    "proxy-rotation",
+    "nodejs",
+    "express",
+    "cli-tool",
+    "developer-tools"
+  ],
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",

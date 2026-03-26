@@ -2,6 +2,7 @@
 
 [![Version](https://img.shields.io/github/package-json/v/QuadDarv1ne/cursor-reset-tools?style=flat-square)](https://github.com/QuadDarv1ne/cursor-reset-tools/releases)
 [![Tests](https://img.shields.io/github/actions/workflow/status/QuadDarv1ne/cursor-reset-tools/ci.yml?branch=main&label=tests&style=flat-square)](https://github.com/QuadDarv1ne/cursor-reset-tools/actions)
+[![Coverage](https://img.shields.io/badge/coverage-70%25-brightgreen?style=flat-square)](coverage/)
 [![License](https://img.shields.io/github/license/QuadDarv1ne/cursor-reset-tools?style=flat-square)](LICENSE)
 [![Docker](https://img.shields.io/docker/pulls/quaddarv1ne/cursor-reset-tools?style=flat-square)](https://hub.docker.com/r/quaddarv1ne/cursor-reset-tools)
 

@@ -1,21 +1,73 @@
-node_modules
+# --- Зависимости ---
+node_modules/
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# --- Сборка и дистрибутив ---
 coverage/
 .nyc_output/
-.dist
-logs/*.log
-logs/*.json
-*.bak
-$null
-.DS_Store
-Thumbs.db
+.dist/
+build/
+
+# --- Логи ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Переменные окружения ---
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
+*.env
+
+# --- Данные и бэкапы ---
 data/proxies.json
 data/vpn-configs/*
 !data/vpn-configs/.gitkeep
 data/metrics.json
 data/resource-stats.json
+data/*.db
+data/*.sqlite
 backups/
 updates/
+
+# --- Временные файлы ---
+*.bak
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# --- Системные файлы ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# --- IDE и редакторы ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- Тестирование ---
+playwright-report/
+test-results/
+
+# --- Прочее ---
+$null

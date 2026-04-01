@@ -15,6 +15,10 @@ import { globalCache } from '../utils/cache.js';
 import { globalBackupManager } from '../utils/rollback.js';
 import { validateRequest } from '../utils/validator.js';
 import { DNS_SERVERS } from '../utils/dnsManager.js';
+import { globalResourceMonitor } from '../utils/resourceMonitor.js';
+import { globalStatsCache } from '../utils/statsCache.js';
+import { globalMetricsManager } from '../utils/metricsManager.js';
+import { globalUpdater } from '../utils/updater.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -740,6 +744,44 @@ rt.get('/paths', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+/**
+ * Diagnostics export (без секретов)
+ */
+rt.get('/diagnostics/export', async (req, res) => {
+  const safeCall = async fn => {
+    try {
+      return { ok: true, data: await fn() };
+    } catch (e) {
+      return { ok: false, error: e?.message || String(e) };
+    }
+  };
+
+  const diagnostics = {
+    success: true,
+    timestamp: Date.now(),
+    process: {
+      node: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid,
+      uptime: process.uptime()
+    },
+    modules: {
+      resourceMonitor: await safeCall(async () => ({
+        current: globalResourceMonitor.getCurrentStats(),
+        summary: globalResourceMonitor.getSummary(),
+        alerts: globalResourceMonitor.getAlerts(10),
+        history: globalResourceMonitor.getHistory(10)
+      })),
+      statsCache: await safeCall(async () => globalStatsCache.getStats()),
+      metrics: await safeCall(async () => globalMetricsManager.getStatus?.() || { enabled: false }),
+      updater: await safeCall(async () => globalUpdater.getStatus?.() || { enabled: false })
+    }
+  };
+
+  res.json(diagnostics);
 });
 
 // =========================================

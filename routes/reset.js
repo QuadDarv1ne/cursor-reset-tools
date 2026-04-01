@@ -922,8 +922,10 @@ import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
 import { globalDoHManager } from '../utils/dohManager.js';
 import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
 
+// Proxy, DNS, VPN endpoints удалены - дублируются в routes/proxy.js и routes/network.js
+
 /**
- * Proxy API
+ * IP API
  */
 rt.post('/proxy/add', (req, res) => {
   try {
@@ -1265,14 +1267,7 @@ rt.post('/dns/flush', async (req, res) => {
   }
 });
 
-rt.get('/dns/providers', (req, res) => {
-  try {
-    const providers = globalDNSManager.getAvailableProviders();
-    res.json({ success: true, providers });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// DNS endpoints удалены - дублируются в routes/network.js
 
 /**
  * IP API
@@ -1581,117 +1576,7 @@ rt.post('/bypass/auto', async (req, res) => {
   }
 });
 
-/**
- * VPN API
- */
-rt.get('/vpn/init', async (req, res) => {
-  try {
-    const result = await globalVPNManager.init();
-    res.json({ success: true, ...result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.get('/vpn/status', async (req, res) => {
-  try {
-    const status = await globalVPNManager.getStatus();
-    res.json({ success: true, ...status });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.get('/vpn/configs', async (req, res) => {
-  try {
-    const configs = await globalVPNManager.getConfigs();
-    res.json({ success: true, configs });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/wireguard/create', async (req, res) => {
-  try {
-    const { name, privateKey, address, dns, peers } = req.body;
-    const configFile = globalVPNManager.createWireGuardConfig({
-      name, privateKey, address, dns, peers
-    });
-    res.json({ success: true, configFile });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/wireguard/connect', async (req, res) => {
-  try {
-    const { tunnelName } = req.body;
-    const success = await globalVPNManager.connectWireGuard(tunnelName);
-    res.json({ success });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/wireguard/disconnect', async (req, res) => {
-  try {
-    const { tunnelName } = req.body;
-    const success = await globalVPNManager.disconnectWireGuard(tunnelName);
-    res.json({ success });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/openvpn/create', async (req, res) => {
-  try {
-    const { name, remote, port, proto, ca, cert, key, tlsAuth } = req.body;
-    const configFile = globalVPNManager.createOpenVPNConfig({
-      name, remote, port, proto, ca, cert, key, tlsAuth
-    });
-    res.json({ success: true, configFile });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/openvpn/connect', async (req, res) => {
-  try {
-    const { configFile, authUserPass } = req.body;
-    const result = await globalVPNManager.connectOpenVPN(configFile, { authUserPass });
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/disconnect', async (req, res) => {
-  try {
-    const success = await globalVPNManager.disconnect();
-    res.json({ success });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/vpn/quick-connect', async (req, res) => {
-  try {
-    const result = await globalVPNManager.quickConnect();
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.delete('/vpn/config/:name', async (req, res) => {
-  try {
-    const { name } = req.params;
-    const success = await globalVPNManager.deleteConfig(name);
-    res.json({ success });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// VPN endpoints удалены - дублируются в routes/network.js
 
 /**
  * Cursor Registrar API

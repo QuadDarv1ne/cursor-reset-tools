@@ -14,6 +14,7 @@ import { config } from '../utils/config.js';
 import { globalCache } from '../utils/cache.js';
 import { globalBackupManager } from '../utils/rollback.js';
 import { validateRequest } from '../utils/validator.js';
+import { DNS_SERVERS } from '../utils/dnsManager.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -1058,7 +1059,6 @@ rt.post('/dns/set', async (req, res) => {
         type: 'string',
         required: true,
         validate: value => {
-          const { DNS_SERVERS } = require('../utils/dnsManager.js');
           if (!DNS_SERVERS[value]) {
             return { valid: false, error: `Invalid DNS provider. Available: ${Object.keys(DNS_SERVERS).join(', ')}` };
           }

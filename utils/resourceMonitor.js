@@ -65,8 +65,31 @@ export class ResourceMonitor {
 
       if (await fs.pathExists(STATS_FILE)) {
         const data = await fs.readJson(STATS_FILE);
-        this.history = data.history || [];
-        this.alerts = data.alerts || [];
+        this.history = Array.isArray(data.history) ? data.history : [];
+        this.alerts = Array.isArray(data.alerts) ? data.alerts : [];
+
+        // Нормализация (на случай старых/частично повреждённых записей)
+        this.history = this.history
+          .filter(Boolean)
+          .map(h => ({
+            ...h,
+            cpu: typeof h.cpu === 'number' ? h.cpu : 0,
+            memory: {
+              ...(h.memory || {}),
+              total: typeof h.memory?.total === 'number' ? h.memory.total : 0,
+              free: typeof h.memory?.free === 'number' ? h.memory.free : 0,
+              used: typeof h.memory?.used === 'number' ? h.memory.used : 0,
+              percent: typeof h.memory?.percent === 'number' ? h.memory.percent : 0
+            },
+            disk: {
+              ...(h.disk || {}),
+              total: typeof h.disk?.total === 'number' ? h.disk.total : 0,
+              free: typeof h.disk?.free === 'number' ? h.disk.free : 0,
+              used: typeof h.disk?.used === 'number' ? h.disk.used : 0,
+              percent: typeof h.disk?.percent === 'number' ? h.disk.percent : 0
+            },
+            timestamp: typeof h.timestamp === 'number' ? h.timestamp : Date.now()
+          }));
       }
 
       // Первичный замер
@@ -405,10 +428,19 @@ export class ResourceMonitor {
    */
   async _save() {
     try {
-      await fs.writeJson(STATS_FILE, {
+      const dir = path.dirname(STATS_FILE);
+      const tmpFile = path.join(
+        dir,
+        `${path.basename(STATS_FILE, '.json')}.${process.pid}.${Date.now()}.tmp.json`
+      );
+
+      // Атомарная запись: сначала tmp, затем rename
+      await fs.writeJson(tmpFile, {
         history: this.history,
         alerts: this.alerts
       }, { spaces: 2 });
+
+      await fs.move(tmpFile, STATS_FILE, { overwrite: true });
     } catch (error) {
       logger.error(`Resource save failed: ${error.message}`, 'resource');
     }

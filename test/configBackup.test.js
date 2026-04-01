@@ -33,6 +33,9 @@ describe('ConfigBackupManager', () => {
       expect(result.path).toContain('config-backup-');
       expect(result.config).toBeDefined();
       expect(result.config.version).toBe('2.6.0');
+      expect(result.config).toHaveProperty('checksum');
+      expect(result.config.checksum).toHaveProperty('algo', 'sha256');
+      expect(typeof result.config.checksum.value).toBe('string');
     });
 
     it('should export config to custom path', async () => {
@@ -76,6 +79,22 @@ describe('ConfigBackupManager', () => {
       expect(result.config.version).toBe('2.6.0');
     });
 
+    it('should reject config with bad checksum', async () => {
+      const testConfig = {
+        version: '2.6.0',
+        timestamp: new Date().toISOString(),
+        managers: { proxy: { enabled: true } },
+        settings: {},
+        checksum: { algo: 'sha256', value: 'deadbeef' }
+      };
+      const testFile = path.join(testBackupDir, 'test-bad-checksum.json');
+      await fs.writeJson(testFile, testConfig);
+
+      const result = await backupManager.import(testFile);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Checksum');
+    });
+
     it('should reject invalid config (no version)', async () => {
       const testConfig = {
         managers: {
@@ -88,6 +107,25 @@ describe('ConfigBackupManager', () => {
       const result = await backupManager.import(testFile);
       expect(result.success).toBe(false);
       expect(result.error).toContain('version');
+    });
+  });
+
+  describe('previewImport', () => {
+    it('should preview changes without applying', async () => {
+      const testConfig = {
+        version: '2.6.0',
+        timestamp: new Date().toISOString(),
+        managers: { proxy: { enabled: true } },
+        settings: { foo: 'bar' }
+      };
+      const testFile = path.join(testBackupDir, 'test-preview.json');
+      await fs.writeJson(testFile, testConfig);
+
+      const result = await backupManager.previewImport(testFile);
+      expect(result.success).toBe(true);
+      expect(result).toHaveProperty('diff');
+      expect(result.diff).toHaveProperty('changes');
+      expect(Array.isArray(result.diff.changes)).toBe(true);
     });
   });
 

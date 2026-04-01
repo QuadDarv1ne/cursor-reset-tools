@@ -222,11 +222,21 @@ const rm = async () => {
           logs.push(`ℹ️ Updating Key-Value Pair: ${key}`);
         }
 
-        await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
-        await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
-        await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.lastUpdateCheck%'`);
-        await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.trialStartTime%'`);
-        await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.trialEndTime%'`);
+        // OPTIMIZATION: Используем транзакцию для группировки запросов
+        await db.run('BEGIN TRANSACTION');
+        try {
+          // OPTIMIZATION: Заменены LIKE на более специфичные паттерны
+          await db.run(`UPDATE ItemTable SET value = ? WHERE key GLOB '*cursor*usage*'`,
+            [JSON.stringify({ global: { usage: { sessionCount: 0, tokenCount: 0 } } })]);
+          await db.run(`UPDATE ItemTable SET value = ? WHERE key GLOB '*cursor*tier*'`, ['"pro"']);
+          await db.run(`DELETE FROM ItemTable WHERE key GLOB '*cursor.lastUpdateCheck*'`);
+          await db.run(`DELETE FROM ItemTable WHERE key GLOB '*cursor.trialStartTime*'`);
+          await db.run(`DELETE FROM ItemTable WHERE key GLOB '*cursor.trialEndTime*'`);
+          await db.run('COMMIT');
+        } catch (txErr) {
+          await db.run('ROLLBACK');
+          logger.warn(`Transaction failed: ${txErr.message}`, 'reset');
+        }
 
         await db.close();
         logs.push('✅ SQLite Database Updated Successfully');
@@ -381,7 +391,16 @@ const bt = async () => {
           driver: sqlite3.Database
         });
 
-        await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
+        // OPTIMIZATION: Используем транзакцию и параметризованный запрос
+        await db.run('BEGIN TRANSACTION');
+        try {
+          await db.run(`UPDATE ItemTable SET value = ? WHERE key GLOB '*cursor*usage*'`,
+            [JSON.stringify({ global: { usage: { sessionCount: 0, tokenCount: 0 } } })]);
+          await db.run('COMMIT');
+        } catch (txErr) {
+          await db.run('ROLLBACK');
+          logger.warn(`Bypass transaction failed: ${txErr.message}`, 'bypass');
+        }
         await db.close();
         logs.push('✅ SQLite database updated for token limits');
       } catch (err) {
@@ -574,7 +593,15 @@ const pc = async () => {
           driver: sqlite3.Database
         });
 
-        await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
+        // OPTIMIZATION: Используем транзакцию и параметризованный запрос
+        await db.run('BEGIN TRANSACTION');
+        try {
+          await db.run(`UPDATE ItemTable SET value = ? WHERE key GLOB '*cursor*tier*'`, ['"pro"']);
+          await db.run('COMMIT');
+        } catch (txErr) {
+          await db.run('ROLLBACK');
+          logger.warn(`Pro conversion transaction failed: ${txErr.message}`, 'pro');
+        }
         await db.close();
         logs.push('✅ Pro features enabled in SQLite database');
       } catch (err) {

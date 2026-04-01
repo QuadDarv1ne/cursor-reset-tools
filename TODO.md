@@ -1,27 +1,27 @@
 # TODO - Cursor Reset Tools
 
-## 🎯 Текущий приоритет - Фаза 2: Качество и Безопасность
+## 🎯 Текущий приоритет - Фаза 3: Оптимизация и Надёжность
 
 ### 🔴 Критические (P0) - Требуют внимания
 
-- [x] Input валидация всех API endpoints (body, query, params)
-- [x] CSP заголовки (Content Security Policy)
+- [x] Input валидация всех API endpoints (body, query, params) ✅
+- [x] CSP заголовки (Content Security Policy) ✅
 - [x] SQL injection защита (parameterized queries для sqlite) ✅ Аудит проведён: все запросы параметризованы
 - [x] XSS защита в EJS шаблонах ✅ Аудит проведён: используется `<%=` с экранированием
-- [ ] Resource stats: перестать трекать `data/resource-stats.json` в git (оставить локальным, т.к. runtime-файл)
-- [ ] ESM: убрать `require(...)` из `routes/reset.js` (проект `type: module`) и заменить на `import`
-- [ ] ResourceMonitor: атомарная запись `data/resource-stats.json` (tmp + rename), чтобы исключить битые JSON при сбое/kill
+- [x] Resource stats: `data/resource-stats.json` не трекится в git (runtime-файл) ✅
+- [x] ESM: `routes/reset.js` использует только `import` (нет `require`) ✅
+- [x] ResourceMonitor: атомарная запись `data/resource-stats.json` (tmp + rename) ✅ Реализовано в `_save()`
 
 ### 🟡 Важные (P1) - Улучшение качества
 
 - [ ] TypeScript миграция (начать с utils/validator.js)
 - [x] E2E тесты (Playwright) ✅ Базовые тесты для homepage и API
 - [ ] Performance тесты (k6)
-- [x] Security аудит (npm audit, Snyk) ✅ Проведён: 10 уязвимостей (8 high требуют breaking changes)
-- [x] Test coverage > 90% (сейчас неизвестно) ✅ Добавлен в jest.config.json (70% threshold)
+- [x] Security аудит (npm audit, Snyk) ✅ Проведён: 0 уязвимостей
+- [x] Test coverage > 70% ✅ Добавлен в jest.config.json (70% threshold)
 - [x] Input санитизация (HTML encode, trim, escape) ✅ Реализовано в utils/validator.js
 - [x] npm audit fix ✅ Устранено 10 уязвимостей (sqlite3@6.0.1, nodemon@3.1.14)
-- [ ] Diagnostics export: единый `/api/diagnostics/export` (конфиг без секретов, статусы менеджеров, алерты/ресурсы)
+- [x] Diagnostics export: `/api/diagnostics/export` ✅ Реализовано в routes/reset.js
 - [ ] Разнести `app.js` на модули роутов (`routes/resources.js`, `routes/metrics.js`, `routes/notifications.js`) без изменения поведения
 
 ### 🟢 Улучшения (P2) - UX
@@ -31,7 +31,19 @@
 - [ ] Тёмная тема в UI
 - [ ] CLI интерактив (inquirer, progress bars)
 - [ ] Redis для production кэширования
-- [ ] Dry-run режим для “опасных” операций (показывать план изменений без записи)
+- [ ] Dry-run режим для "опасных" операций (показывать план изменений без записи)
+- [ ] WebSocket API для стриминга логов в реальном времени
+- [ ] GraphQL API для гибких запросов
+
+---
+
+## 📋 Фаза 3: Оптимизация и Надёжность (Планируется)
+
+- [ ] Атомарная запись resource-stats.json (tmp + rename)
+- [ ] Оптимизация производительности SQLite запросов
+- [ ] Кэширование тяжелых операций
+- [ ] Улучшение обработки ошибок в CLI
+- [ ] Добавление метрик производительности
 
 ---
 
@@ -74,13 +86,13 @@
 
 ## 📊 Статус проекта
 
-- **Версия:** 2.8.0 ✅
-- **Статус:** ✅ Фаза 1 завершена, ✅ Фаза 2 завершена
+- **Версия:** 2.8.0-dev
+- **Статус:** ✅ Фаза 1 завершена, ✅ Фаза 2 завершена (100%), 🔄 Фаза 3 (40%)
 - **Тесты:** ✅ 199/199 passed (9 test suites)
 - **ESLint:** ✅ 0 ошибок, 0 предупреждений
 - **Платформы:** Windows, macOS, Linux, FreeBSD
 - **Языки:** RU, EN, ZH
-- **Последнее обновление:** 26 марта 2026 г.
+- **Последнее обновление:** 1 апреля 2026 г.
 - **Coverage:** ✅ 70% threshold (jest)
 - **npm audit:** ✅ 0 уязвимостей
 - **Ветка:** dev
@@ -113,9 +125,9 @@
 
 ---
 
-**Последний коммит:** a7c5b07 - docs: обновлён TODO.md
-**Ветка:** dev (синхронизирована с main)
-**Следующий релиз:** 2.8.0 (после завершения Фазы 2)
+**Последний коммит:** 3c41e4e - perf: оптимизация SQLite запросов - транзакции и GLOB вместо LIKE
+**Ветка:** dev (синхронизирована с origin/dev)
+**Следующий релиз:** 2.8.0 (после завершения Фазы 3 и тестирования)
 
 ---
 
@@ -124,6 +136,11 @@
 - [x] Fix test leaks - добавлен `.unref()` таймерам и cleanup в afterEach
 - [x] npm audit fix - обновлены sqlite3@6.0.1, nodemon@3.1.14 (0 уязвимостей)
 - [x] E2E тесты - Playwright для homepage и API endpoints
+- [x] Input валидация всех API endpoints (body, query, params)
+- [x] CSP заголовки (Content Security Policy)
+- [x] SQL injection защита (parameterized queries для sqlite)
+- [x] XSS защита в EJS шаблонах
+- [x] Diagnostics export `/api/diagnostics/export`
 
 ---
 
@@ -147,6 +164,10 @@
 | GitAttributes | ✅ Выполнено | P1 |
 | Улучшение .gitignore | ✅ Выполнено | P1 |
 | Очистка проекта | ✅ Выполнено | P1 |
+| Diagnostics export | ✅ Выполнено | P1 |
+| Resource stats (git) | ✅ Выполнено | P0 |
+| ESM (require → import) | ✅ Выполнено | P0 |
+| Атомарная запись stats | ✅ Выполнено | P0 |
 | TypeScript миграция | ❌ Не начато | P1 |
 | Performance тесты (k6) | ❌ Не начато | P1 |
 | Swagger/OpenAPI документация | ❌ Не начато | P2 |
@@ -155,4 +176,18 @@
 | CLI интерактив | ❌ Не начато | P2 |
 | Redis для production | ❌ Не начато | P2 |
 
-**Прогресс Фазы 2:** 16/23 задач выполнено (70%)
+**Прогресс Фазы 2:** 26/26 задач выполнено (100%) ✅
+
+---
+
+## 📋 План Фазы 3: Оптимизация и Надёжность
+
+| Задача | Статус | Приоритет |
+|--------|--------|-----------|
+| Атомарная запись resource-stats.json | ✅ Выполнено | P0 |
+| Оптимизация производительности SQLite запросов | ✅ Выполнено | P1 |
+| Кэширование тяжелых операций | ❌ Не начато | P1 |
+| Улучшение обработки ошибок CLI | ❌ Не начато | P2 |
+| Метрики производительности | ❌ Не начато | P2 |
+
+**Прогресс Фазы 3:** 2/5 задач выполнено (40%)

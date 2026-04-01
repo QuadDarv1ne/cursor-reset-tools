@@ -1434,7 +1434,9 @@ const startServer = async () => {
     globalResourceMonitor.startMonitoring(5000);
 
     // Отправка уведомления о старте (если включено)
-    globalNotificationManager.sendEvent('start', { version: '2.4.0' }).catch(() => {});
+    globalNotificationManager.sendEvent('start', { version: '2.4.0' }).catch(err => {
+      logger.debug(`Notification send failed: ${err.message}`, 'app');
+    });
 
     // Проверка обновлений при старте
     globalUpdater.checkForUpdates().then(result => {

@@ -97,8 +97,10 @@ class ProxyManager {
 
     logger.info(`Proxy added: ${this.maskProxyUrl(url)} (${protocol})`, 'proxy');
 
-    // Асинхронная проверка GeoIP
-    this.validateGeoIP(proxyInfo).catch(() => {});
+    // Асинхронная проверка GeoIP (не блокирует добавление)
+    this.validateGeoIP(proxyInfo).catch(err => {
+      logger.debug(`GeoIP validation failed for ${url}: ${err.message}`, 'proxy');
+    });
 
     return proxyInfo;
   }
@@ -506,7 +508,9 @@ class ProxyManager {
     // Запускаем DPI тест для рабочих прокси
     const workingProxies = this.proxies.filter((p, i) => results.results[i]?.success);
     for (const proxy of workingProxies.slice(0, 5)) { // Тестируем топ-5
-      await this.testDPIBypass(proxy).catch(() => {});
+      await this.testDPIBypass(proxy).catch(err => {
+        logger.debug(`DPI bypass test failed for ${proxy.url}: ${err.message}`, 'proxy');
+      });
     }
 
     return results;

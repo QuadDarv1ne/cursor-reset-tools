@@ -14,6 +14,7 @@ import { config } from '../utils/config.js';
 import { globalCache } from '../utils/cache.js';
 import { globalBackupManager } from '../utils/rollback.js';
 import { validateRequest } from '../utils/validator.js';
+import { globalFileValidator } from '../utils/fileValidator.js';
 import { DNS_SERVERS } from '../utils/dnsManager.js';
 import { globalResourceMonitor } from '../utils/resourceMonitor.js';
 import { globalStatsCache } from '../utils/statsCache.js';
@@ -107,6 +108,25 @@ const rm = async () => {
 
     if (!fs.existsSync(sp)) {
       logs.push('⚠️ Warning: Storage file not found, will create if needed');
+    }
+
+    // Валидация файлов перед модификацией
+    const filesToValidate = [sp, dp, mp, cp].filter(f => f && fs.existsSync(f));
+    if (filesToValidate.length > 0) {
+      try {
+        const validationResults = await globalFileValidator.validateFiles(filesToValidate, {
+          requireExists: false
+        });
+
+        if (!validationResults.success) {
+          const errors = validationResults.errors.map(e => `${e.file}: ${e.errors.join(', ')}`);
+          logs.push(`⚠️ File validation warnings: ${errors.join('; ')}`);
+          logger.warn(`File validation warnings: ${JSON.stringify(validationResults.errors)}`, 'reset');
+        }
+      } catch (err) {
+        logs.push(`⚠️ File validation skipped: ${err.message}`);
+        logger.debug(`File validation skipped: ${err.message}`, 'reset');
+      }
     }
 
     // Создаём бэкапы всех файлов перед модификацией (ПАРАЛЛЕЛЬНО)

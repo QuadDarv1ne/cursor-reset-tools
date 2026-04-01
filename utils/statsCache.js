@@ -51,6 +51,45 @@ export class StatsCache {
   }
 
   /**
+   * Получить или вычислить значение (кэширование тяжелых операций)
+   * @param {string} key - Ключ кэша
+   * @param {Function} computeFn - Функция для вычисления (может быть async)
+   * @param {number} ttl - Время жизни в мс
+   * @returns {Promise<*>}
+   */
+  async getOrCompute(key, computeFn, ttl = CACHE_CONFIG.defaultTTL) {
+    // Проверка кэша
+    const cached = this.get(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    // Проверка на идущее вычисление (избегаем дублирования)
+    const pendingKey = `__pending:${key}`;
+    const pendingPromise = this.cache.get(pendingKey);
+    
+    if (pendingPromise) {
+      // Ждем завершения существующего вычисления
+      return pendingPromise;
+    }
+
+    // Вычисление нового значения
+    const computePromise = Promise.resolve().then(computeFn).then(result => {
+      this.set(key, result, ttl);
+      this.cache.delete(pendingKey);
+      return result;
+    }).catch(error => {
+      this.cache.delete(pendingKey);
+      throw error;
+    });
+
+    // Сохраняем promise для предотвращения дублирования
+    this.cache.set(pendingKey, computePromise);
+
+    return computePromise;
+  }
+
+  /**
    * Получить значение из кэша
    * @param {string} key - Ключ кэша
    * @returns {*} Значение или null

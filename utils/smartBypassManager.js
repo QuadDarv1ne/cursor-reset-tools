@@ -10,6 +10,7 @@ import { globalProxyManager } from './proxyManager.js';
 import { globalDNSManager } from './dnsManager.js';
 import { globalDoHManager } from './dohManager.js';
 import { globalVPNManager } from './vpnManager.js';
+import { globalStatsCache } from './statsCache.js';
 
 class SmartBypassManager {
   constructor() {
@@ -137,77 +138,84 @@ class SmartBypassManager {
   }
 
   /**
-   * Тестирование всех методов обхода
+   * Тестирование всех методов обхода (с кэшированием)
    */
   async testAllMethods() {
-    logger.info('Testing all bypass methods with ML analysis...', 'smart-bypass');
+    // Кэширование результатов на 5 минут
+    return globalStatsCache.getOrCompute(
+      'bypass:test:all',
+      async () => {
+        logger.info('Testing all bypass methods with ML analysis...', 'smart-bypass');
 
-    const startTime = Date.now();
-    const results = {};
-    const currentHour = new Date().getHours();
-    const currentDay = new Date().getDay();
+        const startTime = Date.now();
+        const results = {};
+        const currentHour = new Date().getHours();
+        const currentDay = new Date().getDay();
 
-    // Параллельное тестирование всех методов
-    const testPromises = [
-      this.testDirect(),
-      this.testProxy(),
-      this.testDoH(),
-      this.testDNS(),
-      this.testVPN(),
-      this.testAmnezia()
-    ];
+        // Параллельное тестирование всех методов
+        const testPromises = [
+          this.testDirect(),
+          this.testProxy(),
+          this.testDoH(),
+          this.testDNS(),
+          this.testVPN(),
+          this.testAmnezia()
+        ];
 
-    const [direct, proxy, doh, dns, vpn, amnezia] = await Promise.allSettled(testPromises);
+        const [direct, proxy, doh, dns, vpn, amnezia] = await Promise.allSettled(testPromises);
 
-    results.direct = direct.status === 'fulfilled' ? direct.value : { success: false, error: direct.reason?.message };
-    results.proxy = proxy.status === 'fulfilled' ? proxy.value : { success: false, error: proxy.reason?.message };
-    results.doh = doh.status === 'fulfilled' ? doh.value : { success: false, error: doh.reason?.message };
-    results.dns = dns.status === 'fulfilled' ? dns.value : { success: false, error: dns.reason?.message };
-    results.vpn = vpn.status === 'fulfilled' ? vpn.value : { success: false, error: vpn.reason?.message };
-    results.amnezia = amnezia.status === 'fulfilled' ? amnezia.value : { success: false, error: amnezia.reason?.message };
+        results.direct = direct.status === 'fulfilled' ? direct.value : { success: false, error: direct.reason?.message };
+        results.proxy = proxy.status === 'fulfilled' ? proxy.value : { success: false, error: proxy.reason?.message };
+        results.doh = doh.status === 'fulfilled' ? doh.value : { success: false, error: doh.reason?.message };
+        results.dns = dns.status === 'fulfilled' ? dns.value : { success: false, error: dns.reason?.message };
+        results.vpn = vpn.status === 'fulfilled' ? vpn.value : { success: false, error: vpn.reason?.message };
+        results.amnezia = amnezia.status === 'fulfilled' ? amnezia.value : { success: false, error: amnezia.reason?.message };
 
-    // Обновляем статистику методов
-    this.updateMethodStats('direct', results.direct);
-    this.updateMethodStats('proxy', results.proxy);
-    this.updateMethodStats('doh', results.doh);
-    this.updateMethodStats('dns', results.dns);
-    this.updateMethodStats('vpn', results.vpn);
-    this.updateMethodStats('amnezia', results.amnezia);
+        // Обновляем статистику методов
+        this.updateMethodStats('direct', results.direct);
+        this.updateMethodStats('proxy', results.proxy);
+        this.updateMethodStats('doh', results.doh);
+        this.updateMethodStats('dns', results.dns);
+        this.updateMethodStats('vpn', results.vpn);
+        this.updateMethodStats('amnezia', results.amnezia);
 
-    // Обновляем веса с учётом ML
-    this.updateWeightsWithML(results, currentHour, currentDay);
+        // Обновляем веса с учётом ML
+        this.updateWeightsWithML(results, currentHour, currentDay);
 
-    // Сохраняем в историю
-    const historyEntry = {
-      timestamp: startTime,
-      duration: Date.now() - startTime,
-      hour: currentHour,
-      day: currentDay,
-      results: { ...results },
-      bestMethod: this.getBestMethod()
-    };
+        // Сохраняем в историю
+        const historyEntry = {
+          timestamp: startTime,
+          duration: Date.now() - startTime,
+          hour: currentHour,
+          day: currentDay,
+          results: { ...results },
+          bestMethod: this.getBestMethod()
+        };
 
-    this.testHistory.push(historyEntry);
-    if (this.testHistory.length > this.maxHistorySize) {
-      this.testHistory.shift();
-    }
+        this.testHistory.push(historyEntry);
+        if (this.testHistory.length > this.maxHistorySize) {
+          this.testHistory.shift();
+        }
 
-    // Обновляем паттерны
-    this.updatePatterns(historyEntry);
+        // Обновляем паттерны
+        this.updatePatterns(historyEntry);
 
-    this.lastTest = {
-      timestamp: startTime,
-      duration: Date.now() - startTime,
-      results
-    };
+        this.lastTest = {
+          timestamp: startTime,
+          duration: Date.now() - startTime,
+          results
+        };
 
-    // Генерируем рекомендации
-    this.generateRecommendations(results);
+        // Генерируем рекомендации
+        this.generateRecommendations(results);
 
-    const bestMethod = this.getBestMethod();
-    logger.info(`Bypass test complete in ${Date.now() - startTime}ms: ${bestMethod} is best`, 'smart-bypass');
+        const bestMethod = this.getBestMethod();
+        logger.info(`Bypass test complete in ${Date.now() - startTime}ms: ${bestMethod} is best`, 'smart-bypass');
 
-    return results;
+        return results;
+      },
+      300000 // 5 минут TTL
+    );
   }
 
   /**

@@ -229,7 +229,9 @@ export class ResourceMonitor {
     try {
       // Кроссплатформенный способ через fs.statfs
       const platform = os.platform();
-      const mountPoint = platform === 'win32' ? 'C:\\' : '/';
+      const mountPoint = platform === 'win32'
+        ? (path.parse(process.cwd()).root || 'C:\\')
+        : '/';
 
       try {
         const stats = await fs.statfs(mountPoint);
@@ -238,7 +240,7 @@ export class ResourceMonitor {
         const used = total - free;
         const percent = Math.round((used / total) * 100 * 100) / 100;
 
-        return { total, free, used, percent };
+        return { total, free, used, percent, mountPoint };
       } catch (err) {
         // Fallback: оценка через process.cwd()
         const cwdStats = await fs.statfs(process.cwd());
@@ -247,7 +249,7 @@ export class ResourceMonitor {
         const used = total - free;
         const percent = Math.round((used / total) * 100 * 100) / 100;
 
-        return { total, free, used, percent };
+        return { total, free, used, percent, mountPoint: process.cwd() };
       }
     } catch (error) {
       logger.error(`Disk usage error: ${error.message}`, 'resource');
@@ -415,12 +417,55 @@ export class ResourceMonitor {
         avg: Math.round(avg(diskValues) * 100) / 100,
         min: min(diskValues),
         max: max(diskValues),
-        current: this.currentStats.disk.percent
+        current: this.currentStats.disk.percent,
+        etaSeconds: this._estimateDiskFullEtaSeconds()
       },
       samples: this.history.length,
       uptime: this.currentStats.uptime,
       load: this.currentStats.load
     };
+  }
+
+  /**
+   * Оценка времени до заполнения диска (ETA) по истории.
+   * Возвращает null, если данных недостаточно или тренд не растёт.
+   */
+  _estimateDiskFullEtaSeconds() {
+    const points = this.history
+      .slice(-20)
+      .filter(h => typeof h?.timestamp === 'number' && typeof h?.disk?.used === 'number' && typeof h?.disk?.total === 'number')
+      .filter(h => h.disk.total > 0 && h.disk.used >= 0)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (points.length < 2) {
+      return null;
+    }
+
+    const first = points[0];
+    const last = points[points.length - 1];
+    const dt = (last.timestamp - first.timestamp) / 1000;
+    if (dt <= 0) {
+      return null;
+    }
+
+    const dUsed = last.disk.used - first.disk.used;
+    const rate = dUsed / dt; // bytes per second
+    if (rate <= 0) {
+      return null;
+    }
+
+    const remaining = last.disk.total - last.disk.used;
+    if (remaining <= 0) {
+      return 0;
+    }
+
+    const eta = remaining / rate;
+    // Ограничиваем чрезмерные значения (например, при шуме)
+    if (!Number.isFinite(eta) || eta < 0) {
+      return null;
+    }
+
+    return Math.round(eta);
   }
 
   /**

@@ -163,6 +163,19 @@ describe('API Integration Tests', () => {
     }, 20000);
   });
 
+  describe('GET /api/diagnostics/export', () => {
+    it('должен возвращать diagnostics export без ошибок', async () => {
+      const response = await makeRequest(`${baseUrl}/api/diagnostics/export`);
+      expect(response.statusCode).toBe(200);
+      expect(response.data).toHaveProperty('success', true);
+      expect(response.data).toHaveProperty('timestamp');
+      expect(response.data).toHaveProperty('process');
+      expect(response.data).toHaveProperty('modules');
+      expect(response.data.modules).toHaveProperty('resourceMonitor');
+      expect(response.data.modules).toHaveProperty('statsCache');
+    });
+  });
+
   describe('404 handler', () => {
     it('должен возвращать 404 для несуществующих routes', async () => {
       const response = await makeRequest(`${baseUrl}/api/nonexistent`);

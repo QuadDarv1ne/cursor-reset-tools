@@ -1395,9 +1395,116 @@ export async function runCLI(args = process.argv.slice(2)) {
   try {
     await command.handler(parsed);
   } catch (error) {
-    output(`Ошибка: ${error.message}`, 'error');
-    logger.error(`CLI error: ${error.message}`, 'cli');
+    // Детальная обработка ошибок CLI
+    const errorMessage = formatCLIError(error, parsed.command);
+    output(errorMessage.message, 'error');
+    
+    if (errorMessage.hints?.length > 0) {
+      console.log('');
+      output('Рекомендации:', 'warning');
+      errorMessage.hints.forEach(hint => console.log(`  • ${hint}`));
+    }
+    
+    logger.error(`CLI error: ${error.message}`, 'cli', {
+      command: parsed.command,
+      stack: error.stack,
+      code: error.code
+    });
   }
+}
+
+/**
+ * Форматирование ошибок CLI с рекомендациями
+ * @param {Error} error - Объект ошибки
+ * @param {string} command - Имя команды
+ * @returns {{message: string, hints: string[]}}
+ */
+function formatCLIError(error, command) {
+  const message = error.message || 'Неизвестная ошибка';
+  const hints = [];
+
+  // Специфичные ошибки по командам
+  switch (command) {
+    case 'proxy:add':
+      if (message.includes('ECONNREFUSED') || message.includes('ENOTFOUND')) {
+        hints.push('Проверьте правильность формата прокси (host:port)');
+        hints.push('Убедитесь, что прокси сервер доступен');
+      }
+      break;
+
+    case 'proxy:check':
+    case 'proxy-db:check':
+      if (message.includes('timeout')) {
+        hints.push('Увеличьте таймаут проверки через флаг --timeout');
+        hints.push('Проверьте подключение к интернету');
+      }
+      break;
+
+    case 'vpn:quick':
+    case 'vpn:configs':
+      if (message.includes('WireGuard') || message.includes('OpenVPN')) {
+        hints.push('Установите WireGuard или OpenVPN');
+        hints.push('Проверьте наличие конфигураций в data/vpn-configs/');
+      }
+      break;
+
+    case 'cursor:register':
+    case 'cursor:auto-register':
+      if (message.includes('email') || message.includes('SMTP')) {
+        hints.push('Проверьте доступность email сервиса');
+        hints.push('Попробуйте другой сервис: --email-service tempmail');
+      }
+      break;
+
+    case 'dns:set':
+      if (message.includes('permission') || message.includes('access')) {
+        hints.push('Запустите CLI от имени администратора (sudo/root)');
+        if (process.platform === 'win32') {
+          hints.push('Windows: Запустите CMD от имени администратора');
+        } else {
+          hints.push('macOS/Linux: Используйте sudo node cli.js');
+        }
+      }
+      break;
+
+    case 'server:start':
+      if (message.includes('EADDRINUSE')) {
+        hints.push('Порт занят. Используйте другой порт: --port 3002');
+        hints.push('Или остановите существующий сервер: server:stop');
+      }
+      break;
+
+    case 'updater:download':
+    case 'updater:install':
+      if (message.includes('network') || message.includes('fetch')) {
+        hints.push('Проверьте подключение к интернету');
+        hints.push('Попробуйте позже - сервер может быть недоступен');
+      }
+      break;
+
+    case 'backup:import':
+      if (message.includes('not found') || message.includes('ENOENT')) {
+        hints.push('Проверьте путь к файлу бэкапа');
+        hints.push('Используйте backup:list для просмотра доступных бэкапов');
+      }
+      break;
+  }
+
+  // Общие рекомендации
+  if (hints.length === 0) {
+    if (message.includes('permission') || message.includes('access') || message.includes('EPERM')) {
+      hints.push('Запустите CLI от имени администратора');
+    } else if (message.includes('network') || message.includes('ENOTFOUND') || message.includes('ECONNREFUSED')) {
+      hints.push('Проверьте подключение к интернету');
+    } else if (message.includes('timeout')) {
+      hints.push('Превышено время ожидания. Повторите попытку');
+    }
+  }
+
+  return {
+    message: `${message}${error.code ? ` (код: ${error.code})` : ''}`,
+    hints
+  };
 }
 
 export default { runCLI, CLI_COMMANDS, parseArgs };

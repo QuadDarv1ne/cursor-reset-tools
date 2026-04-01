@@ -21,6 +21,7 @@ import { globalMonitorManager } from '../utils/monitorManager.js';
 import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
 import { globalDoHManager } from '../utils/dohManager.js';
 import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
+import { globalStatsCache } from '../utils/statsCache.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -725,12 +726,11 @@ rt.get('/patch', async (req, res) => {
 
 rt.get('/paths', async (req, res) => {
   try {
-    // eslint-disable-next-line no-unused-vars
     const { mp, sp, dp, ap, cp, up, pt, dc } = gp();
 
     // Кэшированная проверка процесса Cursor
     const cacheKey = `cursor_running_${pt}`;
-    const isRunning = await globalCache.getOrCompute(
+    const isRunning = await globalStatsCache.getOrCompute(
       cacheKey,
       () => checkCursorProcess(pt),
       2000 // 2 секунды кэш

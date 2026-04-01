@@ -635,6 +635,20 @@ app.post('/api/config-backup/import', async (req, res) => {
   }
 });
 
+// Config Backup - preview изменений перед импортом
+app.post('/api/config-backup/preview', async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'File path is required' });
+    }
+    const result = await globalConfigBackup.previewImport(filePath);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Config Backup - список бэкапов
 app.get('/api/config-backup/list', async (req, res) => {
   try {

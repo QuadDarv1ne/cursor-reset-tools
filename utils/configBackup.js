@@ -7,6 +7,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from './logger.js';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,15 +39,16 @@ export class ConfigBackupManager {
   async export(filePath) {
     try {
       const config = await this._collectConfig();
+      const withChecksum = this._attachChecksum(config);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const defaultPath = path.join(this.backupDir, `config-backup-${timestamp}.json`);
       const targetPath = filePath || defaultPath;
 
       await fs.ensureDir(path.dirname(targetPath));
-      await fs.writeJson(targetPath, config, { spaces: 2 });
+      await fs.writeJson(targetPath, withChecksum, { spaces: 2 });
 
       logger.info(`Config exported to ${targetPath}`, 'backup');
-      return { success: true, path: targetPath, config };
+      return { success: true, path: targetPath, config: withChecksum };
     } catch (error) {
       logger.error(`Export failed: ${error.message}`, 'backup');
       return { success: false, error: error.message };
@@ -65,6 +67,7 @@ export class ConfigBackupManager {
       }
 
       const config = await fs.readJson(filePath);
+      this._verifyChecksumIfPresent(config);
       await this._validateConfig(config);
       await this._applyConfig(config);
 
@@ -72,6 +75,31 @@ export class ConfigBackupManager {
       return { success: true, config };
     } catch (error) {
       logger.error(`Import failed: ${error.message}`, 'backup');
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Preview импорта: показывает, что изменится (без применения)
+   * @param {string} filePath
+   */
+  async previewImport(filePath) {
+    try {
+      if (!await fs.pathExists(filePath)) {
+        return { success: false, error: 'File not found' };
+      }
+
+      const incoming = await fs.readJson(filePath);
+      this._verifyChecksumIfPresent(incoming);
+      await this._validateConfig(incoming);
+
+      const current = this._attachChecksum(await this._collectConfig());
+      const changes = this._diffObjects(current, incoming);
+      const diff = { changed: changes.length, changes };
+
+      return { success: true, current, incoming, diff };
+    } catch (error) {
+      logger.error(`Preview import failed: ${error.message}`, 'backup');
       return { success: false, error: error.message };
     }
   }
@@ -254,6 +282,77 @@ export class ConfigBackupManager {
     config.platforms = ['win32', 'darwin', 'linux', 'freebsd'];
 
     return config;
+  }
+
+  _attachChecksum(config) {
+    const base = this._stripChecksum(config);
+    const serialized = JSON.stringify(base);
+    const checksum = crypto.createHash('sha256').update(serialized).digest('hex');
+    return {
+      ...base,
+      checksum: {
+        algo: 'sha256',
+        value: checksum
+      }
+    };
+  }
+
+  _stripChecksum(config) {
+    if (!config || typeof config !== 'object') {
+      return config;
+    }
+    // shallow remove checksum field
+    // eslint-disable-next-line no-unused-vars
+    const { checksum, ...rest } = config;
+    return rest;
+  }
+
+  _verifyChecksumIfPresent(config) {
+    if (!config?.checksum?.value) {
+      return true;
+    }
+    if (config.checksum.algo !== 'sha256') {
+      throw new Error(`Unsupported checksum algo: ${config.checksum.algo}`);
+    }
+    const base = this._stripChecksum(config);
+    const serialized = JSON.stringify(base);
+    const expected = crypto.createHash('sha256').update(serialized).digest('hex');
+    if (expected !== config.checksum.value) {
+      throw new Error('Checksum mismatch');
+    }
+    return true;
+  }
+
+  _diffObjects(a, b, basePath = '') {
+    const changes = [];
+    const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+
+    const keys = new Set([
+      ...Object.keys(isObj(a) ? a : {}),
+      ...Object.keys(isObj(b) ? b : {})
+    ]);
+
+    for (const key of keys) {
+      const pathKey = basePath ? `${basePath}.${key}` : key;
+      const va = a?.[key];
+      const vb = b?.[key];
+
+      if (isObj(va) && isObj(vb)) {
+        changes.push(...this._diffObjects(va, vb, pathKey));
+        continue;
+      }
+
+      const same = JSON.stringify(va) === JSON.stringify(vb);
+      if (!same) {
+        changes.push({
+          path: pathKey,
+          from: va === undefined ? null : va,
+          to: vb === undefined ? null : vb
+        });
+      }
+    }
+
+    return changes;
   }
 
   /**

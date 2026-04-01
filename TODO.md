@@ -174,7 +174,7 @@ app.js разделён на модули:
 - **Последнее обновление:** 1 апреля 2026 г.
 - **Coverage:** ✅ 70% threshold (jest)
 - **npm audit:** ✅ 0 уязвимостей
-- **Ветка:** dev (синхронизирована)
+- **Ветка:** dev (требует синхронизации с main - 56 коммитов впереди)
 
 ---
 
@@ -207,6 +207,144 @@ app.js разделён на модули:
 3. **Безопасность** - валидация input, CSP, rate limiting
 4. **Документация по запросу** - не создавать без необходимости
 5. **dev → test → main** - проверять перед merge
+
+---
+
+## 🔍 Аудит проекта (1 апреля 2026 г.) - ТЕКУЩИЙ
+
+### Статус синхронизации
+- **dev** ветка опережает **main** на 56 коммитов
+- Последнее различие: `routes/reset.js` (+2 строки логирования ошибок)
+- Требуется синхронизация: `git push origin dev` и PR в main
+
+### Результаты полной проверки функционала
+
+#### ✅ Архитектура и структура
+- **ESM модули**: все файлы используют `import/export` - ✅
+- **Модульная структура**:
+  - `utils/` (35 файлов) - утилиты и менеджеры
+  - `routes/` (10 файлов) - API роуты
+  - `server/` - серверные компоненты
+  - `scripts/` - скрипты
+  - `test/` (9 тестов) - unit тесты
+- **Глобальные менеджеры**: единая точка инициализации в `app.js` - ✅
+- **app.js**: 806 строк (после рефакторинга -690 строк) - ✅
+
+#### ✅ Безопасность (P0 - все выполнено)
+- **Input валидация**: `utils/validator.js` (12 функций валидации) - ✅
+- **FileValidator**: `utils/fileValidator.js` (полная валидация файлов) - ✅
+- **CSP заголовки**: Helmet настроен в `app.js` - ✅
+- **Rate limiting**: 100 запросов / 15 мин - ✅
+- **SQL injection защита**: parameterized queries в sqlite - ✅
+- **XSS защита**: экранирование в EJS шаблонах, `sanitizeString()` - ✅
+- **SECURITY.md**: присутствует - ✅
+
+#### ✅ Тесты и качество
+- **9 test suites**: validator, helpers, api, statsCache, resourceMonitor, smartBypassManager, notificationManager, configBackup, vpnManager - ✅
+- **Jest настроен**: 70% coverage threshold - ✅
+- **Playwright E2E**: тесты присутствуют - ✅
+- **ESLint**: 0 ошибок, 0 предупреждений - ✅
+- **Prettier**: настроен (.prettierrc) - ✅
+- **Husky**: pre-commit hook с lint-staged - ✅
+
+#### ✅ CI/CD
+- **GitHub Actions**: ci.yml (test, build, release, docker) - ✅
+- **Матрица тестов**: Windows, Ubuntu, macOS × Node 18, 20, 22 - ✅
+- **Автоматический релиз**: при коммите с "release:" - ✅
+- **Docker Hub**: публикация настроена - ✅
+
+#### ✅ Ключевые компоненты
+
+**utils/validator.js** (12 функций):
+- `sanitizeString()` - XSS защита
+- `sanitizePath()` - защита от traversal атак
+- `validateUrl()`, `validateIp()`, `validateDomain()`, `validateEmail()`, `validateUuid()`
+- `validateNumber()`, `validateProxyProtocol()`
+- `validateRequest()` - валидация объекта запроса
+- `validateMiddleware()` - Express middleware
+
+**utils/fileValidator.js**:
+- `computeHash()` - хэш файла (SHA256)
+- `verifyIntegrity()` - проверка целостности
+- `validateFile()` - комплексная валидация
+- `validateFiles()` - валидация нескольких файлов
+- `checkFilePermissions()` - проверка прав доступа
+- `validateJSONFile()` - валидация JSON структуры
+
+**utils/smartBypassManager.js** (998 строк):
+- 6 методов обхода: direct, proxy, doh, dns, vpn, amnezia
+- ML веса с учётом времени суток, дня недели, страны
+- История тестов (100 записей)
+- Авто-рекомендации на основе результатов
+
+**utils/bypassTester.js**:
+- Полный тест: VPN, DNS, DoH, Proxy, Leaks, Cursor
+- Быстрый тест: VPN + Cursor
+- Генерация рекомендаций с приоритетами
+
+**utils/monitorManager.js**:
+- Мониторинг: Cursor API, DNS, GitHub
+- Авто-проверка с интервалом
+- История проверок (100 записей)
+
+**routes/reset.js** (1756 строк):
+- Machine ID reset
+- Token limit bypass
+- Disable auto-update
+- Pro conversion
+- Бэкапы перед модификацией
+- Rollback при ошибках
+- Валидация файлов через FileValidator
+
+#### ✅ Обработка ошибок
+
+**app.js**:
+- Graceful shutdown (SIGTERM, SIGINT)
+- `uncaughtException`, `unhandledRejection` обработчики
+- Global error middleware
+- 404 handler
+
+**routes/reset.js**:
+- Логирование ошибок в catch блоках ✅
+- Rollback через `globalBackupManager`
+- Детальные сообщения пользователю
+
+**utils/helpers.js**:
+- `withRetry()` - retry logic с exponential backoff
+- `checkAdminRights()` - проверка прав администратора
+- `validatePaths()` - валидация критических путей
+
+#### ✅ Конфигурация
+
+**config.js**:
+- Поддерживаемые версии Cursor: 0.49.x - 2.0.x
+- Token limits для патчинга
+- Workbench patterns для обхода
+- Platform paths: Windows, macOS, Linux, FreeBSD
+
+**.env.example**:
+- PORT, WS_PORT, HOST, NODE_ENV
+- LOG_LEVEL, LOG_FILE, LOG_MAX_FILES, LOG_MAX_SIZE
+- TELEGRAM, DISCORD уведомления
+- PROXY, VPN, DNS настройки
+- RATE_LIMIT, CSP, CACHE настройки
+- DB_PATH, BACKUP настройки
+
+#### ⚠️ Выявленные замечания
+
+**Критические (P0)**: Нет ✅
+
+**Важные (P1)**:
+1. **dev/main рассинхронизация**: dev опережает main на 56 коммитов
+   - Решение: требуется PR и merge в main
+   - Приоритет: P1
+
+**Улучшения (P2)**:
+1. **TypeScript миграция**: не начата
+2. **Performance тесты (k6)**: отсутствуют
+3. **Swagger/OpenAPI документация**: отсутствует
+4. **PWA поддержка**: нет manifest/service worker
+5. **Тёмная тема в UI**: только светлая тема
 
 ---
 

@@ -248,6 +248,37 @@ describe('StatsCache', () => {
     });
   });
 
+  describe('GetEntry', () => {
+    test('должен возвращать метаданные без value по умолчанию', () => {
+      cache.set('key1', 'value1', 1000);
+      const entry = cache.getEntry('key1');
+      expect(entry).toBeDefined();
+      expect(entry).toHaveProperty('key', 'key1');
+      expect(entry).not.toHaveProperty('value');
+    });
+
+    test('должен возвращать value при includeValue=true', () => {
+      cache.set('key1', 'value1', 1000);
+      const entry = cache.getEntry('key1', { includeValue: true });
+      expect(entry).toBeDefined();
+      expect(entry).toHaveProperty('value', 'value1');
+    });
+  });
+
+  describe('DeleteByPrefix', () => {
+    test('должен удалять ключи с нужным префиксом', () => {
+      cache.set('a:1', 1);
+      cache.set('a:2', 2);
+      cache.set('b:1', 3);
+
+      const deleted = cache.deleteByPrefix('a:');
+      expect(deleted).toBe(2);
+      expect(cache.get('a:1')).toBeNull();
+      expect(cache.get('a:2')).toBeNull();
+      expect(cache.get('b:1')).toBe(3);
+    });
+  });
+
   describe('Статистика', () => {
     test('getStats должен возвращать полную статистику', () => {
       cache.set('key1', 'value1');

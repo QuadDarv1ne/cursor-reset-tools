@@ -197,6 +197,53 @@ export class StatsCache {
   }
 
   /**
+   * Получить значение и метаданные ключа (без изменения hit/miss статистики)
+   * @param {string} key
+   * @param {{ includeValue?: boolean }} options
+   */
+  getEntry(key, options = {}) {
+    const { includeValue = false } = options;
+    const entry = this.cache.get(key);
+
+    if (!entry) {
+      return null;
+    }
+
+    // TTL check (без учёта в hits/misses)
+    if (entry.ttl && Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      this.stats.expirations++;
+      return null;
+    }
+
+    const info = this.getKeyInfo(key);
+    return includeValue
+      ? { ...info, value: entry.value }
+      : info;
+  }
+
+  /**
+   * Удалить все ключи по префиксу
+   * @param {string} prefix
+   * @returns {number} Количество удалённых ключей
+   */
+  deleteByPrefix(prefix) {
+    if (!prefix || typeof prefix !== 'string') {
+      return 0;
+    }
+
+    let deleted = 0;
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        if (this.delete(key)) {
+          deleted++;
+        }
+      }
+    }
+    return deleted;
+  }
+
+  /**
    * Очистить просроченные записи
    */
   cleanup() {

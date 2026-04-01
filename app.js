@@ -1089,6 +1089,37 @@ app.post('/api/cache/reset-stats', async (req, res) => {
   }
 });
 
+app.get('/api/cache/key', async (req, res) => {
+  try {
+    const { key, includeValue } = req.query;
+    if (!key) {
+      return res.status(400).json({ success: false, error: 'key is required' });
+    }
+
+    const entry = globalStatsCache.getEntry(String(key), { includeValue: includeValue === 'true' });
+    if (!entry) {
+      return res.status(404).json({ success: false, error: 'Key not found' });
+    }
+
+    return res.json({ success: true, entry });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/cache/invalidate', async (req, res) => {
+  try {
+    const { prefix } = req.body || {};
+    if (!prefix) {
+      return res.status(400).json({ success: false, error: 'prefix is required' });
+    }
+    const deleted = globalStatsCache.deleteByPrefix(String(prefix));
+    return res.json({ success: true, deleted });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Notification Manager API endpoints
 app.get('/api/notifications/status', async (req, res) => {
   const cacheKey = 'notifications:status';

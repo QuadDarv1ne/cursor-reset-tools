@@ -3,17 +3,37 @@
 ## 🔍 Полный аудит проекта (1 апреля 2026 г.)
 
 ### ✅ Статус синхронизации
-- **main** и **dev** ветки идентичны (git diff пуст)
-- Последний коммит: `6fa3d09` - Merge branch 'dev'
+- **main** и **dev** ветки идентичны (коммит `333ad80`)
 - Все изменения синхронизированы
 
 ### 📊 Результаты проверки
 
 #### Архитектура и структура
 - ✅ ESM модули (import/export) - все файлы используют современный синтаксис
-- ✅ Модульная структура: utils/ (35 файлов), routes/ (1 файл), server/, scripts/
+- ✅ Модульная структура:
+  - `utils/` (35 файлов) - утилиты и менеджеры
+  - `routes/` (9 файлов) - API роуты
+  - `server/` - серверные компоненты
+  - `scripts/` - скрипты
 - ✅ Глобальные менеджеры с единой точкой инициализации
-- ✅ app.js (1496 строк) - требует рефакторинга (см. P1 ниже)
+- ✅ app.js (806 строк) - РЕФАКТОРИНГ ЗАВЕРШЁН ✅
+
+#### Рефакторинг app.js (ВЫПОЛНЕНО ✅)
+
+**Было:** 1496 строк
+**Стало:** 806 строк
+**Сокращение:** -690 строк (-46%)
+
+**Созданные роуты:**
+1. `routes/resources.js` - мониторинг ресурсов (CPU, RAM, Disk)
+2. `routes/cache.js` - управление кэшем
+3. `routes/metrics.js` - метрики
+4. `routes/notifications.js` - уведомления (Telegram, Discord)
+5. `routes/proxy.js` - прокси, DoH, Leak Detector
+6. `routes/network.js` - VPN, DNS, System Proxy, VPN Leak Fix, VPN Traffic
+7. `routes/updater.js` - обновления
+8. `routes/backup.js` - бэкапы конфигурации
+9. `routes/bypass.js` - тестирование обхода
 
 #### Безопасность
 - ✅ Input валидация: utils/validator.js (12 функций валидации)
@@ -64,18 +84,24 @@
 - [x] Input санитизация (HTML encode, trim, escape) ✅ Реализовано в utils/validator.js
 - [x] npm audit fix ✅ Устранено 10 уязвимостей (sqlite3@6.0.1, nodemon@3.1.14)
 - [x] Diagnostics export: `/api/diagnostics/export` ✅ Реализовано в routes/reset.js
-- [ ] Разнести `app.js` на модули роутов (`routes/resources.js`, `routes/metrics.js`, `routes/notifications.js`) без изменения поведения
+- [x] Разнести `app.js` на модули роутов (`routes/resources.js`, `routes/metrics.js`, `routes/notifications.js`) ✅ ВЫПОЛНЕНО
 
 ### 🔶 Примечания по рефакторингу (P1)
 
-**app.js (1496 строк)** - требует разделения:
-- API endpoints для ресурсов → `routes/resources.js`
-- API endpoints для метрик → `routes/metrics.js`  
-- API endpoints для уведомлений → `routes/notifications.js`
-- API endpoints для кэша → `routes/cache.js`
-- WebSocket обработка → `routes/websocket.js`
+**ВЫПОЛНЕНО ✅**
 
-Текущее состояние: все endpoints в app.js, что затрудняет поддержку.
+app.js разделён на модули:
+- `routes/resources.js` - API endpoints для ресурсов
+- `routes/metrics.js` - API endpoints для метрик
+- `routes/notifications.js` - API endpoints для уведомлений
+- `routes/cache.js` - API endpoints для кэша
+- `routes/proxy.js` - API endpoints для прокси, DoH, Leak Detector
+- `routes/network.js` - API endpoints для VPN, DNS, System Proxy
+- `routes/updater.js` - API endpoints для обновлений
+- `routes/backup.js` - API endpoints для бэкапов
+- `routes/bypass.js` - API endpoints для тестирования обхода
+
+Текущее состояние: все endpoints вынесены в отдельные роуты ✅
 
 ### 🟢 Улучшения (P2) - UX
 
@@ -287,9 +313,9 @@
 
 ### Краткосрочные (1-2 недели)
 
-1. **Рефакторинг app.js** - разделение на модули
+1. ~~**Рефакторинг app.js**~~ - разделение на модули ✅ ВЫПОЛНЕНО
 2. **Добавить k6 тесты** - для API endpoints
-3. **Улучшить CLI errors** - детальные сообщения об ошибках
+3. ~~**Улучшить CLI errors**~~ - детальные сообщения об ошибках ✅ ВЫПОЛНЕНО
 
 ### Долгосрочные (1-2 месяца)
 
@@ -306,10 +332,17 @@
 | Безопасность | ✅ Отлично | Все P0 выполнены |
 | Тесты | ✅ Хорошо | 199/199 passed, 70% coverage |
 | CI/CD | ✅ Отлично | Полный pipeline |
-| Код | ⚠️ Требует улучшения | app.js требует рефакторинга |
+| Код | ✅ Отлично | app.js рефакторён (806 строк, -690) |
 | Документация | ✅ Хорошо | README, SECURITY, CONTRIBUTING |
 | Производительность | ✅ Хорошо | Кэширование, оптимизация SQLite |
 
 **Общая оценка:** ✅ **Готов к production** (версия 2.8.0-dev)
+
+**Последние изменения:**
+- ✅ Рефакторинг app.js (1496 → 806 строк)
+- ✅ Создано 9 новых роутов (resources, cache, metrics, notifications, proxy, network, updater, backup, bypass)
+- ✅ Улучшена обработка ошибок CLI с рекомендациями
+- ✅ Добавлено кэширование тяжелых операций (getOrCompute)
+- ✅ Синхронизированы dev и main ветки
 
 **Следующий шаг:** Завершение Фазы 3 (оптимизация и надёжность) перед релизом 2.8.0

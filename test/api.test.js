@@ -169,10 +169,27 @@ describe('API Integration Tests', () => {
       expect(response.statusCode).toBe(200);
       expect(response.data).toHaveProperty('success', true);
       expect(response.data).toHaveProperty('timestamp');
+      expect(response.data).toHaveProperty('requestId');
       expect(response.data).toHaveProperty('process');
       expect(response.data).toHaveProperty('modules');
       expect(response.data.modules).toHaveProperty('resourceMonitor');
       expect(response.data.modules).toHaveProperty('statsCache');
+      expect(response.headers).toHaveProperty('x-request-id');
+    });
+  });
+
+  describe('GET /api/diagnostics/download', () => {
+    it('должен отдавать attachment json', async () => {
+      const response = await makeRequest(`${baseUrl}/api/diagnostics/download?redact=strict`);
+      expect(response.statusCode).toBe(200);
+      expect(response.headers).toHaveProperty('content-disposition');
+      expect(response.headers['content-disposition']).toContain('attachment');
+      // Тело всё равно JSON
+      expect(response.data).toHaveProperty('success', true);
+      // strict redact убирает историю запросов кэша
+      if (response.data?.modules?.statsCache?.ok) {
+        expect(response.data.modules.statsCache.data).not.toHaveProperty('requests');
+      }
     });
   });
 
@@ -198,11 +215,13 @@ function makeRequest(url) {
         try {
           resolve({
             statusCode: res.statusCode,
+            headers: res.headers,
             data: JSON.parse(data)
           });
         } catch (e) {
           resolve({
             statusCode: res.statusCode,
+            headers: res.headers,
             data: data
           });
         }

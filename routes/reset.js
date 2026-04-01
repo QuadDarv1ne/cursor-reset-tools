@@ -26,6 +26,15 @@ const execPromise = promisify(exec);
 // Инициализация логгера
 logger.init();
 
+// Request ID для трассировки
+rt.use((req, res, next) => {
+  const existing = req.headers['x-request-id'];
+  const requestId = (typeof existing === 'string' && existing.trim()) ? existing.trim() : uuidv4();
+  req.requestId = requestId;
+  res.setHeader('x-request-id', requestId);
+  next();
+});
+
 const gp = () => {
   const pt = os.platform();
   const hm = os.homedir();
@@ -750,6 +759,19 @@ rt.get('/paths', async (req, res) => {
  * Diagnostics export (без секретов)
  */
 rt.get('/diagnostics/export', async (req, res) => {
+  const redact = (payload, mode) => {
+    if (mode !== 'strict') {
+      return payload;
+    }
+
+    // В strict режиме убираем потенциально чувствительные детали
+    const cloned = JSON.parse(JSON.stringify(payload));
+    if (cloned?.modules?.statsCache?.ok && cloned.modules.statsCache.data) {
+      delete cloned.modules.statsCache.data.requests;
+    }
+    return cloned;
+  };
+
   const safeCall = async fn => {
     try {
       return { ok: true, data: await fn() };
@@ -761,6 +783,7 @@ rt.get('/diagnostics/export', async (req, res) => {
   const diagnostics = {
     success: true,
     timestamp: Date.now(),
+    requestId: req.requestId,
     process: {
       node: process.version,
       platform: process.platform,
@@ -781,7 +804,59 @@ rt.get('/diagnostics/export', async (req, res) => {
     }
   };
 
-  res.json(diagnostics);
+  const { redact: redactMode } = req.query;
+  res.json(redact(diagnostics, redactMode));
+});
+
+/**
+ * Diagnostics download (attachment)
+ */
+rt.get('/diagnostics/download', async (req, res) => {
+  // Переиспользуем export-логику (вызовем локально через функцию)
+  // Чтобы не дублировать — просто соберём такой же объект
+  const safeCall = async fn => {
+    try {
+      return { ok: true, data: await fn() };
+    } catch (e) {
+      return { ok: false, error: e?.message || String(e) };
+    }
+  };
+
+  const diagnostics = {
+    success: true,
+    timestamp: Date.now(),
+    requestId: req.requestId,
+    process: {
+      node: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid,
+      uptime: process.uptime()
+    },
+    modules: {
+      resourceMonitor: await safeCall(async () => ({
+        current: globalResourceMonitor.getCurrentStats(),
+        summary: globalResourceMonitor.getSummary(),
+        alerts: globalResourceMonitor.getAlerts(10),
+        history: globalResourceMonitor.getHistory(10)
+      })),
+      statsCache: await safeCall(async () => globalStatsCache.getStats()),
+      metrics: await safeCall(async () => globalMetricsManager.getStatus?.() || { enabled: false }),
+      updater: await safeCall(async () => globalUpdater.getStatus?.() || { enabled: false })
+    }
+  };
+
+  const { redact: redactMode } = req.query;
+  if (redactMode === 'strict' && diagnostics?.modules?.statsCache?.ok && diagnostics.modules.statsCache.data) {
+    delete diagnostics.modules.statsCache.data.requests;
+  }
+
+  const stamp = new Date(diagnostics.timestamp).toISOString().replace(/[:.]/g, '-');
+  const filename = `diagnostics-${stamp}.json`;
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(JSON.stringify(diagnostics, null, 2));
 });
 
 // =========================================

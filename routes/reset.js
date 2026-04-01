@@ -696,6 +696,7 @@ rt.get('/reset', async (req, res) => {
     const result = await rm();
     res.json({ success: true, log: result });
   } catch (err) {
+    logger.error(`Reset API error: ${err.message}`, 'api');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -717,6 +718,7 @@ rt.get('/patch', async (req, res) => {
 
     res.json({ success: true, log: result });
   } catch (err) {
+    logger.error(`Patch API error: ${err.message}`, 'api');
     res.status(500).json({ success: false, error: err.message });
   }
 });

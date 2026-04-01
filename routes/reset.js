@@ -11,15 +11,16 @@ import { exec } from 'child_process';
 import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
-import { globalCache } from '../utils/cache.js';
 import { globalBackupManager } from '../utils/rollback.js';
 import { validateRequest } from '../utils/validator.js';
 import { globalFileValidator } from '../utils/fileValidator.js';
-import { DNS_SERVERS } from '../utils/dnsManager.js';
-import { globalResourceMonitor } from '../utils/resourceMonitor.js';
-import { globalStatsCache } from '../utils/statsCache.js';
-import { globalMetricsManager } from '../utils/metricsManager.js';
-import { globalUpdater } from '../utils/updater.js';
+import { globalIPManager } from '../utils/ipManager.js';
+import { globalFingerprintManager } from '../utils/fingerprintManager.js';
+import { globalEmailManager } from '../utils/emailManager.js';
+import { globalMonitorManager } from '../utils/monitorManager.js';
+import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
+import { globalDoHManager } from '../utils/dohManager.js';
+import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -909,18 +910,6 @@ rt.get('/diagnostics/download', async (req, res) => {
 // =========================================
 // Новые API endpoints для обхода блокировок
 // =========================================
-
-import { globalProxyManager } from '../utils/proxyManager.js';
-import { globalProxyDatabase } from '../utils/proxyDatabase.js';
-import { globalDNSManager } from '../utils/dnsManager.js';
-import { globalIPManager } from '../utils/ipManager.js';
-import { globalFingerprintManager } from '../utils/fingerprintManager.js';
-import { globalEmailManager } from '../utils/emailManager.js';
-import { globalMonitorManager } from '../utils/monitorManager.js';
-import { globalVPNManager } from '../utils/vpnManager.js';
-import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
-import { globalDoHManager } from '../utils/dohManager.js';
-import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
 
 // Proxy, DNS, VPN endpoints удалены - дублируются в routes/proxy.js и routes/network.js
 

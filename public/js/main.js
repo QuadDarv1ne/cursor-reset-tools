@@ -702,9 +702,13 @@ function updateResourceMonitor() {
             }
           }
         })
-        .catch(() => {});
+        .catch(err => {
+          window.console.debug('Failed to fetch resource alerts:', err.message);
+        });
     })
-    .catch(() => {});
+    .catch(err => {
+      window.console.debug('Failed to fetch resource summary:', err.message);
+    });
 }
 
 // Запуск мониторинга ресурсов (вызывается из основного DOMContentLoaded)

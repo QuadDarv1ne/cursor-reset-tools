@@ -8,6 +8,9 @@
 - [x] CSP заголовки (Content Security Policy)
 - [x] SQL injection защита (parameterized queries для sqlite) ✅ Аудит проведён: все запросы параметризованы
 - [x] XSS защита в EJS шаблонах ✅ Аудит проведён: используется `<%=` с экранированием
+- [ ] Resource stats: перестать трекать `data/resource-stats.json` в git (оставить локальным, т.к. runtime-файл)
+- [ ] ESM: убрать `require(...)` из `routes/reset.js` (проект `type: module`) и заменить на `import`
+- [ ] ResourceMonitor: атомарная запись `data/resource-stats.json` (tmp + rename), чтобы исключить битые JSON при сбое/kill
 
 ### 🟡 Важные (P1) - Улучшение качества
 
@@ -18,6 +21,8 @@
 - [x] Test coverage > 90% (сейчас неизвестно) ✅ Добавлен в jest.config.json (70% threshold)
 - [x] Input санитизация (HTML encode, trim, escape) ✅ Реализовано в utils/validator.js
 - [x] npm audit fix ✅ Устранено 10 уязвимостей (sqlite3@6.0.1, nodemon@3.1.14)
+- [ ] Diagnostics export: единый `/api/diagnostics/export` (конфиг без секретов, статусы менеджеров, алерты/ресурсы)
+- [ ] Разнести `app.js` на модули роутов (`routes/resources.js`, `routes/metrics.js`, `routes/notifications.js`) без изменения поведения
 
 ### 🟢 Улучшения (P2) - UX
 
@@ -26,6 +31,7 @@
 - [ ] Тёмная тема в UI
 - [ ] CLI интерактив (inquirer, progress bars)
 - [ ] Redis для production кэширования
+- [ ] Dry-run режим для “опасных” операций (показывать план изменений без записи)
 
 ---
 

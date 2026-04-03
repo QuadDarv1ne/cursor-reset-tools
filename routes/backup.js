@@ -19,7 +19,7 @@ router.post('/export', async (req, res) => {
     if (!filePath) {
       return res.status(400).json({ success: false, error: 'File path is required' });
     }
-    
+
     // Санитизация пути для предотвращения path traversal
     const sanitizedPath = sanitizePath(filePath);
     const result = await globalConfigBackup.export(sanitizedPath);
@@ -40,7 +40,7 @@ router.post('/import', async (req, res) => {
     if (!filePath) {
       return res.status(400).json({ success: false, error: 'File path is required' });
     }
-    
+
     // Санитизация пути для предотвращения path traversal
     const sanitizedPath = sanitizePath(filePath);
     const result = await globalConfigBackup.import(sanitizedPath);
@@ -61,7 +61,7 @@ router.post('/preview', async (req, res) => {
     if (!filePath) {
       return res.status(400).json({ success: false, error: 'File path is required' });
     }
-    
+
     // Санитизация пути для предотвращения path traversal
     const sanitizedPath = sanitizePath(filePath);
     const result = await globalConfigBackup.previewImport(sanitizedPath);
@@ -107,16 +107,16 @@ router.post('/auto', async (req, res) => {
 router.delete('/delete/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    
+
     // Валидация имени файла для предотвращения path traversal
     // Разрешаем только буквенно-цифровые символы, дефисы, точки и подчеркивания
     if (!/^[\w.-]+\.json$/.test(filename)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid filename format (must be alphanumeric with .json extension)' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid filename format (must be alphanumeric with .json extension)'
       });
     }
-    
+
     const success = await globalConfigBackup.deleteBackup(filename);
     return res.json({ success, message: success ? 'Backup deleted' : 'Delete failed' });
   } catch (error) {

@@ -148,16 +148,16 @@ router.get('/rotation/status', async (req, res) => {
 router.post('/rotation/start', async (req, res) => {
   try {
     const { intervalMs = 300000 } = req.body;
-    
+
     // Валидация диапазона intervalMs для предотвращения DoS
     const interval = parseInt(intervalMs, 10);
     if (isNaN(interval) || interval < 60000 || interval > 86400000) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'intervalMs must be between 60000 (1 min) and 86400000 (24 hours)' 
+      return res.status(400).json({
+        success: false,
+        error: 'intervalMs must be between 60000 (1 min) and 86400000 (24 hours)'
       });
     }
-    
+
     globalProxyManager.startAutoRotation(interval);
     return res.json({ success: true, message: 'Auto rotation started', intervalMs: interval });
   } catch (error) {
@@ -194,12 +194,12 @@ router.get('/resolve', async (req, res) => {
     if (!domain) {
       return res.status(400).json({ success: false, error: 'Domain required' });
     }
-    
+
     // Валидация домена для предотвращения SSRF
     if (!validateDomain(domain)) {
       return res.status(400).json({ success: false, error: 'Invalid domain format' });
     }
-    
+
     const result = await globalDoHManager.resolve(domain, provider);
     return res.json({ success: true, result });
   } catch (error) {

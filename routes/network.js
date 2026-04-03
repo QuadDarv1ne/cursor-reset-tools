@@ -252,19 +252,19 @@ router.post('/system-proxy/configure', async (req, res) => {
     if (!host || !port) {
       return res.status(400).json({ success: false, error: 'host and port required' });
     }
-    
+
     // Валидация host (домен или IP) для предотвращения SSRF
     const isValidHost = validateDomain(host) || validateIp(host);
     if (!isValidHost) {
       return res.status(400).json({ success: false, error: 'Invalid host format (domain or IP required)' });
     }
-    
+
     // Валидация port
     const portNum = parseInt(port, 10);
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
       return res.status(400).json({ success: false, error: 'Port must be between 1 and 65535' });
     }
-    
+
     const result = await globalSystemProxyManager.configureProxy({ host, port: portNum, protocol, auth });
     return res.json({ success: result.success, ...result });
   } catch (error) {

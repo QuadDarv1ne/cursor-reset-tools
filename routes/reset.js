@@ -22,6 +22,12 @@ import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
 import { globalDoHManager } from '../utils/dohManager.js';
 import { globalSmartBypassManager } from '../utils/smartBypassManager.js';
 import { globalStatsCache } from '../utils/statsCache.js';
+import { globalResourceMonitor } from '../utils/resourceMonitor.js';
+import { globalMetricsManager } from '../utils/metricsManager.js';
+import { globalUpdater } from '../utils/updater.js';
+import { globalDNSManager } from '../utils/dnsManager.js';
+import { globalVPNManager } from '../utils/vpnManager.js';
+import { globalProxyManager } from '../utils/proxyManager.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
@@ -698,9 +704,9 @@ const safeError = (res, err, logKey = 'api') => {
   if (err?.message) {
     logger.error(`${logKey} error: ${err.message}`, logKey);
   }
-  res.status(500).json({ 
-    success: false, 
-    error: isProd ? 'Internal server error' : (err?.message || 'Unknown error') 
+  res.status(500).json({
+    success: false,
+    error: isProd ? 'Internal server error' : (err?.message || 'Unknown error')
   });
 };
 
@@ -719,14 +725,14 @@ rt.post('/patch', async (req, res) => {
     // Валидация action параметра
     const validActions = ['bypass', 'disable', 'pro'];
     const action = req.body.action || req.query.action || 'bypass';
-    
+
     if (!validActions.includes(action)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}`
       });
     }
-    
+
     let result;
 
     if (action === 'bypass') {

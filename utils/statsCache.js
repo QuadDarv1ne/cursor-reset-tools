@@ -67,7 +67,7 @@ export class StatsCache {
     // Проверка на идущее вычисление (избегаем дублирования)
     const pendingKey = `__pending:${key}`;
     const pendingPromise = this.cache.get(pendingKey);
-    
+
     if (pendingPromise) {
       // Ждем завершения существующего вычисления
       return pendingPromise;

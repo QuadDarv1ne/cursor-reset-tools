@@ -1398,13 +1398,13 @@ export async function runCLI(args = process.argv.slice(2)) {
     // Детальная обработка ошибок CLI
     const errorMessage = formatCLIError(error, parsed.command);
     output(errorMessage.message, 'error');
-    
+
     if (errorMessage.hints?.length > 0) {
       console.log('');
       output('Рекомендации:', 'warning');
       errorMessage.hints.forEach(hint => console.log(`  • ${hint}`));
     }
-    
+
     logger.error(`CLI error: ${error.message}`, 'cli', {
       command: parsed.command,
       stack: error.stack,

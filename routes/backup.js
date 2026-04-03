@@ -4,6 +4,7 @@
 
 import express from 'express';
 import { globalConfigBackup } from '../utils/configBackup.js';
+import { sanitizePath } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
@@ -15,7 +16,13 @@ const router = express.Router();
 router.post('/export', async (req, res) => {
   try {
     const { filePath } = req.body;
-    const result = await globalConfigBackup.export(filePath);
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'File path is required' });
+    }
+    
+    // Санитизация пути для предотвращения path traversal
+    const sanitizedPath = sanitizePath(filePath);
+    const result = await globalConfigBackup.export(sanitizedPath);
     return res.json(result);
   } catch (error) {
     logger.error(`Backup export error: ${error.message}`, 'backup');
@@ -33,7 +40,10 @@ router.post('/import', async (req, res) => {
     if (!filePath) {
       return res.status(400).json({ success: false, error: 'File path is required' });
     }
-    const result = await globalConfigBackup.import(filePath);
+    
+    // Санитизация пути для предотвращения path traversal
+    const sanitizedPath = sanitizePath(filePath);
+    const result = await globalConfigBackup.import(sanitizedPath);
     return res.json(result);
   } catch (error) {
     logger.error(`Backup import error: ${error.message}`, 'backup');
@@ -51,7 +61,10 @@ router.post('/preview', async (req, res) => {
     if (!filePath) {
       return res.status(400).json({ success: false, error: 'File path is required' });
     }
-    const result = await globalConfigBackup.previewImport(filePath);
+    
+    // Санитизация пути для предотвращения path traversal
+    const sanitizedPath = sanitizePath(filePath);
+    const result = await globalConfigBackup.previewImport(sanitizedPath);
     return res.json(result);
   } catch (error) {
     logger.error(`Backup preview error: ${error.message}`, 'backup');
@@ -94,6 +107,16 @@ router.post('/auto', async (req, res) => {
 router.delete('/delete/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
+    
+    // Валидация имени файла для предотвращения path traversal
+    // Разрешаем только буквенно-цифровые символы, дефисы, точки и подчеркивания
+    if (!/^[\w.-]+\.json$/.test(filename)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid filename format (must be alphanumeric with .json extension)' 
+      });
+    }
+    
     const success = await globalConfigBackup.deleteBackup(filename);
     return res.json({ success, message: success ? 'Backup deleted' : 'Delete failed' });
   } catch (error) {

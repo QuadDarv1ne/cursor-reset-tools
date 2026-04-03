@@ -692,19 +692,41 @@ const ld = async (logs, toolName) => {
   return lg.join('\n');
 };
 
-rt.get('/reset', async (req, res) => {
+// Хелпер для безопасной отправки ошибок
+const safeError = (res, err, logKey = 'api') => {
+  const isProd = process.env.NODE_ENV === 'production';
+  if (err?.message) {
+    logger.error(`${logKey} error: ${err.message}`, logKey);
+  }
+  res.status(500).json({ 
+    success: false, 
+    error: isProd ? 'Internal server error' : (err?.message || 'Unknown error') 
+  });
+};
+
+rt.post('/reset', async (req, res) => {
   try {
     const result = await rm();
     res.json({ success: true, log: result });
   } catch (err) {
     logger.error(`Reset API error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
   }
 });
 
-rt.get('/patch', async (req, res) => {
+rt.post('/patch', async (req, res) => {
   try {
-    const action = req.query.action || 'bypass';
+    // Валидация action параметра
+    const validActions = ['bypass', 'disable', 'pro'];
+    const action = req.body.action || req.query.action || 'bypass';
+    
+    if (!validActions.includes(action)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+      });
+    }
+    
     let result;
 
     if (action === 'bypass') {
@@ -720,7 +742,7 @@ rt.get('/patch', async (req, res) => {
     res.json({ success: true, log: result });
   } catch (err) {
     logger.error(`Patch API error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
   }
 });
 
@@ -910,335 +932,9 @@ rt.get('/diagnostics/download', async (req, res) => {
 });
 
 // =========================================
-// Новые API endpoints для обхода блокировок
-// =========================================
-
 // Proxy, DNS, VPN endpoints удалены - дублируются в routes/proxy.js и routes/network.js
-
-/**
- * IP API
- */
-rt.post('/proxy/add', (req, res) => {
-  try {
-    // Валидация входных данных
-    const validation = validateRequest(req.body, {
-      url: {
-        type: 'url',
-        required: true,
-        requiredMessage: 'Proxy URL is required'
-      },
-      protocol: {
-        type: 'proxyProtocol',
-        default: 'socks5'
-      }
-    });
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        errors: validation.errors
-      });
-    }
-
-    const { url, protocol } = validation.data;
-    globalProxyManager.addProxy(url, protocol);
-    res.json({ success: true, message: 'Proxy added', proxy: { url, protocol } });
-  } catch (err) {
-    logger.error(`Proxy add error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-rt.get('/proxy/list', (req, res) => {
-  try {
-    const proxies = globalProxyManager.getProxyList();
-    const stats = globalProxyManager.getStats();
-    res.json({ success: true, proxies, stats });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/proxy/check', async (req, res) => {
-  try {
-    const result = await globalProxyManager.checkAllProxies();
-    res.json({ success: true, ...result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/proxy/rotate', (req, res) => {
-  try {
-    const proxy = globalProxyManager.rotateProxy();
-    if (proxy) {
-      res.json({ success: true, proxy });
-    } else {
-      res.status(400).json({ error: 'No working proxies available' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.delete('/proxy/clear', (req, res) => {
-  try {
-    globalProxyManager.clearProxy();
-    res.json({ success: true, message: 'Proxy cleared' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Proxy Database API
- */
-rt.get('/proxy-db/info', async (req, res) => {
-  try {
-    const info = globalProxyDatabase.getInfo();
-    res.json({ success: true, info });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.get('/proxy-db/list', async (req, res) => {
-  try {
-    const { protocol, country, workingOnly, limit } = req.query;
-    const proxies = globalProxyDatabase.getProxies({
-      protocol,
-      country,
-      workingOnly: workingOnly === 'true',
-      limit: parseInt(limit, 10) || 100
-    });
-    res.json({ success: true, proxies });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.get('/proxy-db/stats', async (req, res) => {
-  try {
-    const stats = globalProxyDatabase.getStats();
-    res.json({ success: true, stats });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.get('/proxy-db/countries', async (req, res) => {
-  try {
-    const countries = globalProxyDatabase.getAvailableCountries();
-    res.json({ success: true, countries });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/proxy-db/refresh', async (req, res) => {
-  try {
-    await globalProxyDatabase.refresh();
-    res.json({ success: true, message: 'Proxy database refreshed' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/proxy-db/check', async (req, res) => {
-  try {
-    // Валидация входных данных
-    const validation = validateRequest(req.body, {
-      concurrency: {
-        type: 'number',
-        min: 1,
-        max: 50,
-        integer: true,
-        default: 5
-      }
-    });
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        errors: validation.errors
-      });
-    }
-
-    const { concurrency } = validation.data;
-    const result = await globalProxyDatabase.checkAllProxies(concurrency);
-    res.json({ success: true, ...result });
-  } catch (err) {
-    logger.error(`Proxy check error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-rt.post('/proxy-db/auto-update', async (req, res) => {
-  try {
-    // Валидация входных данных
-    const validation = validateRequest(req.body, {
-      enable: {
-        type: 'boolean',
-        required: true
-      },
-      interval: {
-        type: 'number',
-        min: 60000,
-        max: 86400000,
-        default: 300000
-      }
-    });
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        errors: validation.errors
-      });
-    }
-
-    const { enable, interval } = validation.data;
-    if (enable) {
-      globalProxyDatabase.enableAutoUpdate(interval);
-      res.json({ success: true, message: 'Auto-update enabled', interval });
-    } else {
-      globalProxyDatabase.disableAutoUpdate();
-      res.json({ success: true, message: 'Auto-update disabled' });
-    }
-  } catch (err) {
-    logger.error(`Proxy auto-update error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-rt.get('/proxy-db/random', async (req, res) => {
-  try {
-    const { protocol } = req.query;
-    const proxy = globalProxyDatabase.getRandomWorking(protocol);
-    if (proxy) {
-      res.json({ success: true, proxy });
-    } else {
-      res.status(404).json({ error: 'No working proxies found' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/proxy-db/import', async (req, res) => {
-  try {
-    // Валидация входных данных
-    const validation = validateRequest(req.body, {
-      filePath: {
-        type: 'string',
-        required: true,
-        sanitize: 'path',
-        requiredMessage: 'File path is required'
-      },
-      defaultProtocol: {
-        type: 'proxyProtocol',
-        default: 'socks5'
-      }
-    });
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        errors: validation.errors
-      });
-    }
-
-    const { filePath, defaultProtocol } = validation.data;
-    const count = await globalProxyDatabase.importFromFile(filePath, defaultProtocol);
-    res.json({ success: true, imported: count });
-  } catch (err) {
-    logger.error(`Proxy import error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-rt.post('/proxy-db/export', async (req, res) => {
-  try {
-    const { filePath } = req.body;
-    const success = await globalProxyDatabase.exportToFile(filePath);
-    res.json({ success });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.delete('/proxy-db/cleanup', async (req, res) => {
-  try {
-    // Валидация входных данных
-    const validation = validateRequest(req.body, {
-      maxFailures: {
-        type: 'number',
-        min: 1,
-        max: 100,
-        integer: true,
-        default: 3
-      }
-    });
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        errors: validation.errors
-      });
-    }
-
-    const { maxFailures } = validation.data;
-    const removed = globalProxyDatabase.cleanupFailed(maxFailures);
-    res.json({ success: true, removed });
-  } catch (err) {
-    logger.error(`Proxy cleanup error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/**
- * DNS API
- */
-rt.get('/dns/current', async (req, res) => {
-  try {
-    const dns = await globalDNSManager.getCurrentDNS();
-    const config = globalDNSManager.getConfig();
-    res.json({ success: true, dns, config });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-rt.post('/dns/set', async (req, res) => {
-  try {
-    // Валидация входных данных
-    const validation = validateRequest(req.body, {
-      provider: {
-        type: 'string',
-        required: true,
-        validate: value => {
-          if (!DNS_SERVERS[value]) {
-            return { valid: false, error: `Invalid DNS provider. Available: ${Object.keys(DNS_SERVERS).join(', ')}` };
-          }
-          return { valid: true };
-        }
-      }
-    });
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        errors: validation.errors
-      });
-    }
-
-    const { provider } = validation.data;
-    const success = await globalDNSManager.setDNS(provider);
-    res.json({ success, provider });
-  } catch (err) {
-    logger.error(`DNS set error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// Все соответствующие эндпоинты теперь находятся в специализированных роутах
+// =========================================
 
 rt.post('/dns/restore', async (req, res) => {
   try {

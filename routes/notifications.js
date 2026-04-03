@@ -6,6 +6,7 @@
 import express from 'express';
 import { globalNotificationManager } from '../utils/notificationManager.js';
 import { globalStatsCache } from '../utils/statsCache.js';
+import { validateRequest, validateUrl } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
@@ -42,6 +43,25 @@ router.post('/configure/telegram', async (req, res) => {
     if (!botToken || !chatId) {
       return res.status(400).json({ success: false, error: 'botToken and chatId required' });
     }
+    
+    // Валидация формата botToken (формат: цифры:хеш)
+    const tokenPattern = /^\d+:[\w-]+$/;
+    if (!tokenPattern.test(botToken)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid botToken format (expected: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11)' 
+      });
+    }
+    
+    // Валидация chatId (должно быть числом или начинаться с - для групп)
+    const chatIdStr = String(chatId);
+    if (!/^-?\d+$/.test(chatIdStr)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid chatId format (expected: numeric ID, e.g. 123456789 or -1001234567890)' 
+      });
+    }
+    
     globalNotificationManager.configureTelegram(botToken, chatId);
     return res.json({ success: true, message: 'Telegram configured' });
   } catch (error) {
@@ -60,6 +80,23 @@ router.post('/configure/discord', async (req, res) => {
     if (!webhookUrl) {
       return res.status(400).json({ success: false, error: 'webhookUrl required' });
     }
+    
+    // Валидация Discord webhook URL (должен быть HTTPS)
+    if (!webhookUrl.startsWith('https://') || !validateUrl(webhookUrl)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid webhookUrl format (must be HTTPS URL)' 
+      });
+    }
+    
+    // Проверка что URL действительно Discord webhook
+    if (!webhookUrl.includes('discord.com') && !webhookUrl.includes('discordapp.com')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'webhookUrl must be a Discord webhook URL' 
+      });
+    }
+    
     globalNotificationManager.configureDiscord(webhookUrl);
     return res.json({ success: true, message: 'Discord configured' });
   } catch (error) {

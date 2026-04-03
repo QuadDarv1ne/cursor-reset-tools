@@ -6,7 +6,7 @@
 import express from 'express';
 import { globalNotificationManager } from '../utils/notificationManager.js';
 import { globalStatsCache } from '../utils/statsCache.js';
-import { validateRequest, validateUrl } from '../utils/validator.js';
+import { validateUrl } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();

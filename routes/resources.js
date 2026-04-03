@@ -61,7 +61,17 @@ router.get('/summary', async (req, res) => {
 router.get('/history', async (req, res) => {
   try {
     const { limit = 10 } = req.query;
-    const history = globalResourceMonitor.getHistory(parseInt(limit, 10));
+    const limitNum = parseInt(limit, 10);
+
+    // Валидация диапазона limit
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
+      return res.status(400).json({
+        success: false,
+        error: 'limit must be between 1 and 1000'
+      });
+    }
+
+    const history = globalResourceMonitor.getHistory(limitNum);
     return res.json({ success: true, history });
   } catch (error) {
     logger.error(`Resources history error: ${error.message}`, 'resources');
@@ -76,7 +86,17 @@ router.get('/history', async (req, res) => {
 router.get('/alerts', async (req, res) => {
   try {
     const { limit = 10 } = req.query;
-    const alerts = globalResourceMonitor.getAlerts(parseInt(limit, 10));
+    const limitNum = parseInt(limit, 10);
+
+    // Валидация диапазона limit
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'limit must be between 1 and 100'
+      });
+    }
+
+    const alerts = globalResourceMonitor.getAlerts(limitNum);
     return res.json({ success: true, alerts });
   } catch (error) {
     logger.error(`Resources alerts error: ${error.message}`, 'resources');

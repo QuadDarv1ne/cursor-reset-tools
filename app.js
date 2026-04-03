@@ -22,7 +22,6 @@ import { globalMonitorManager } from './utils/monitorManager.js';
 import { globalIPManager } from './utils/ipManager.js';
 import { globalFingerprintManager } from './utils/fingerprintManager.js';
 import { globalProxyDatabase } from './utils/proxyDatabase.js';
-import { globalDoHManager } from './utils/dohManager.js';
 import { globalSmartBypassManager } from './utils/smartBypassManager.js';
 import { globalWSServer } from './utils/websocketServer.js';
 import { globalUpdater } from './utils/updater.js';
@@ -30,19 +29,12 @@ import { globalMetricsManager } from './utils/metricsManager.js';
 import { globalResourceMonitor } from './utils/resourceMonitor.js';
 import { globalStatsCache } from './utils/statsCache.js';
 import { globalNotificationManager } from './utils/notificationManager.js';
-import { globalLeakDetector } from './utils/leakDetector.js';
-import { globalVPNManager } from './utils/vpnManager.js';
 import { globalDNSManager } from './utils/dnsManager.js';
-import { globalVPNLeakFix } from './utils/vpnLeakFix.js';
-import { globalVPNTrafficManager } from './utils/vpnTrafficManager.js';
-import { globalBypassTester } from './utils/bypassTester.js';
-import { globalSystemProxyManager } from './utils/systemProxyManager.js';
 import { globalConfigBackup } from './utils/configBackup.js';
 import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
 import { createLogger } from './utils/logger.js';
-import { validateRequest } from './utils/validator.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -150,8 +142,22 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Проверка Content-Type для POST/PUT запросов
+app.use((req, res, next) => {
+  if (['POST', 'PUT'].includes(req.method) && req.body) {
+    const contentType = req.headers['content-type'];
+    if (!contentType || !contentType.includes('application/json')) {
+      return res.status(415).json({
+        success: false,
+        error: 'Unsupported Media Type. Content-Type must be application/json'
+      });
+    }
+  }
+  next();
+});
 
 // Кэширование статических файлов (1 час в production)
 const staticCache = process.env.NODE_ENV === 'production'

@@ -38,7 +38,8 @@ logger.init();
 // Request ID для трассировки
 rt.use((req, res, next) => {
   const existing = req.headers['x-request-id'];
-  const requestId = (typeof existing === 'string' && existing.trim()) ? existing.trim() : uuidv4();
+  // Ограничение длины x-request-id для предотвращения инъекций
+  const requestId = (typeof existing === 'string' && existing.trim().length <= 128) ? existing.trim() : uuidv4();
   req.requestId = requestId;
   res.setHeader('x-request-id', requestId);
   next();
@@ -698,18 +699,6 @@ const ld = async (logs, toolName) => {
   return lg.join('\n');
 };
 
-// Хелпер для безопасной отправки ошибок
-const safeError = (res, err, logKey = 'api') => {
-  const isProd = process.env.NODE_ENV === 'production';
-  if (err?.message) {
-    logger.error(`${logKey} error: ${err.message}`, logKey);
-  }
-  res.status(500).json({
-    success: false,
-    error: isProd ? 'Internal server error' : (err?.message || 'Unknown error')
-  });
-};
-
 rt.post('/reset', async (req, res) => {
   try {
     const result = await rm();
@@ -754,7 +743,7 @@ rt.post('/patch', async (req, res) => {
 
 rt.get('/paths', async (req, res) => {
   try {
-    const { mp, sp, dp, ap, cp, up, pt, dc } = gp();
+    const { mp, sp, dp, ap, cp, up, pt } = gp();
 
     // Кэшированная проверка процесса Cursor
     const cacheKey = `cursor_running_${pt}`;

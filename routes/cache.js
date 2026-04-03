@@ -84,7 +84,16 @@ router.get('/key', async (req, res) => {
       return res.status(400).json({ success: false, error: 'key is required' });
     }
 
-    const entry = globalStatsCache.getEntry(String(key), { includeValue: includeValue === 'true' });
+    // Валидация длины ключа
+    const keyStr = String(key);
+    if (keyStr.length > 256) {
+      return res.status(400).json({
+        success: false,
+        error: 'key length must be <= 256 characters'
+      });
+    }
+
+    const entry = globalStatsCache.getEntry(keyStr, { includeValue: includeValue === 'true' });
     if (!entry) {
       return res.status(404).json({ success: false, error: 'Key not found' });
     }
@@ -106,7 +115,17 @@ router.post('/invalidate', async (req, res) => {
     if (!prefix) {
       return res.status(400).json({ success: false, error: 'prefix is required' });
     }
-    const deleted = globalStatsCache.deleteByPrefix(String(prefix));
+
+    // Валидация длины префикса
+    const prefixStr = String(prefix);
+    if (prefixStr.length > 128) {
+      return res.status(400).json({
+        success: false,
+        error: 'prefix length must be <= 128 characters'
+      });
+    }
+
+    const deleted = globalStatsCache.deleteByPrefix(prefixStr);
     return res.json({ success: true, deleted });
   } catch (error) {
     logger.error(`Cache invalidate error: ${error.message}`, 'cache');

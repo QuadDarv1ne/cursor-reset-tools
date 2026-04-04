@@ -1,287 +1,222 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v2
 
 ### ✅ Статус синхронизации
-- **dev** и **main** синхронизированы ✅
+- **dev**: eefe0cc (HEAD) - SQLite Optimizer + P2 improvements
+- **main**: eefe0cc - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
----
-
-## 📋 Архитектура проекта
-
-### Структура
+### 📊 Статус веток
 ```
-cursor-reset-tools/
-├── app.js                    # Главный Express сервер (web UI + API)
-├── cli.js                    # CLI entry point
-├── routes/                   # API маршруты (10 файлов)
-│   ├── reset.js              # Сброс Machine ID, патчинг, Pro конверсия
-│   ├── bypass.js             # Тестирование обхода
-│   ├── proxy.js              # Прокси управление + DoH + Leak Detector
-│   ├── network.js            # VPN, DNS, System Proxy, Traffic
-│   ├── notifications.js      # Telegram/Discord уведомления
-│   ├── backup.js             # Бэкап конфигурации
-│   ├── resources.js          # Мониторинг ресурсов
-│   ├── metrics.js            # Метрики
-│   ├── cache.js              # Управление кэшем
-│   └── updater.js            # Обновления
-├── utils/                    # Утилиты (27 файлов)
-│   ├── helpers.js            # Вспомогательные функции (retry, admin check, integrity)
-│   ├── validator.js          # Валидация и санитизация
-│   ├── config.js             # Конфигурация
-│   ├── logger.js             # Логирование (Winston)
-│   ├── i18n.js               # Интернационализация
-│   ├── proxyManager.js       # Управление прокси
-│   ├── proxyDatabase.js      # База прокси (SQLite)
-│   ├── vpnManager.js         # VPN менеджер (OpenVPN/WireGuard)
-│   ├── wireguardManager.js   # WireGuard специфичный
-│   ├── dnsManager.js         # DNS менеджер
-│   ├── dohManager.js         # DNS-over-HTTPS
-│   ├── systemProxyManager.js # Системный прокси
-│   ├── notificationManager.js# Уведомления
-│   ├── metricsManager.js     # Метрики
-│   ├── resourceMonitor.js    # Мониторинг ресурсов
-│   ├── statsCache.js         # Кэш статистики
-│   ├── monitorManager.js     # Мониторинг Cursor
-│   ├── fingerprintManager.js # Fingerprint (MAC, hostname)
-│   ├── ipManager.js          # IP менеджер
-│   ├── emailManager.js       # Временная почта
-│   ├── cursorRegistrar.js    # Регистрация Cursor
-│   ├── configBackup.js       # Бэкап конфигурации
-│   ├── dpiBypass.js          # DPI обход
-│   ├── bypassTester.js       # Тестирование обхода
-│   ├── leakDetector.js       # Детектор утечек
-│   ├── vpnLeakFix.js         # Исправление VPN утечек
-│   ├── vpnTrafficManager.js  # VPN трафик туннель
-│   ├── smartBypassManager.js # Умный обход
-│   ├── websocketServer.js    # WebSocket сервер
-│   ├── updater.js            # Обновления
-│   ├── rollback.js           # Откат изменений
-│   ├── autoRollback.js       # Автоматический откат
-│   ├── fileValidator.js      # Валидация файлов
-│   └── cliManager.js         # CLI менеджер
-├── server/
-│   └── bypassServer.js       # Отдельный Bypass сервер (прокси)
-├── views/                    # EJS шаблоны
-├── public/                   # Статика (CSS, JS)
-├── data/                     # Данные (metrics, proxies, vpn-configs)
-├── test/                     # Unit тесты (Jest)
-└── e2e/                      # E2E тесты (Playwright)
+* dev (активная, QuadDarv1ne/cursor-reset-tools)
+  dev-full-i18n (дополнительная)
+  main (стабильная, синхронизирована)
 ```
 
-### Ключевые зависимости
-- **express** - HTTP сервер
-- **helmet** - Security headers
-- **cors** - CORS
-- **express-rate-limit** - Rate limiting
-- **sqlite/sqlite3** - Хранение данных
-- **uuid** - Генерация ID
-- **winston** - Логирование
-- **ws** - WebSocket
-- **node-fetch** - HTTP клиент
-- **socks-proxy-agent** - SOCKS прокси
-- **http-proxy-middleware** - HTTP проксирование
-- **fs-extra** - Файловые операции
-- **dotenv** - Переменные окружения
-- **ejs** - Шаблоны
+---
+
+## 📋 АРХИТЕКТУРА ПРОЕКТА
+
+### Ядро
+```
+app.js                    # Express сервер + WebSocket + инициализация менеджеров
+cli.js                    # CLI entry point → utils/cliManager.js
+```
+
+### Маршруты (10 файлов в routes/)
+| Файл | Назначение | Rate Limit | Статус |
+|------|-----------|-----------|--------|
+| reset.js | Сброс Machine ID, патчинг, Pro конверсия | ✅ 5/15min | ✅ |
+| bypass.js | Тестирование обхода | ❌ | ⚠️ P1 |
+| proxy.js | Прокси + DoH + Leak Detector | ❌ | ⚠️ P1 (нет пагинации) |
+| network.js | VPN, DNS, System Proxy, Traffic | ✅ 10/10min | ✅ |
+| notifications.js | Telegram/Discord уведомления | ❌ | ⚠️ P2 |
+| backup.js | Бэкап конфигурации | ❌ | ✅ (пагинация есть) |
+| resources.js | Мониторинг ресурсов | ❌ | ✅ |
+| metrics.js | Метрики | ❌ | ✅ |
+| cache.js | Управление кэшем | ❌ | ✅ |
+| updater.js | Обновления | ❌ | ✅ (GET→POST исправлено) |
+
+### Утилиты (38 файлов в utils/)
+**Критические:**
+- helpers.js (369 строк) - retry, admin check, cursor check, integrity
+- validator.js - валидация и санитизация (URL, IP, email, UUID, domain)
+- constants.js - ВСЕ magic numbers централизованы ✅
+- config.js - конфигурация платформы
+- logger.js - Winston логирование с ротацией
+
+**Менеджеры (глобальные синглтоны):**
+- proxyManager.js, proxyDatabase.js
+- vpnManager.js, wireguardManager.js
+- dnsManager.js, dohManager.js
+- notificationManager.js
+- metricsManager.js, resourceMonitor.js
+- statsCache.js
+- monitorManager.js
+- fingerprintManager.js, ipManager.js
+- emailManager.js, cursorRegistrar.js
+- configBackup.js, dpiBypass.js
+- smartBypassManager.js
+- websocketServer.js
+- updater.js
+
+**Безопасность:**
+- rollback.js, autoRollback.js
+- fileValidator.js
+
+**CLI:**
+- cliManager.js (1527 строк) - ⚠️ большой файл P2
+
+**Дополнительные:**
+- i18n.js - интернационализация (RU, EN, ZH)
+- cursorProcess.js - проверка процесса Cursor
+- sqliteOptimizer.js - оптимизация SQLite запросов
+- leakDetector.js, vpnLeakFix.js, vpnTrafficManager.js
+
+### Серверы
+```
+server/bypassServer.js  # Отдельный прокси-сервер (3001/3002 порты)
+```
+
+### Frontend
+```
+views/       # EJS шаблоны (index, bypass, dashboard)
+public/      # CSS, JS статика
+```
+
+### Тесты
+```
+test/        # Jest unit тесты (9 файлов)
+e2e/         # Playwright E2E тесты
+```
 
 ---
 
-## 🐛 Найденные проблемы при аудите
+## 🎯 ТЕКУЩИЕ ПРОБЛЕМЫ (После аудита)
 
-### КРИТИЧЕСКИЕ (P0)
+### ✅ ИСПРАВЛЕНО в последних коммитах
+- [x] updater.js: GET /download → POST (было P0) ✅
+- [x] Rate limiting на reset (5/15min) и network (10/10min) ✅
+- [x] Валидация DNS provider через whitelist ✅
+- [x] Валидация в cliManager.js через validator ✅
+- [x] Magic numbers вынесены в constants.js ✅
+- [x] Пагинация в backup.js ✅
+- [x] CONFIG в bypassServer.js использует переменные окружения ✅
 
-#### 1. ⚠️ GET запросы для деструктивных операций в updater.js
-- **Файл:** `routes/updater.js`
-- **Проблема:** `GET /api/updater/download` выполняет скачивание файлов
-- **Риск:** CSRF атаки, кеширование, повторное выполнение
-- **Решение:** Изменить на POST
+### ⚠️ ОСТАВШИЕСЯ ПРОБЛЕМЫ
 
-#### 2. ⚠️ Отсутствие лимита запросов на чувствительных эндпоинтах
-- **Файлы:** `routes/reset.js`, `routes/network.js`
-- **Проблема:** Глобальный rate limit только на `/api`, но нет индивидуальных лимитов
-- **Риск:** brute-force на reset/DNS/VPN операции
-- **Решение:** Добавить индивидуальные rate limiters
+#### P1 - Важные
 
-### ВАЖНЫЕ (P1)
+1. **Пагинация в proxy.js**
+   - Файл: `routes/proxy.js`
+   - Проблема: Некоторые списки прокси могут возвращать все элементы
+   - Решение: Добавить offset/limit для списков прокси
 
-#### 3. ⚠️ Валидация DNS provider в network.js
-- **Файл:** `routes/network.js` (POST /api/dns/set)
-- **Проблема:** Валидируется только наличие `provider` строки, но не проверяется допустимое значение
-- **Решение:** Добавить whitelist провайдеров
+2. **Отсутствие rate limiting на bypass.js**
+   - Файл: `routes/bypass.js`
+   - Проблема: Нет индивидуального rate limiter
+   - Решение: Добавить limiter для тестирования обхода
 
-#### 4. ⚠️ Отсутствие пагинации в некоторых списках
-- **Файлы:** `routes/backup.js` (GET /list), `routes/proxy.js`
-- **Проблема:** Возвращаются все элементы без лимита
-- **Риск:** DoS при большом количестве бэкапов/прокси
-- **Решение:** Добавить пагинацию (offset/limit)
+3. **Отсутствие rate limiting на notifications.js**
+   - Файл: `routes/notifications.js`
+   - Проблема: Нет защиты от спама уведомлений
+   - Решение: Добавить limiter (10/10min)
 
-#### 5. ⚠️ Hardcoded пути в bypassServer.js
-- **Файл:** `server/bypassServer.js`
-- **Проблема:** CONFIG с hardcoded портами, нет динамической конфигурации
-- **Решение:** Использовать переменные окружения
+#### P2 - Улучшения
 
-#### 6. ⚠️ Неполная валидация в cliManager.js
-- **Файл:** `utils/cliManager.js`
-- **Проблема:** Некоторые команды не проверяют входные параметры
-- **Пример:** `handleProxyAdd` не валидирует формат proxy строки
-- **Решение:** Добавить валидацию через validator модуль
+4. **Большие файлы**
+   - `cliManager.js` (1527 строк) - разбить на модули команд
+   - `reset.js` (1580 строк) - разбить на подмодули операций
+   - `bypassServer.js` (415 строк) - приемлемо
 
-### ЖЕЛАТЕЛЬНЫЕ (P2)
+5. **Централизация проверки процесса Cursor**
+   - Уже есть `cursorProcess.js`, но некоторые файлы дублируют логику
+   - Нужно проверить использование везде
 
-#### 7. 💡 Дублирование логики проверки Cursor процесса
-- **Файлы:** `helpers.js`, `routes/reset.js`
-- **Проблема:** Несколько мест проверяют процесс Cursor
-- **Решение:** Централизовать в одном месте
+6. **CSRF Protection**
+   - Отсутствует csrf-csrf пакет
+   - POST эндпоинты уязвимы без CSRF токенов
+   - Требует добавления пакета и middleware
 
-#### 8. 💡 Отсутствие типизации
-- **Проблема:** JavaScript без типов сложно поддерживать
-- **Решение:** Рассмотреть TypeScript или JSDoc аннотации
+7. **JSDoc аннотации**
+   - Большинство функций без полной документации
+   - validator.js имеет хороший пример - распространить на другие модули
 
-#### 9. 💡 Большие файлы (>1000 строк)
-- **Файлы:** `cliManager.js` (1511 строк), `reset.js` (1503 строки)
-- **Решение:** Разбить на меньшие модули
+8. **TypeScript миграция**
+   - Рассмотреть для критических модулей (validator, helpers)
+   - Начать с добавления JSDoc типов
 
-#### 10. 💡 Magic numbers в коде
-- **Примеры:** `10000`, `50 * 1024 * 1024`, `128` в helpers.js
-- **Решение:** Вынести в константы/конфигурацию
+9. **Performance тесты**
+   - Нет k6 или autocannon тестов
+   - Нужны для проверки rate limiting и нагрузки
 
----
-
-## ✅ Выполнено - Фаза 1: Стабильность (2.8.0-dev)
-
-- [x] .env поддержка для конфигурации (dotenv)
-- [x] Улучшенное логирование с Winston и ротацией файлов
-- [x] Graceful shutdown для всех менеджеров
-- [x] Глобальные обработчики ошибок (uncaughtException, unhandledRejection)
-- [x] Pre-commit hooks (Husky + Lint-staged)
-- [x] Makefile и make.bat для удобных команд
-- [x] Docker Compose конфигурация
-- [x] Multi-stage Dockerfile
+10. **WebSocket API документация**
+    - Есть websocketServer.js, но нет документации API
+    - Нужен список событий и форматов сообщений
 
 ---
 
-## ✅ Выполнено - Фаза 2: Качество и Безопасность (2.8.0)
+## 📊 СТАТИСТИКА ПРОЕКТА
 
-- [x] Fix test leaks - добавлен `.unref()` таймерам и cleanup в afterEach
-- [x] npm audit fix - обновлены sqlite3@6.0.1, nodemon@3.1.14 (0 уязвимостей)
-- [x] E2E тесты - Playwright для homepage и API endpoints
-- [x] Input валидация всех API endpoints (body, query, params)
-- [x] CSP заголовки (Content Security Policy)
-- [x] SQL injection защита (parameterized queries для sqlite)
-- [x] XSS защита в EJS шаблонах
-- [x] Security аудит (npm audit, Snyk)
-- [x] Test coverage > 70% (настроен в jest.config.json)
-- [x] Input санитизация (HTML encode, trim, escape)
-- [x] CI/CD Pipeline - GitHub Actions для test, lint, build, release
-- [x] SECURITY.md - политика безопасности
-- [x] .prettierrc - форматирование кода
-- [x] .editorconfig - единый стиль кода
-- [x] .gitattributes - контроль окончаний строк
-- [x] Улучшен .gitignore
-- [x] Удалены устаревшие файлы
-- [x] Обновлён package.json
-- [x] Coverage badge в README
+### Версия и статус
+- **Версия:** 2.8.0-dev (package.json)
+- **Последний коммит:** eefe0cc - feat: add SQLite optimizer and complete P2 improvements
+- **Ветка:** dev (синхронизирована с main)
+- **Следующий релиз:** 2.8.0
 
----
+### Зависимости
+- **production:** 21 пакет (express, helmet, cors, sqlite, ws, uuid, winston, и др.)
+- **dev:** 9 пакетов (jest, playwright, eslint, husky, и др.)
+- **npm audit:** 0 уязвимостей ✅
 
-## ✅ Выполнено - Фаза 3: Оптимизация и Надёжность
+### Тесты
+- **Unit:** 9 test suites (Jest)
+- **E2E:** Playwright настроен
+- **Coverage:** настроен в jest.config.json (>70%)
 
-- [x] Атомарная запись resource-stats.json
-- [x] Оптимизация производительности SQLite запросов (GLOB вместо LIKE)
-- [x] Кэширование тяжелых операций (StatsCache)
-- [x] Улучшение обработки ошибок CLI
-- [x] Метрики производительности (ResourceMonitor)
-- [x] Проверка целостности workbench файла
-- [x] Скрытие чувствительных данных в /api/paths
+### Платформы
+- Windows ✅
+- macOS ✅
+- Linux ✅
+- FreeBSD ✅
 
-**Прогресс Фазы 3:** 7/7 задач выполнено (100%) ✅
+### Языки
+- Русский (RU) ✅
+- English (EN) ✅
+- Chinese (ZH) ✅
 
 ---
 
-## 📊 Статус проекта
+## 🎯 ПРИОРИТЕТЫ ДЛЯ РЕЛИЗА 2.8.0
 
-- **Версия:** 2.8.0-dev
-- **Статус:** ✅ Фаза 1 завершена, ✅ Фаза 2 завершена, ✅ Фаза 3 завершена
-- **Найдено новых проблем:** 2 P0, 4 P1, 4 P2
-- **Тесты:** 199/199 passed (9 test suites) ✅
-- **Платформы:** Windows, macOS, Linux, FreeBSD
-- **Языки:** RU, EN, ZH
-- **npm audit:** ✅ 0 уязвимостей
-- **Ветка:** dev и main синхронизированы ✅
+### Критические пути (должны работать стабильно)
+1. ✅ Reset Machine ID - основной функционал
+2. ✅ Rate limiting - защита от abuse
+3. ✅ Валидация ввода - безопасность
+4. ✅ Graceful shutdown - стабильность
+5. ✅ Бэкап и откат - восстановление при ошибках
 
----
+### Для релиза 2.8.0 нужно:
+- [x] Все P0 исправлены
+- [ ] Исправить оставшиеся P1 (пагинация proxy, rate limiting bypass/notifications)
+- [ ] Финальное тестирование
+- [ ] Обновить CHANGELOG.md
+- [ ] Merge dev → main
+- [ ] Создать тег v2.8.0
+- [ ] Опубликовать релиз на GitHub
 
-## 🎯 Текущий приоритет - Подготовка к релизу 2.8.0
-
-### P0 - Критические (исправить перед релизом)
-
-- [ ] Изменить GET /api/updater/download на POST
-- [ ] Добавить индивидуальные rate limiters на чувствительные эндпоинты
-
-### P1 - Важные
-
-- [ ] Валидация DNS provider через whitelist
-- [ ] Добавить пагинацию в списки бэкапов и прокси
-- [ ] Вынести CONFIG из bypassServer.js в переменные окружения
-- [ ] Добавить валидацию в CLI команды
-
-### P2 - Улучшения
-
-- [ ] Централизовать проверку процесса Cursor
-- [ ] JSDoc аннотации для основных функций
-- [ ] Рефакторинг больших файлов (cliManager.js, reset.js)
-- [ ] Вынести magic numbers в константы
-- [ ] CSRF protection (требует csrf-csrf пакет)
-- [ ] TypeScript миграция (начать с utils/validator.js)
-- [ ] Performance тесты (k6)
-- [ ] Swagger/OpenAPI документация
-- [ ] PWA поддержка
-- [ ] Тёмная тема в UI
-- [ ] CLI интерактив (inquirer, progress bars)
-- [ ] Redis для production кэширования
-- [ ] Dry-run режим для "опасных" операций
-- [ ] WebSocket API для стриминга логов
-- [ ] GraphQL API для гибких запросов
+### Для будущих версий (2.9.0+)
+- [ ] CSRF protection
+- [ ] WebSocket API документация
+- [ ] JSDoc для основных модулей
+- [ ] Performance тесты
+- [ ] Рефакторинг больших файлов
+- [ ] TypeScript миграция (опционально)
 
 ---
 
-## 📝 Активные задачи
-
-### В работе
-
-1. ⏳ **Исправление P0 проблем** - GET → POST, rate limiting
-2. ⏳ **Исправление P1 проблем** - валидация, пагинация, конфиг
-
-### Выполнено
-
-1. ✅ Исправлены 4 P0 проблемы (дубли эндпоинтов, GET→POST, path traversal, DoS)
-2. ✅ Исправлены 4 P1 проблемы (валидация domain, host/port, botToken/webhookUrl, error handling)
-3. ✅ Добавлен audit trail для reset и patch операций
-4. ✅ Ограничение длины x-request-id (128 символов)
-5. ✅ LIKE заменён на GLOB в SQLite запросах
-6. ✅ Запущен lint и исправлены все ошибки
-7. ✅ Проверка целостности workbench файла с автоматическим rollback
-8. ✅ Скрытие чувствительных данных в /api/paths в production режиме
-
-### Следующие шаги
-
-1. Исправить P0 проблемы (GET → POST в updater.js)
-2. Добавить rate limiting на чувствительные эндпоинты
-3. Исправить P1 проблемы
-4. CSRF protection
-5. Релиз 2.8.0
-
----
-
-**Последний коммит:** f1281cb - feat: добавлена проверка целостности workbench и скрытие данных в production
-**Ветка:** dev и main синхронизированы ✅
-**Следующий релиз:** 2.8.0
-
----
-
-## 📌 Правила проекта
+## 📝 ПРАВИЛА ПРОЕКТА
 
 1. **Качество > Количество** - лучше меньше функций, но стабильных
 2. **Код с тестами** - новая функция = тесты
@@ -289,3 +224,4 @@ cursor-reset-tools/
 4. **Документация по запросу** - не создавать без необходимости
 5. **dev → test → main** - проверять перед merge
 6. **Без запуска тестов и проекта** - только код и исправления (по запросу)
+7. **Синхронизация** - всегда синхронизировать изменения с remote

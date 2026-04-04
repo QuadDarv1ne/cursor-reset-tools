@@ -701,6 +701,9 @@ const ld = async (logs, toolName) => {
 
 rt.post('/reset', async (req, res) => {
   try {
+    // Audit trail для деструктивной операции
+    logger.info(`Reset operation triggered by request from ${req.ip}`, 'audit');
+    
     const result = await rm();
     res.json({ success: true, log: result });
   } catch (err) {
@@ -714,14 +717,17 @@ rt.post('/patch', async (req, res) => {
     // Валидация action параметра
     const validActions = ['bypass', 'disable', 'pro'];
     const action = req.body.action || req.query.action || 'bypass';
-
+    
     if (!validActions.includes(action)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid action. Must be one of: ${validActions.join(', ')}`
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
       });
     }
-
+    
+    // Audit trail для деструктивной операции
+    logger.info(`Patch operation '${action}' triggered by request from ${req.ip}`, 'audit');
+    
     let result;
 
     if (action === 'bypass') {
@@ -801,7 +807,7 @@ rt.get('/paths', async (req, res) => {
           filename: dp,
           driver: sqlite3.Database
         });
-        const rows = await db.all('SELECT key, value FROM ItemTable WHERE key LIKE "%cursor%" OR key LIKE "%telemetry%" LIMIT 10');
+        const rows = await db.all('SELECT key, value FROM ItemTable WHERE key GLOB "*cursor*" OR key GLOB "*telemetry*" LIMIT 10');
         info.database = rows.reduce((acc, row) => {
           try {
             acc[row.key] = JSON.parse(row.value);

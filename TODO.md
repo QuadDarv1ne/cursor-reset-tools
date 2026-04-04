@@ -36,6 +36,10 @@
 ### Использовано неиспользуемых констант
 - [x] `BYPASS_RATE_LIMIT_WINDOW` и `BYPASS_RATE_LIMIT_MAX` теперь используются в app.js
 
+### Версии и конфигурация (v13 дополнено)
+- [x] **i18n.js**: versionLabel обновлён во всех 3 языках (v2.0.0 → v2.8.0)
+- [x] **docker-compose.yml**: NODE_ENV changed development → production
+
 ---
 
 ## ✅ ИСПРАВЛЕНО в прошлых раундах (v1-v11)

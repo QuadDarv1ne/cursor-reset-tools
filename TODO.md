@@ -1,18 +1,48 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v17
+## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v18
 
 ### ✅ Статус синхронизации
-- **dev**: требует комита изменений
-- **main**: требует синхронизации с dev
+- **dev**: синхронизирована с origin/dev ✅
+- **main**: синхронизирована с origin/main ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
 ```
 * dev (активная, QuadDarv1ne/cursor-reset-tools)
   dev-full-i18n (дополнительная)
-  main (стабильная, требует синхронизации)
+  main (стабильная, синхронизирована)
 ```
+
+---
+
+## ✅ ИСПРАВЛЕНО v18 — Утечки памяти, стабильность таймеров
+
+### Критические исправления
+
+#### 1. Утечки памяти — Map без очистки
+- **websocketServer.js**: Удалён мёртвый код `messageHashes` Map
+- **dpiBypass.js**: Добавлен лимит `MAX_TEST_RESULTS = 100` + очистка старых записей
+- **autoRollback.js**: Добавлен лимит `maxOperations = 100` + очистка старых операций
+- **proxyManager.js**: Удалён мёртвый код `connectionPool` Map (нигде не использовался)
+
+#### 2. setTimeout без `.unref()` — блокировка graceful shutdown
+- **resourceMonitor.js**: `_getCpuUsage()` — добавлен `.unref()`
+- **proxyManager.js**: `fetchWithTimeout()` — добавлен `.unref()`
+- **vpnManager.js**: `getIPInfo()`, `getVPNIP()` — добавлен `.unref()` (2 места)
+- **dpiBypass.js**: `testConnection()`, `testDomainAccess()` — добавлен `.unref()` (2 места)
+- **monitorManager.js**: `checkUrl()` — добавлен `.unref()`
+- **proxyDatabase.js**: `fetchFromAPI()` — добавлен `.unref()`
+- **wireguardManager.js**: socket connection — добавлен `.unref()`
+- **cache.js**: `withTimeout()` — добавлен `.unref()`
+- **leakDetector.js**: `fetchWithTimeout()` — добавлен `.unref()`
+
+**Итого: 11 setTimeout исправлено**
+
+#### 3. Fire-and-forget Promise в app.js
+- **Автобэкап**: Добавлена полная цепочка `.then().catch()`
+- **Проверка обновлений**: 2 места — добавлены `.catch()` для обработки ошибок
+- **Форматирование**: Улучшена читаемость цепочек Promise
 
 ---
 

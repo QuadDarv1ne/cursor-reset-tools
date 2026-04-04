@@ -5,6 +5,9 @@ import { fileURLToPath } from 'url';
 import net from 'net';
 import http from 'http';
 import dotenv from 'dotenv';
+import { readFileSync } from 'fs';
+
+const APP_VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')).version;
 import resetRouter from './routes/reset.js';
 import resourcesRouter from './routes/resources.js';
 import cacheRouter from './routes/cache.js';
@@ -602,7 +605,7 @@ const startServer = async () => {
 
     // Отправка уведомления о старте (если настроены уведомления)
     if (appConfig.notifications.telegramBotToken || appConfig.notifications.discordWebhookUrl) {
-      globalNotificationManager.sendEvent('start', { version: '2.8.0-dev' }).catch(err => {
+      globalNotificationManager.sendEvent('start', { version: APP_VERSION }).catch(err => {
         logger.debug(`Notification send failed: ${err.message}`, 'app');
       });
     }

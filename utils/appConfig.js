@@ -140,7 +140,10 @@ export const appConfig = {
     checkInterval: parseNumber(process.env.UPDATE_CHECK_INTERVAL, 24 * 60 * 60 * 1000), // 24 часа по умолчанию
 
     /** Таймаут запроса обновления (мс) */
-    timeout: parseNumber(process.env.UPDATE_TIMEOUT, 30000)
+    timeout: parseNumber(process.env.UPDATE_TIMEOUT, 30000),
+
+    /** Максимум попыток при сбое */
+    maxRetries: parseNumber(process.env.UPDATE_MAX_RETRIES, 3)
   },
 
   // ============================================
@@ -265,7 +268,7 @@ export const appConfig = {
   // ============================================
   // УТИЛИТЫ
   // ============================================
-  
+
   /** Получить значение конфигурации по пути (напр. 'network.port') */
   get(path, fallback = undefined) {
     const parts = path.split('.');

@@ -35,7 +35,7 @@ import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
 import { createLogger } from './utils/logger.js';
-import { SECURITY_CONSTANTS } from './utils/constants.js';
+import { SECURITY_CONSTANTS, NETWORK_CONSTANTS } from './utils/constants.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -134,8 +134,8 @@ app.use(helmet({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: NETWORK_CONSTANTS.BYPASS_RATE_LIMIT_WINDOW,
+  max: NETWORK_CONSTANTS.BYPASS_RATE_LIMIT_MAX,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false

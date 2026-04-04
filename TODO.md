@@ -16,15 +16,8 @@
 
 ---
 
-## ✅ АУДИТ ЗАВЕРШЁН - ПРОБЛЕМ НЕ НАЙДЕНО (v12)
+## ✅ ИСПРАВЛЕНО в прошлых раундах (v1-v11)
 
-### Проверено в раунде v12:
-- [x] **Dockerfile** - multi-stage build, security best practices ✅
-- [x] **CI/CD** (ci.yml) - корректная конфигурация ✅
-- [x] **public/js/main.js** (719 строк) - корректный клиентский код ✅
-- [x] **Все setTimeout в public/** - браузерный код, .unref() не нужен ✅
-
-### Все исправления за сессию (итого):
 | Раунд | Исправления | Файлы |
 |-------|------------|-------|
 | **v3** | Версия updater, rate limiting, graceful shutdown | 3 файла |
@@ -36,9 +29,75 @@
 | **v9** | Полный аудит - проблем не найдено | - |
 | **v10** | `.unref()` для всех setTimeout | 5 файлов |
 | **v11** | app.js версия, Content-Type, bypassServer | 2 файла |
-| **v12** | Docker, CI/CD, public/js - всё корректно | - |
 
-**Всего исправлено: ~20 файлов, 8 раундов аудита**
+---
+
+## 🐛 НАЙДЕНО В ЭТОМ РАУНДЕ АУДИТА (v12 - глубокий анализ)
+
+### P0 - Критические (требуют исправления)
+
+#### 1. Опечатка в константе DNS_FLUS_TIMEOUT
+- **Файл**: `utils/constants.js:149`
+- **Проблема**: `DNS_FLUS_TIMEOUT` → должно быть `DNS_FLUSH_TIMEOUT`
+- **Влияние**: Если код использует правильное имя, константа не будет найдена
+
+#### 2. Дублирование магических чисел вместо использования констант
+- **app.js:137-138**: `windowMs: 15 * 60 * 1000`, `max: 100` — дублирует `SECURITY_CONSTANTS`
+- **routes/reset.js:39-40**: `windowMs: 15 * 60 * 1000`, `max: 5` — дублирует `SECURITY_CONSTANTS.RESET_RATE_LIMIT_*`
+- **routes/reset.js:61**: `128` — дублирует `SECURITY_CONSTANTS.MAX_REQUEST_ID_LENGTH`
+- **routes/reset.js:875**: `2000` — должно использовать `CACHE_CONSTANTS.HEALTH_CACHE_TTL`
+- **routes/reset.js:1255-1258**: `max: 100`, `min: 5000, max: 600000` — магические числа
+- **utils/cliManager.js:1129**: `120000` — дублирует `EMAIL_CONSTANTS.EMAIL_WAIT_TIMEOUT`
+- **utils/cliManager.js:663,683**: `180000` — дублирует `CURSOR_CONSTANTS.REGISTRATION_TIMEOUT`
+- **utils/vpnManager.js:56**: `300000` — магическое число (IP cache TTL)
+- **utils/vpnManager.js:250,646**: `5000` — магическое число (timeout)
+
+#### 3. Неиспользуемые константы
+- **constants.js:141-142**: `BYPASS_RATE_LIMIT_WINDOW`, `BYPASS_RATE_LIMIT_MAX` — не используются в коде
+
+#### 4. Несоответствие обработки ошибок в reset.js
+- **lines 806, 869**: В production скрывают сообщение об ошибке ✅
+- **lines 1161, 1171, 1183, 1242, 1291**: Показывают `err.message` напрямую ⚠️
+- **Риск**: Непоследовательная обработка ошибок, потенциальная утечка информации
+
+### P1 - Важные
+
+#### 1. Низкое покрытие тестами (~15-20%)
+**Модули БЕЗ тестов (29 файлов):**
+- `cliManager.js` (1527 строк) — критично
+- `cursorRegistrar.js` (468 строк)
+- `leakDetector.js` (795 строк)
+- `vpnTrafficManager.js` (532 строки)
+- `autoRollback.js` (376 строк)
+- `proxyManager.js`, `proxyDatabase.js`
+- `dnsManager.js`, `dohManager.js`
+- `dpiBypass.js`, `wireguardManager.js`
+- `fingerprintManager.js`, `emailManager.js`
+- `fileValidator.js`, `i18n.js`, `ipManager.js`
+- `logger.js`, `metricsManager.js`, `monitorManager.js`
+- `sqliteOptimizer.js`, `systemProxyManager.js`
+- `updater.js`, `websocketServer.js`
+- `bypassTester.js`, `cache.js`, `cursorProcess.js`
+- `rollback.js`, `config.js`
+
+#### 2. Большие файлы требуют рефакторинга
+- `routes/reset.js` (1581 строка) — 5 функций по 100-286 строк, 50+ route handlers
+- `utils/cliManager.js` (1527 строк) — 44 обработчика с идентичной структурой
+- `utils/vpnManager.js` (873 строки) — конструктор 110 строк, 25+ методов
+
+#### 3. Дублирование кода
+- Паттерн backup+rollback повторяется в `rm()`, `bt()`, `du()`, `pc()`
+- 44 CLI обработчика следуют идентичному шаблону
+- Экспорт/скачивание диагностики дублирует код
+
+### P2 - Улучшения
+
+1. **CSRF Protection** — POST эндпоинты без CSRF токенов
+2. **JSDoc аннотации** — большинство функций без документации
+3. **TypeScript миграция** — для критических модулей
+4. **Performance тесты** — нет k6/autocannon
+5. **WebSocket API документация** — отсутствует
+6. **Стандартизация error response** — разные форматы в разных эндпоинтах
 
 ---
 

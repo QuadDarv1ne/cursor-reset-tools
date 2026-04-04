@@ -18,6 +18,7 @@ import { validateRequest } from '../utils/validator.js';
 import { globalFileValidator } from '../utils/fileValidator.js';
 import { globalIPManager } from '../utils/ipManager.js';
 import { globalFingerprintManager } from '../utils/fingerprintManager.js';
+import { SECURITY_CONSTANTS, CACHE_CONSTANTS, EMAIL_CONSTANTS, CURSOR_CONSTANTS } from '../utils/constants.js';
 import { globalEmailManager } from '../utils/emailManager.js';
 import { globalMonitorManager } from '../utils/monitorManager.js';
 import { globalCursorRegistrar } from '../utils/cursorRegistrar.js';
@@ -34,10 +35,20 @@ import { globalProxyManager } from '../utils/proxyManager.js';
 const rt = express.Router();
 const execPromise = promisify(exec);
 
+// Вспомогательная функция для обработки ошибок API
+const handleApiError = (err, res, context = 'API') => {
+  logger.error(`${context} error: ${err.message}`, 'api');
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.status(500).json({
+    success: false,
+    error: isProduction ? 'Internal server error' : err.message
+  });
+};
+
 // Rate limiter для reset операций (максимум 5 запросов в 15 минут)
 const resetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 5,
+  windowMs: SECURITY_CONSTANTS.RESET_RATE_LIMIT_WINDOW,
+  max: SECURITY_CONSTANTS.RESET_RATE_LIMIT_MAX,
   message: {
     success: false,
     error: 'Too many reset requests, please try again later (max 5 per 15 minutes)'
@@ -57,7 +68,7 @@ logger.init();
 rt.use((req, res, next) => {
   const existing = req.headers['x-request-id'];
   // Ограничение длины x-request-id для предотвращения инъекций
-  const requestId = (typeof existing === 'string' && existing.trim().length <= 128) ? existing.trim() : uuidv4();
+  const requestId = (typeof existing === 'string' && existing.trim().length <= SECURITY_CONSTANTS.MAX_REQUEST_ID_LENGTH) ? existing.trim() : uuidv4();
   req.requestId = requestId;
   res.setHeader('x-request-id', requestId);
   next();
@@ -880,7 +891,7 @@ rt.get('/paths', async (req, res) => {
     const isRunning = await globalStatsCache.getOrCompute(
       cacheKey,
       () => globalCursorProcess.isRunning(),
-      2000 // 2 секунды кэш
+      CACHE_CONSTANTS.HEALTH_CACHE_TTL
     );
 
     // Получение версии Cursor
@@ -1157,8 +1168,7 @@ rt.post('/fingerprint/reset', async (req, res) => {
     const result = await globalFingerprintManager.resetFingerprint({ changeMAC, changeHostname, flushDNS });
     res.json({ success: true, result });
   } catch (err) {
-    logger.error(`Fingerprint reset error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
+    handleApiError(err, res, 'Fingerprint reset');
   }
 });
 
@@ -1167,8 +1177,7 @@ rt.post('/fingerprint/mac', async (req, res) => {
     const result = await globalFingerprintManager.changeAllMAC();
     res.json({ success: true, result });
   } catch (err) {
-    logger.error(`Fingerprint reset error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
+    handleApiError(err, res, 'Fingerprint MAC change');
   }
 });
 
@@ -1180,7 +1189,7 @@ rt.get('/vpn/status', async (req, res) => {
     const status = await globalVPNManager.detectActiveVPN();
     res.json({ success: true, status });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    handleApiError(err, res, 'VPN status');
   }
 });
 
@@ -1194,7 +1203,7 @@ rt.post('/fingerprint/hostname', async (req, res) => {
     }
     res.json({ success: true, hostname: globalFingerprintManager.getHostname() });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleApiError(err, res, 'Fingerprint hostname change');
   }
 });
 
@@ -1238,8 +1247,7 @@ rt.post('/email/create', async (req, res) => {
     const result = await globalEmailManager.createEmail(service);
     res.json(result);
   } catch (err) {
-    logger.error(`Email create error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
+    handleApiError(err, res, 'Email create');
   }
 });
 
@@ -1248,7 +1256,7 @@ rt.get('/email/messages', async (req, res) => {
     const messages = await globalEmailManager.getMessages();
     res.json({ success: true, messages });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    handleApiError(err, res, 'Email messages');
   }
 });
 
@@ -1287,8 +1295,7 @@ rt.post('/email/wait', async (req, res) => {
       res.status(408).json({ error: 'Timeout waiting for message' });
     }
   } catch (err) {
-    logger.error(`Email wait error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: err.message });
+    handleApiError(err, res, 'Email wait');
   }
 });
 

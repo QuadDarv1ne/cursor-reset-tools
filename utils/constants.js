@@ -136,7 +136,7 @@ export const NETWORK_CONSTANTS = Object.freeze({
 
   // Bypass Server
   BYPASS_MAX_CLIENTS: 100,
-  BYASS_PROXY_TIMEOUT: 30000,
+  BYPASS_PROXY_TIMEOUT: 30000,
   BYPASS_HEALTH_CHECK_INTERVAL: 60000,
   BYPASS_RATE_LIMIT_WINDOW: 60000,
   BYPASS_RATE_LIMIT_MAX: 100,
@@ -146,7 +146,7 @@ export const NETWORK_CONSTANTS = Object.freeze({
   WS_MAX_PAYLOAD_SIZE: 10 * 1024 * 1024, // 10MB
 
   // DNS
-  DNS_FLUS_TIMEOUT: 10000 // 10 секунд
+  DNS_FLUSH_TIMEOUT: 10000, // 10 секунд
 });
 
 /**
@@ -164,7 +164,10 @@ export const VPN_CONSTANTS = Object.freeze({
   // VPN configs
   VPN_CONFIG_DIR: 'data/vpn-configs',
   VPN_MAX_CONFIGS: 100,
-  VPN_CHECK_TIMEOUT: 10000 // 10 секунд
+  VPN_CHECK_TIMEOUT: 10000, // 10 секунд
+
+  // VPN API timeout
+  VPN_API_TIMEOUT: 5000 // 5 секунд
 });
 
 /**

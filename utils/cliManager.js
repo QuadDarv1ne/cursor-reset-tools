@@ -16,6 +16,7 @@ import { globalBypassServer } from '../server/bypassServer.js';
 import { globalConfigBackup } from './configBackup.js';
 import { logger } from './logger.js';
 import { validateUrl, validateProxyProtocol } from './validator.js';
+import { EMAIL_CONSTANTS, CURSOR_CONSTANTS } from './constants.js';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -660,7 +661,7 @@ async function handleCursorRegister(args) {
   const result = await globalCursorRegistrar.register({
     emailService,
     autoVerify: true,
-    timeout: 180000
+    timeout: CURSOR_CONSTANTS.REGISTRATION_TIMEOUT
   });
 
   if (result.success) {
@@ -680,7 +681,7 @@ async function handleCursorAutoRegister(args) {
   const result = await globalCursorRegistrar.autoRegister({
     emailService,
     checkProStatus: true,
-    timeout: 180000
+    timeout: CURSOR_CONSTANTS.REGISTRATION_TIMEOUT
   });
 
   if (result.success) {
@@ -1126,7 +1127,7 @@ async function handleEmailCheck() {
 
 async function handleEmailWait(args) {
   const { flags } = args;
-  const timeout = parseInt(flags.timeout, 10) || 120000;
+  const timeout = parseInt(flags.timeout, 10) || EMAIL_CONSTANTS.EMAIL_WAIT_TIMEOUT;
 
   output(`Ожидание письма от Cursor (timeout: ${timeout}ms)...`, 'process');
   const result = await globalEmailManager.waitForMessage({

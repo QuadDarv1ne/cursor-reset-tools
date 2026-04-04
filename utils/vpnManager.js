@@ -11,6 +11,7 @@ import fs from 'fs-extra';
 import https from 'https';
 import http from 'http';
 import { logger } from './logger.js';
+import { NETWORK_CONSTANTS, CACHE_CONSTANTS, VPN_CONSTANTS } from './constants.js';
 
 const execPromise = promisify(exec);
 
@@ -55,7 +56,7 @@ class VPNManager {
     // Кэш для IPInfo с TTL для предотвращения частых запросов
     this.ipInfoCache = null;
     this.ipInfoCacheTime = 0;
-    this.IP_INFO_CACHE_TTL = 300000; // 5 минут
+    this.IP_INFO_CACHE_TTL = CACHE_CONSTANTS.CACHE_CLEANUP_INTERVAL; // 5 минут
 
     // Поддерживаемые VPN клиенты
     this.vpnClients = {
@@ -247,7 +248,7 @@ class VPNManager {
 
     // Запрос к API
     const result = await new Promise(resolve => {
-      const timeout = setTimeout(() => resolve(null), 5000);
+      const timeout = setTimeout(() => resolve(null), VPN_CONSTANTS.VPN_API_TIMEOUT);
 
       http.get('http://ip-api.com/json/', res => {
         clearTimeout(timeout);
@@ -643,7 +644,7 @@ class VPNManager {
    */
   async getVPNIP() {
     return new Promise(resolve => {
-      const timeout = setTimeout(() => resolve(null), 5000);
+      const timeout = setTimeout(() => resolve(null), VPN_CONSTANTS.VPN_API_TIMEOUT);
 
       https.get('https://api.ipify.org?format=json', res => {
         clearTimeout(timeout);

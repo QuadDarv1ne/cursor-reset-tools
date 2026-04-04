@@ -13,6 +13,8 @@ const IP_SERVICES = [
   'https://ipinfo.io/json'
 ];
 
+const IP_HISTORY_MAX = 100; // Максимум записей в истории IP
+
 class IPManager {
   constructor() {
     this.currentIP = null;
@@ -76,6 +78,12 @@ class IPManager {
         changedAt: Date.now(),
         newIP: currentIP.ip
       });
+
+      // Ограничиваем размер истории
+      if (this.ipHistory.length > IP_HISTORY_MAX) {
+        this.ipHistory = this.ipHistory.slice(-IP_HISTORY_MAX);
+      }
+
       logger.info(`IP changed: ${previousIP} -> ${currentIP.ip}`, 'ip');
     }
 

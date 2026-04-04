@@ -24,7 +24,25 @@ class FingerprintManager {
    * Инициализация менеджера
    */
   async init() {
-    const configDir = path.join(os.homedir(), 'Documents', '.cursor-free-vip');
+    const platform = os.platform();
+    const home = os.homedir();
+    // Платформо-зависимый путь к данным
+    let configDir;
+    switch (platform) {
+      case 'win32':
+        configDir = path.join(home, 'Documents', '.cursor-free-vip');
+        break;
+      case 'darwin':
+        configDir = path.join(home, '.cursor-free-vip');
+        break;
+      case 'linux':
+      case 'freebsd':
+        configDir = path.join(home, '.config', 'cursor-free-vip');
+        break;
+      default:
+        configDir = path.join(home, '.cursor-free-vip');
+    }
+
     await fs.ensureDir(configDir);
     this.backupPath = path.join(configDir, 'fingerprint_backup.json');
 

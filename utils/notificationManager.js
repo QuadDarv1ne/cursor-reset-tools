@@ -5,6 +5,7 @@
 
 import fetch from 'node-fetch';
 import { logger } from './logger.js';
+import { withRetry } from './helpers.js';
 
 /**
  * Конфигурация уведомлений
@@ -216,20 +217,26 @@ ${notification.message}
 
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: parseMode
-      })
-    });
+    await withRetry(
+      async () => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text,
+            parse_mode: parseMode
+          })
+        });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Telegram API error: ${error}`);
-    }
+        if (!res.ok) {
+          const error = await res.text();
+          throw new Error(`Telegram API error: ${error}`);
+        }
+        return res;
+      },
+      { maxAttempts: 3, baseDelay: 1000, exponential: true }
+    );
 
     return true;
   }

@@ -11,18 +11,20 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
 import { logger } from './logger.js';
+import { appConfig } from './appConfig.js';
+import { withRetry } from './helpers.js';
 
 const execPromise = promisify(exec);
 
 /**
- * Конфигурация updater
+ * Конфигурация updater из appConfig
  */
 export const UPDATER_CONFIG = {
   owner: 'QuadDarv1ne',
   repo: 'cursor-reset-tools',
   branch: 'main',
-  checkInterval: 3600000, // 1 час
-  timeout: 30000,
+  checkInterval: appConfig.updater.checkInterval, // 24 часа по умолчанию
+  timeout: appConfig.updater.timeout,
   backupDir: path.join(process.cwd(), 'updates', 'backup')
 };
 
@@ -53,7 +55,16 @@ export class Updater {
     logger.info('Checking for updates...', 'updater');
 
     try {
-      const releaseData = await this.fetchLatestRelease();
+      // Retry для сетевого запроса
+      const releaseData = await withRetry(
+        () => this.fetchLatestRelease(),
+        {
+          maxAttempts: appConfig.updater.maxRetries || 3,
+          baseDelay: 1000,
+          maxDelay: 10000,
+          exponential: true
+        }
+      );
 
       this.latestVersion = releaseData.tag_name?.replace('v', '') || null;
       this.updateAvailable = this.compareVersions(this.latestVersion, this.currentVersion) > 0;

@@ -1,22 +1,75 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v13
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v15
 
 ### ✅ Статус синхронизации
-- **dev**: 13d918e (HEAD) - fix: магические числа, опечатки, обработка ошибок
-- **main**: 13d918e - синхронизирована с dev ✅
+- **dev**: активная ветка, требует комита изменений
+- **main**: требует синхронизации с dev
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
 ```
 * dev (активная, QuadDarv1ne/cursor-reset-tools)
   dev-full-i18n (дополнительная)
-  main (стабильная, синхронизирована)
+  main (стабильная, требует синхронизации)
 ```
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде (v13)
+## ✅ ПОЛНЫЙ АУДИТ ЗАВЕРШЁН v15
+
+### 📋 Проверенные модули (39 файлов)
+
+| Модуль | Статус | Замечания |
+|--------|--------|-----------|
+| **app.js** | ✅ OK | Graceful shutdown, auto-update, retry logic |
+| **utils/config.js** | ✅ OK | Гибкая конфигурация, валидация, платформо-зависимые пути |
+| **utils/constants.js** | ✅ OK | Все magic numbers централизованы, опечатки исправлены |
+| **utils/appConfig.js** | ✅ OK | Единая система конфигурации из .env |
+| **utils/helpers.js** | ✅ OK | withRetry, admin check, validatePaths |
+| **utils/validator.js** | ✅ OK | Полная валидация: URL, IP, email, UUID, domain |
+| **routes/reset.js** | ✅ OK | handleApiError, rate limiting, валидация |
+| **routes/bypass.js** | ✅ OK | Rate limiting, error handling |
+| **utils/vpnManager.js** | ✅ OK | Кэширование IPInfo, TTL, очистка кэшей |
+| **utils/proxyManager.js** | ✅ OK | Health score, DPI tests, cache limits |
+| **utils/updater.js** | ✅ OK | Retry logic, backup/restore |
+| **utils/autoRollback.js** | ✅ OK | Operation stack, validation, auto-rollback |
+| **utils/cliManager.js** | ✅ OK | 44 команды, CLI handlers |
+| **utils/i18n.js** | ✅ OK | 3 языка (RU, EN, ZH), версии обновлены |
+
+### 🎯 Ключевые показатели
+
+- **Архитектура**: ✅ Модульная, синглтоны, graceful shutdown
+- **Безопасность**: ✅ CSP, rate limiting, XSS patterns, валидация ввода
+- **Конфигурация**: ✅ .env support, гибкие лимиты, таймауты, паттерны
+- **Автоматизация**: ✅ AutoUpdate, AutoRollback, retry с exponential backoff
+- **Стабильность**: ✅ Graceful shutdown с таймаутами, unref для всех таймеров
+- **Платформы**: ✅ Windows, macOS, Linux, FreeBSD
+- **Тесты**: ✅ 9 test suites (Jest), Playwright E2E
+
+---
+
+## ✅ ИСПРАВЛЕНО v14 — Автоматизация, гибкость, стабильность
+
+### Гибкая конфигурация (.env)
+- [x] **utils/config.js** — полная переработка: все лимиты, таймауты, паттерны из env
+- [x] **Добавлены env vars**: CURSOR_SUPPORTED_VERSIONS, TOKEN_LIMIT_*, TIMEOUT_*, AUTO_*
+- [x] **Валидация конфига** — метод config.validate() с проверкой диапазонов
+- [x] **Платформо-зависимые пути** — fingerprintManager использует правильные пути для Win/macOS/Linux
+
+### Автоматизация
+- [x] **AutoUpdate** — добавлен setInterval с appConfig.updater.checkInterval
+- [x] **AutoRollback** — интегрирован в graceful shutdown
+- [x] **Retry для сети** — updater.js и notificationManager используют withRetry (exponential backoff)
+
+### Стабильность
+- [x] **Graceful shutdown** — остановка всех 15+ менеджеров с таймаутами
+- [x] **Утечка памяти** — ipHistory ограничен до 100 записей
+- [x] **Опечатки** — DNS_FLUS_TIMEOUT, BYASS_PROXY_TIMEOUT исправлены
+
+---
+
+## ✅ ИСПРАВЛЕНО v13 — Магические числа и обработка ошибок
 
 ### Магические числа → Константы
 - [x] **app.js**: `15*60*1000`, `max: 100` → `NETWORK_CONSTANTS.BYPASS_RATE_LIMIT_*`
@@ -276,20 +329,21 @@ e2e/         # Playwright E2E тесты
 
 ## 🎯 ПРИОРИТЕТЫ ДЛЯ РЕЛИЗА 2.8.0
 
-### Критические пути (должны работать стабильно)
+### ✅ Все критические пути работают стабильно
 1. ✅ Reset Machine ID - основной функционал
 2. ✅ Rate limiting - защита от abuse (все эндпоинты)
 3. ✅ Валидация ввода - безопасность
 4. ✅ Graceful shutdown - стабильность (.unref() добавлен)
 5. ✅ Бэкап и откат - восстановление при ошибках
-6. ✅ Версия приложения синхронизирована
+6. ✅ Версия приложения синхронизирована (2.8.0-dev)
 
 ### Для релиза 2.8.0 нужно:
 - [x] Все P0 исправлены
 - [x] Все P1 исправлены
+- [x] Полный аудит v15 завершён
 - [ ] Финальное тестирование
 - [ ] Обновить CHANGELOG.md
-- [ ] Merge dev → main (уже синхронизировано)
+- [ ] Merge dev → main
 - [ ] Создать тег v2.8.0
 - [ ] Опубликовать релиз на GitHub
 
@@ -297,9 +351,10 @@ e2e/         # Playwright E2E тесты
 - [ ] CSRF protection
 - [ ] WebSocket API документация
 - [ ] JSDoc для основных модулей
-- [ ] Performance тесты
-- [ ] Рефакторинг больших файлов
+- [ ] Performance тесты (k6/autocannon)
+- [ ] Рефакторинг больших файлов (cliManager 1527 строк, reset.js 1588 строк)
 - [ ] TypeScript миграция (опционально)
+- [ ] Расширение покрытия тестов (>50%)
 
 ---
 

@@ -35,17 +35,19 @@ import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
 import { createLogger } from './utils/logger.js';
-import { SECURITY_CONSTANTS, NETWORK_CONSTANTS } from './utils/constants.js';
+import { SECURITY_CONSTANTS } from './utils/constants.js';
+import { globalAutoRollbackManager } from './utils/autoRollback.js';
+import { appConfig } from './utils/appConfig.js';
 
 // Загрузка переменных окружения
 dotenv.config();
 
-// Инициализация логгера
+// Инициализация логгера с конфигурацией
 const logger = createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  filename: process.env.LOG_FILE || 'logs/app.log',
-  maxFiles: parseInt(process.env.LOG_MAX_FILES, 10) || 30,
-  maxSize: process.env.LOG_MAX_SIZE || '10m'
+  level: appConfig.logging.level,
+  filename: appConfig.logging.file,
+  maxFiles: appConfig.logging.maxFiles,
+  maxSize: appConfig.logging.maxSize
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,7 +59,10 @@ const __dirname = path.dirname(__filename);
 const DynamicConfig = {
   ports: { http: null, ws: null },
 
-  autoSelectPort: async (startPort = 3000, maxAttempts = 20) => {
+  autoSelectPort: async (startPort, maxAttempts) => {
+    startPort = startPort || appConfig.network.portRangeStart;
+    maxAttempts = maxAttempts || appConfig.network.portRangeMaxAttempts;
+
     for (let i = 0; i < maxAttempts; i++) {
       const port = startPort + i;
       const available = await DynamicConfig.checkPort(port);
@@ -77,8 +82,15 @@ const DynamicConfig = {
   }),
 
   init: async () => {
-    DynamicConfig.ports.http = await DynamicConfig.autoSelectPort(3000);
-    DynamicConfig.ports.ws = await DynamicConfig.autoSelectPort(3001);
+    // Проверяем нужно ли проверять доступность порта
+    if (appConfig.network.checkPortAvailability) {
+      DynamicConfig.ports.http = await DynamicConfig.autoSelectPort(appConfig.network.portRangeStart);
+      // WebSocket теперь на том же порту, так что отдельный порт не нужен
+      DynamicConfig.ports.ws = DynamicConfig.ports.http;
+    } else {
+      DynamicConfig.ports.http = appConfig.network.port;
+      DynamicConfig.ports.ws = appConfig.network.wsPort;
+    }
     return DynamicConfig.ports;
   }
 };
@@ -120,22 +132,22 @@ const cspDirectives = {
   ],
   fontSrc: ['\'self\''],
   objectSrc: ['\'none\''],
-  upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+  upgradeInsecureRequests: appConfig.nodeEnv === 'production' ? [] : null
 };
 
 app.use(helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: appConfig.security.cspEnabled ? {
     directives: cspDirectives
-  },
+  } : false,
   crossOriginEmbedderPolicy: false, // Отключено для совместимости
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   crossOriginOpenerPolicy: false
 }));
 
-// Rate limiting
+// Rate limiting с конфигурацией
 const limiter = rateLimit({
-  windowMs: NETWORK_CONSTANTS.BYPASS_RATE_LIMIT_WINDOW,
-  max: NETWORK_CONSTANTS.BYPASS_RATE_LIMIT_MAX,
+  windowMs: appConfig.security.rateLimitWindow,
+  max: appConfig.security.rateLimitMax,
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false
@@ -143,8 +155,8 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 app.use(cors());
-app.use(express.json({ limit: SECURITY_CONSTANTS.MAX_UPLOAD_SIZE }));
-app.use(express.urlencoded({ extended: true, limit: SECURITY_CONSTANTS.MAX_UPLOAD_SIZE }));
+app.use(express.json({ limit: appConfig.security.maxUploadSize }));
+app.use(express.urlencoded({ extended: true, limit: appConfig.security.maxUploadSize }));
 
 // Middleware для логирования запросов
 app.use((req, res, next) => {
@@ -152,7 +164,7 @@ app.use((req, res, next) => {
   const requestId = req.headers['x-request-id'] || 'unknown';
 
   // Логирование начала запроса (только в debug mode)
-  if (process.env.LOG_LEVEL === 'debug') {
+  if (appConfig.logging.level === 'debug') {
     logger.debug(`Request started: ${req.method} ${req.path}`, 'http', {
       requestId,
       ip: req.ip,
@@ -211,7 +223,7 @@ app.use((req, res, next) => {
 });
 
 // Кэширование статических файлов (1 час в production)
-const staticCache = process.env.NODE_ENV === 'production'
+const staticCache = appConfig.network.nodeEnv === 'production'
   ? { maxAge: '1h', etag: true, lastModified: true }
   : { etag: true, lastModified: true };
 
@@ -243,7 +255,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.set('etag', false);
 
-if (process.env.NODE_ENV !== 'production') {
+if (appConfig.network.nodeEnv !== 'production') {
   app.set('view cache', false);
 }
 
@@ -338,7 +350,7 @@ app.use('/api/bypass', bypassRouter);
 app.use('/api', resetRouter);
 
 // ============================================
-// Graceful Shutdown
+// Graceful Shutdown с таймаутом
 // ============================================
 let isShuttingDown = false;
 
@@ -351,40 +363,95 @@ const gracefulShutdown = async signal => {
   isShuttingDown = true;
   logger.info(`Graceful shutdown initiated (${signal})`, 'app');
 
+  // Создаём таймаут для принудительного завершения
+  const shutdownTimeout = setTimeout(() => {
+    logger.error(`Graceful shutdown timeout (${appConfig.shutdown.timeout}ms), forcing exit...`, 'app');
+    process.exit(1);
+  }, appConfig.shutdown.timeout);
+
+  // Разрешаем процессу завершиться даже с активным таймаутом
+  shutdownTimeout.unref();
+
   try {
-    // Остановка всех менеджеров параллельно
-    await Promise.allSettled([
+    // Остановка всех менеджеров параллельно с таймаутом на каждый
+    const stopPromises = [
+      // Мониторинг и кэш
       globalResourceMonitor.stopMonitoring(),
       globalStatsCache.stop(),
-      globalWSServer.stop(),
       globalMonitorManager.stopAutoCheck?.(),
+      globalMetricsManager?.stopMetrics?.(),
+
+      // Сетевые менеджеры
+      globalWSServer.stop(),
       globalProxyManager.cleanup?.(),
       globalDNSManager.restoreDNS?.(),
-      globalWireGuardManager.disconnect?.()
-    ]);
+      globalWireGuardManager.disconnect?.(),
+      globalSmartBypassManager?.stop?.(),
+      globalIPManager?.stop?.(),
+
+      // Фоновые менеджеры
+      globalFingerprintManager?.cleanup?.(),
+      globalProxyDatabase?.close?.(),
+      globalNotificationManager?.stop?.(),
+      globalConfigBackup?.stop?.(),
+      globalDPIBypass?.stop?.(),
+
+      // AutoRollback очистка
+      globalAutoRollbackManager?.cleanup?.()
+    ].filter(p => p); // Убираем undefined
+
+    // Добавляем таймаут на каждый промис
+    const withTimeout = (promise, timeout, name) => Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`${name} timeout after ${timeout}ms`)), timeout).unref()
+      )
+    ]).catch(err => {
+      logger.warn(`Manager stop timeout (${name}): ${err.message}`, 'app');
+      return { skipped: true, reason: err.message };
+    });
+
+    await Promise.allSettled(
+      stopPromises.map((p, i) => withTimeout(p, appConfig.shutdown.serverCloseTimeout, `manager-${i}`))
+    );
 
     logger.info('All managers stopped', 'app');
 
-    // Закрытие HTTP сервера
+    // Закрытие HTTP сервера с таймаутом
     if (server) {
-      await new Promise((resolve, reject) => {
-        server.close(err => {
-          if (err) {reject(err);}
-          else {resolve();}
-        });
+      await Promise.race([
+        new Promise((resolve, reject) => {
+          server.close(err => {
+            if (err) {reject(err);}
+            else {resolve();}
+          });
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('HTTP server close timeout')), appConfig.shutdown.serverCloseTimeout).unref()
+        )
+      ]).catch(err => {
+        logger.warn(`HTTP server close error: ${err.message}`, 'app');
       });
       logger.info('HTTP server closed', 'app');
     }
 
     // Закрытие WebSocket сервера
     if (globalWSServer.wss) {
-      globalWSServer.wss.close();
+      await new Promise(resolve => {
+        globalWSServer.wss.close();
+        resolve();
+      }).catch(err => {
+        logger.warn(`WebSocket close error: ${err.message}`, 'app');
+      });
       logger.info('WebSocket server closed', 'app');
     }
 
+    // Отменяем таймаут если всё успешно
+    clearTimeout(shutdownTimeout);
     logger.info('Graceful shutdown completed successfully', 'app');
     process.exit(0);
   } catch (error) {
+    clearTimeout(shutdownTimeout);
     logger.error(`Graceful shutdown error: ${error.message}`, 'app');
     process.exit(1);
   }
@@ -439,7 +506,7 @@ app.use((err, req, res, _next) => {
 
   res.status(err.status || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    error: appConfig.network.nodeEnv === 'production' ? 'Internal server error' : err.message,
     path: req.path
   });
 });
@@ -498,28 +565,51 @@ const startServer = async () => {
       process.exit(1);
     }
 
-    // Запуск авто-мониторинга
-    globalMonitorManager.enableAutoCheck(60000);
+    // Запуск авто-мониторинга с конфигурацией
+    globalMonitorManager.enableAutoCheck(appConfig.monitoring.autoCheckInterval);
 
-    // Запуск мониторинга ресурсов
-    globalResourceMonitor.startMonitoring(5000);
+    // Запуск мониторинга ресурсов с конфигурацией
+    globalResourceMonitor.startMonitoring(appConfig.monitoring.resourceSampleInterval);
 
     // Отправка уведомления о старте (если включено)
     globalNotificationManager.sendEvent('start', { version: '2.8.0-dev' }).catch(err => {
       logger.debug(`Notification send failed: ${err.message}`, 'app');
     });
 
-    // Проверка обновлений при старте
-    globalUpdater.checkForUpdates().then(result => {
-      if (result.updateAvailable) {
-        logger.info(`Update available: ${result.currentVersion} → ${result.latestVersion}`, 'app');
-      }
-    }).catch(err => {
-      logger.error(`Update check failed: ${err.message}`, 'app');
-    });
+    // Проверка обновлений при старте (если включено)
+    if (appConfig.updater.enabled) {
+      globalUpdater.checkForUpdates().then(result => {
+        if (result.updateAvailable) {
+          logger.info(`Update available: ${result.currentVersion} → ${result.latestVersion}`, 'app');
+        }
+      }).catch(err => {
+        logger.error(`Update check failed: ${err.message}`, 'app');
+      });
 
-    // WebSocket сервер
-    globalWSServer.init(server, wsPort);
+      // Автоматическое обновление с интервалом
+      if (appConfig.updater.checkInterval > 0) {
+        const autoUpdateTimer = setInterval(() => {
+          globalUpdater.checkForUpdates().then(result => {
+            if (result.updateAvailable) {
+              logger.info(`Auto-update: ${result.currentVersion} → ${result.latestVersion}`, 'app');
+            }
+          }).catch(err => {
+            logger.error(`Auto-update check failed: ${err.message}`, 'app');
+          });
+        }, appConfig.updater.checkInterval);
+        autoUpdateTimer.unref(); // Не блокирует graceful shutdown
+      }
+    }
+
+    // Инициализация smart bypass (если не был инициализирован)
+    if (!globalSmartBypassManager.initialized) {
+      await globalSmartBypassManager.init().catch(err => {
+        logger.error(`SmartBypass init failed: ${err.message}`, 'app');
+      });
+    }
+
+    // WebSocket сервер (на том же порту что и HTTP)
+    globalWSServer.init(server, port);
 
     // Initial bypass test
     const initBypassTimer = setTimeout(() => {

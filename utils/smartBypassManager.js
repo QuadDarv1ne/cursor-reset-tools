@@ -995,6 +995,24 @@ class SmartBypassManager {
     }
     logger.info('ML model imported', 'smart-bypass');
   }
+
+  /**
+   * Инициализация менеджера
+   */
+  async init() {
+    this.initialized = true;
+    logger.info('Smart Bypass Manager initialized', 'smart-bypass');
+    return this;
+  }
+
+  /**
+   * Остановка менеджера (для graceful shutdown)
+   */
+  stop() {
+    this.initialized = false;
+    logger.info('Smart Bypass Manager stopped', 'smart-bypass');
+    return true;
+  }
 }
 
 // Singleton

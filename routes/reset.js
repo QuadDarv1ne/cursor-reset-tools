@@ -8,7 +8,7 @@ import { open } from 'sqlite';
 import crypto from 'crypto';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry } from '../utils/helpers.js';
+import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry, validateWorkbenchIntegrity, getFileHash } from '../utils/helpers.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 import { globalBackupManager } from '../utils/rollback.js';
@@ -410,6 +410,29 @@ const bt = async () => {
     await fs.writeFile(workbenchPath, modified);
     logs.push('✅ Workbench file modified successfully');
 
+    // Проверка целостности файла после модификации
+    const integrity = await validateWorkbenchIntegrity(workbenchPath);
+    if (!integrity.valid) {
+      logs.push(`⚠️ Workbench integrity check failed: ${integrity.errors.join('; ')}`);
+      logger.warn(`Workbench integrity check failed: ${JSON.stringify(integrity.errors)}`, 'bypass');
+
+      // Попытка отката при проблемах с целостностью
+      const rollbackResult = await globalBackupManager.rollback(operationId);
+      if (rollbackResult.restored > 0) {
+        logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored due to integrity failure`);
+        logger.info(`Workbench file restored due to integrity failure`, 'bypass');
+        return ld(logs, 'Bypass Token Limit');
+      }
+    } else {
+      logs.push(`✅ Workbench integrity check passed (${integrity.size} bytes)`);
+
+      // Логирование хэша для аудита
+      const fileHash = await getFileHash(workbenchPath);
+      if (fileHash) {
+        logger.info(`Workbench hash: ${fileHash.substring(0, 16)}...`, 'bypass');
+      }
+    }
+
     if (fs.existsSync(dp)) {
       logs.push('ℹ️ Updating SQLite database for token limits...');
       await bk(dp);
@@ -663,6 +686,28 @@ const pc = async () => {
 
       await fs.writeFile(workbenchPath, modified);
       logs.push('✅ Workbench file modified for Pro UI');
+
+      // Проверка целостности файла после модификации
+      const integrity = await validateWorkbenchIntegrity(workbenchPath);
+      if (!integrity.valid) {
+        logs.push(`⚠️ Workbench integrity check failed: ${integrity.errors.join('; ')}`);
+        logger.warn(`Workbench integrity check failed: ${JSON.stringify(integrity.errors)}`, 'pro');
+
+        // Попытка отката при проблемах с целостностью
+        const rollbackResult = await globalBackupManager.rollback(operationId);
+        if (rollbackResult.restored > 0) {
+          logs.push(`🔄 Rollback: ${rollbackResult.restored} files restored due to integrity failure`);
+          logger.info(`Workbench file restored due to integrity failure`, 'pro');
+        }
+      } else {
+        logs.push(`✅ Workbench integrity check passed (${integrity.size} bytes)`);
+
+        // Логирование хэша для аудита
+        const fileHash = await getFileHash(workbenchPath);
+        if (fileHash) {
+          logger.info(`Workbench hash: ${fileHash.substring(0, 16)}...`, 'pro');
+        }
+      }
     } else {
       logs.push(`⚠️ Workbench file not found at: ${workbenchPath}`);
     }
@@ -750,6 +795,7 @@ rt.post('/patch', async (req, res) => {
 rt.get('/paths', async (req, res) => {
   try {
     const { mp, sp, dp, ap, cp, up, pt } = gp();
+    const isProduction = process.env.NODE_ENV === 'production';
 
     // Кэшированная проверка процесса Cursor
     const cacheKey = `cursor_running_${pt}`;
@@ -763,17 +809,20 @@ rt.get('/paths', async (req, res) => {
     const version = await getCursorVersion(ap);
     const isSupported = isCursorVersionSupported(version);
 
+    // Маскирование путей в production режиме
+    const maskPath = path => isProduction ? path.replace(/[^/\\]+/g, '***') : path;
+
     const info = {
       platform: pt,
       osVersion: os.release(),
       arch: os.arch(),
-      homedir: os.homedir(),
-      machinePath: mp,
-      storagePath: sp,
-      dbPath: dp,
-      appPath: ap,
-      cursorPath: cp,
-      updatePath: up,
+      homedir: isProduction ? '***' : os.homedir(),
+      machinePath: maskPath(mp),
+      storagePath: maskPath(sp),
+      dbPath: maskPath(dp),
+      appPath: maskPath(ap),
+      cursorPath: maskPath(cp),
+      updatePath: maskPath(up),
       isRunning,
       cursorVersion: version,
       isSupported,
@@ -792,8 +841,8 @@ rt.get('/paths', async (req, res) => {
         const data = await fs.readFile(sp, 'utf8');
         const json = JSON.parse(data);
         info.storage = {
-          machineId: json['telemetry.machineId'] || json.serviceMachineId,
-          devDeviceId: json['telemetry.devDeviceId'],
+          machineId: isProduction ? '***' : (json['telemetry.machineId'] || json.serviceMachineId),
+          devDeviceId: isProduction ? '***' : json['telemetry.devDeviceId'],
           tier: json['cursor.tier'] || 'unknown'
         };
       } catch (e) {
@@ -810,9 +859,18 @@ rt.get('/paths', async (req, res) => {
         const rows = await db.all('SELECT key, value FROM ItemTable WHERE key GLOB "*cursor*" OR key GLOB "*telemetry*" LIMIT 10');
         info.database = rows.reduce((acc, row) => {
           try {
-            acc[row.key] = JSON.parse(row.value);
+            // В production режиме скрываем значения, оставляем только ключи
+            if (isProduction) {
+              acc[row.key] = '***';
+            } else {
+              try {
+                acc[row.key] = JSON.parse(row.value);
+              } catch (e) {
+                acc[row.key] = row.value;
+              }
+            }
           } catch (e) {
-            acc[row.key] = row.value;
+            acc[row.key] = isProduction ? '***' : row.value;
           }
           return acc;
         }, {});

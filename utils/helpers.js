@@ -280,3 +280,88 @@ export const updateMacOSPlatformUUID = async id => {
     return false;
   }
 };
+
+/**
+ * Проверка целостности workbench файла после модификации
+ * Проверяет базовую структуру JavaScript файла
+ * @param {string} filePath - Путь к workbench файлу
+ * @returns {Promise<{valid: boolean, errors: string[], size: number}>}
+ */
+export const validateWorkbenchIntegrity = async filePath => {
+  const errors = [];
+  let size = 0;
+
+  try {
+    if (!await checkFileExists(filePath, 2000)) {
+      return { valid: false, errors: ['File not found'], size: 0 };
+    }
+
+    const content = await fs.readFile(filePath, 'utf8');
+    size = Buffer.byteLength(content, 'utf8');
+
+    // Проверка минимального размера (workbench не может быть слишком маленьким)
+    if (size < 10000) {
+      errors.push(`File too small (${size} bytes), possible corruption`);
+    }
+
+    // Проверка максимальной размер (не более 50MB)
+    if (size > 50 * 1024 * 1024) {
+      errors.push(`File too large (${size} bytes), possible corruption`);
+    }
+
+    // Проверка базовой структуры JavaScript
+    const hasValidStart = /^[\s\S]*?(?:function|const|let|var|class|import|export|define|require|\(function)/m.test(content);
+    if (!hasValidStart) {
+      errors.push('No valid JavaScript structure found');
+    }
+
+    // Проверка на пустой файл
+    if (content.trim().length === 0) {
+      errors.push('File is empty');
+    }
+
+    // Проверка баланса базовых скобок
+    const openBraces = (content.match(/{/g) || []).length;
+    const closeBraces = (content.match(/}/g) || []).length;
+    const openParens = (content.match(/\(/g) || []).length;
+    const closeParens = (content.match(/\)/g) || []).length;
+
+    if (Math.abs(openBraces - closeBraces) > 100) {
+      errors.push(`Unbalanced braces: ${openBraces} open, ${closeBraces} close`);
+    }
+
+    if (Math.abs(openParens - closeParens) > 100) {
+      errors.push(`Unbalanced parentheses: ${openParens} open, ${closeParens} close`);
+    }
+
+    // Проверка на наличие критических паттернов Cursor
+    const hasCursorReferences = /cursor|Cursor|workbench/i.test(content);
+    if (!hasCursorReferences) {
+      errors.push('No Cursor-related references found');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      size
+    };
+  } catch (error) {
+    logger.error(`Workbench integrity check failed: ${error.message}`, 'integrity');
+    return { valid: false, errors: [`Integrity check error: ${error.message}`], size: 0 };
+  }
+};
+
+/**
+ * Создание контрольной суммы файла
+ * @param {string} filePath - Путь к файлу
+ * @returns {Promise<string|null>} SHA256 хэш файла
+ */
+export const getFileHash = async filePath => {
+  try {
+    const crypto = await import('crypto');
+    const content = await fs.readFile(filePath);
+    return crypto.createHash('sha256').update(content).digest('hex');
+  } catch {
+    return null;
+  }
+};

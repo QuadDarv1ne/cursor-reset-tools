@@ -566,6 +566,23 @@ export class DNSManager {
       isCustomDNS: !!this.currentDNS
     };
   }
+
+  /**
+   * Инициализация менеджера
+   */
+  async init() {
+    await this.saveOriginalDNS();
+    logger.info('DNS Manager initialized', 'dns');
+    return this;
+  }
+
+  /**
+   * Остановка менеджера (для graceful shutdown)
+   */
+  stop() {
+    logger.info('DNS Manager stopped', 'dns');
+    return true;
+  }
 }
 
 // Глобальный экземпляр

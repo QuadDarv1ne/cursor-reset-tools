@@ -384,9 +384,11 @@ const gracefulShutdown = async signal => {
       // Сетевые менеджеры
       globalWSServer.stop(),
       globalProxyManager.cleanup?.(),
+      globalDNSManager.stop?.(),
       globalDNSManager.restoreDNS?.(),
       globalWireGuardManager.disconnect?.(),
       globalSmartBypassManager?.stop?.(),
+      globalVPNManager?.stop?.(),
       globalIPManager?.stop?.(),
 
       // Фоновые менеджеры

@@ -799,6 +799,20 @@ class ProxyManager {
     logger.info(`Cleaned up ${removed} failed proxies`, 'proxy');
     return removed;
   }
+
+  /**
+   * Очистка ресурсов (для graceful shutdown)
+   */
+  cleanup() {
+    this.stopAutoRotation();
+    // Очистка кэшей
+    this.dpiTestResults.clear();
+    this.geoIpCache.clear();
+    this.connectionPool.clear();
+    this.proxyHealthScore.clear();
+    logger.info('Proxy Manager cleanup completed', 'proxy');
+    return true;
+  }
 }
 
 // Singleton

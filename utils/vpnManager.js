@@ -865,6 +865,25 @@ class VPNManager {
       connectionsCount: this.connections.size
     };
   }
+
+  /**
+   * Инициализация менеджера
+   */
+  async init() {
+    logger.info('VPN Manager initialized', 'vpn');
+    return this;
+  }
+
+  /**
+   * Остановка менеджера (для graceful shutdown)
+   */
+  stop() {
+    // Очистка кэшей
+    this.ipInfoCache.clear();
+    this.ipInfoCacheTime = 0;
+    logger.info('VPN Manager stopped', 'vpn');
+    return true;
+  }
 }
 
 // Singleton

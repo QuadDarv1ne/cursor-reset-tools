@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v5
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v6
 
 ### ✅ Статус синхронизации
-- **dev**: 2bffe2a (HEAD) - fix: graceful shutdown .unref() для всех setInterval
-- **main**: 2bffe2a - синхронизирована с dev ✅
+- **dev**: 9f4ee02 (HEAD) - fix: добавлены缺失щие методы в emailManager
+- **main**: 9f4ee02 - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -16,21 +16,17 @@
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде аудита (v5)
+## ✅ ИСПРАВЛЕНО в этом раунде аудита (v6)
 
-### Критические исправления — Graceful Shutdown
-- [x] **monitorManager.js**: autoCheckTimer.unref()
-- [x] **proxyDatabase.js**: updateInterval.unref()
-- [x] **smartBypassManager.js**: autoTestInterval.unref()
-- [x] **resourceMonitor.js**: уже было .unref() ✅
-- [x] **statsCache.js**: уже было .unref() ✅
-- [x] **websocketServer.js**: broadcastInterval.unref() ✅
-- [x] **proxyManager.js**: autoRotationInterval.unref() ✅
+### Критические баги —缺失щие методы
+- [x] **proxyManager.js**: Добавлен `getFetch()` метод (вызывается в cursorRegistrar.js)
+- [x] **emailManager.js**: Добавлен `extractVerificationCode()` (публичный вместо приватного)
+- [x] **emailManager.js**: Добавлен `extractVerificationLink()` (извлечение ссылок подтверждения)
+- [x] **emailManager.js**: Добавлен `waitForMessage()` (ожидание письма с параметрами)
+- **Без этих методов регистрация Cursor не работала вообще**
 
-### Предыдущие исправления (v4)
-- [x] **proxyManager.js**: Исправлен deadlock в rotateProxy
-- [x] **proxyManager.js**: Исправлен getAutoRotationStatus
-- [x] **reset.js**: Консолидация проверки процесса (→ globalCursorProcess)
+### Предыдущие исправления (v5)
+- [x] **Graceful Shutdown**: все 7 setInterval имеют `.unref()`
 
 ---
 

@@ -324,6 +324,15 @@ class MonitorManager {
   getHistory(limit = 10) {
     return this.history.slice(-limit);
   }
+
+  /**
+   * Остановка автоматической проверки (алиас для disableAutoCheck)
+   */
+  stopAutoCheck() {
+    this.disableAutoCheck();
+    logger.info('Monitor Manager stopped', 'monitor');
+    return true;
+  }
 }
 
 export const globalMonitorManager = new MonitorManager();

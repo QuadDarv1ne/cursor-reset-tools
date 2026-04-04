@@ -594,6 +594,15 @@ export class ProxyDatabase {
     this.updateStats();
     logger.info('Proxy database reset', 'proxy-db');
   }
+
+  /**
+   * Закрытие базы (для graceful shutdown)
+   */
+  close() {
+    this.disableAutoUpdate();
+    logger.info('Proxy Database closed', 'proxy-db');
+    return true;
+  }
 }
 
 // Глобальный экземпляр

@@ -6,16 +6,17 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { logger } from './logger.js';
+import { appConfig } from './appConfig.js';
 
 const METRICS_FILE = path.join(process.cwd(), 'data', 'metrics.json');
 
 /**
- * Конфигурация метрик
+ * Конфигурация метрик из appConfig
  */
 export const METRICS_CONFIG = {
-  enabled: false,
-  interval: 3600000, // 1 час
-  maxEntries: 1000
+  enabled: appConfig.monitoring.metricsEnabled,
+  interval: appConfig.monitoring.metricsInterval,
+  maxEntries: appConfig.monitoring.historyLimit
 };
 
 /**
@@ -168,6 +169,15 @@ export class MetricsManager {
       lastCleanup: this.metrics.lastCleanup,
       stats: this.getStats()
     };
+  }
+
+  /**
+   * Остановка менеджера (для graceful shutdown)
+   */
+  stopMetrics() {
+    this.metrics.enabled = false;
+    logger.info('Metrics Manager stopped', 'metrics');
+    return true;
   }
 }
 

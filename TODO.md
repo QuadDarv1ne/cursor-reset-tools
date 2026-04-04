@@ -16,7 +16,36 @@
 
 ---
 
-## ✅ ПОЛНЫЙ АУДИТ ЗАВЕРШЁН v16
+## ✅ ИСПРАВЛЕНО v16 — Graceful Shutdown, недостающие методы
+
+### Критические исправления
+
+#### 1. ConfigBackupManager.createBackup() - отсутствующий метод
+- **Файл**: `utils/configBackup.js`
+- **Проблема**: `app.js:583` вызывает `globalConfigBackup.createBackup()`, метода не существовало
+- **Исправление**: Добавлен `createBackup()` как алиас для `autoBackup()`
+- **Влияние**: Автоматический бэкап конфигурации теперь работает
+
+#### 2. Graceful Shutdown - недостающие stop()/cleanup() методы
+- **utils/notificationManager.js**: Добавлен `stop()` метод
+- **utils/ipManager.js**: Добавлен `stop()` метод
+- **utils/fingerprintManager.js**: Добавлен `cleanup()` метод
+- **utils/smartBypassManager.js**: Добавлены `init()` и `stop()` методы
+- **utils/dpiBypass.js**: Добавлен `stop()` метод
+- **utils/proxyDatabase.js**: Добавлен `close()` метод
+- **utils/configBackup.js**: Добавлен `stop()` метод
+- **utils/monitorManager.js**: Добавлен `stopAutoCheck()` метод
+- **utils/metricsManager.js**: Добавлен `stopMetrics()` метод
+
+### Улучшения app.js (из предыдущего коммита)
+- **Автобэкап конфигурации**: Добавлен setInterval с `appConfig.backup.autoInterval`
+- **Уведомления о старте**: Проверяет наличие telegramBotToken или discordWebhookUrl
+- **Graceful shutdown WebSocket**: Останавливает broadcastTimer при закрытии
+- **Host binding**: Использует `appConfig.network.host` для listen
+
+---
+
+## ✅ ПОЛНЫЙ АУДИТ ЗАВЕРШЁН v15
 
 ### 📋 Найденные проблемы и исправления
 

@@ -418,6 +418,14 @@ export class ConfigBackupManager {
   resetStats() {
     logger.info('Config Backup stats reset', 'backup');
   }
+
+  /**
+   * Остановка менеджера (для graceful shutdown)
+   */
+  stop() {
+    logger.info('Config Backup Manager stopped', 'backup');
+    return true;
+  }
 }
 
 // Глобальный экземпляр

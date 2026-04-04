@@ -443,7 +443,10 @@ export class CursorRegistrar {
       // Шаг 2: Проверка статуса Pro
       if (checkProStatus) {
         result.steps.push('Checking Pro status...');
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Пауза
+        await new Promise(resolve => {
+          const timer = setTimeout(resolve, 3000); // Пауза
+          timer.unref();
+        });
 
         const profileResult = await this.getUserProfile();
         if (profileResult.success) {

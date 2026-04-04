@@ -121,6 +121,7 @@ export const validatePaths = paths => {
  */
 export const checkFileExists = async (filePath, timeout = FILE_CONSTANTS.FILE_CHECK_TIMEOUT) => new Promise(resolve => {
   const timer = setTimeout(() => resolve(false), timeout);
+  timer.unref(); // Не блокирует graceful shutdown
 
   fs.access(filePath, fs.constants.F_OK, err => {
     clearTimeout(timer);
@@ -133,7 +134,10 @@ export const checkFileExists = async (filePath, timeout = FILE_CONSTANTS.FILE_CH
  * @param {number} ms
  * @returns {Promise<void>}
  */
-export const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+export const delay = ms => new Promise(resolve => {
+  const timer = setTimeout(resolve, ms);
+  timer.unref(); // Не блокирует graceful shutdown
+});
 
 /**
  * Получение версий Cursor из package.json

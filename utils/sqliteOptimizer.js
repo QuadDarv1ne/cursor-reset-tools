@@ -146,7 +146,10 @@ export class SQLiteOptimizer {
         if (this._isRetryableError(error) && attempt < maxRetries) {
           const delay = baseDelay * Math.pow(2, attempt - 1);
           logger.debug(`Query failed (retryable), retrying in ${delay}ms: ${error.message}`, 'sqlite');
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise(resolve => {
+            const timer = setTimeout(resolve, delay);
+            timer.unref();
+          });
         } else {
           logger.error(`Query failed (attempt ${attempt}): ${error.message}`, 'sqlite', {
             query: query.substring(0, 200),

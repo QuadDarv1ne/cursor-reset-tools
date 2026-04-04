@@ -269,7 +269,10 @@ export class CursorProcessManager {
       if (!status.isRunning) {
         return true;
       }
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, checkInterval);
+        timer.unref();
+      });
     }
 
     return false;

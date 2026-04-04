@@ -270,7 +270,10 @@ class EmailManager {
         }
       }
 
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, checkInterval);
+        timer.unref();
+      });
     }
 
     logger.warn('Timeout waiting for Cursor email', 'email');
@@ -371,7 +374,10 @@ class EmailManager {
         }
       }
 
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, checkInterval);
+        timer.unref();
+      });
     }
 
     logger.warn(`Timeout waiting for email containing "${subjectContains}"`, 'email');

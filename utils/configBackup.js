@@ -115,6 +115,14 @@ export class ConfigBackupManager {
   }
 
   /**
+   * Создать бэкап (алиас для autoBackup, используется в app.js)
+   * @returns {Promise<object>} Результат бэкапа
+   */
+  async createBackup() {
+    return this.autoBackup();
+  }
+
+  /**
    * Получение списка доступных бэкапов
    * @returns {Promise<Array>} Список файлов бэкапов
    */

@@ -9,21 +9,22 @@ import { logger } from './logger.js';
 import { globalMonitorManager } from './monitorManager.js';
 import { globalIPManager } from './ipManager.js';
 import { globalSmartBypassManager } from './smartBypassManager.js';
+import { appConfig } from './appConfig.js';
 
 /**
- * Конфигурация WebSocket сервера
+ * Конфигурация WebSocket сервера из appConfig
  */
 const WS_CONFIG = {
-  maxClients: 100,
-  clientTimeout: 300000,
-  pingInterval: 30000,
-  maxMessageSize: 1024 * 1024,
-  maxSubscriptions: 10,
-  compressionThreshold: 1024, // Сжимать сообщения > 1KB
-  cacheTTL: 5000, // Кэш статуса на 5 секунд
-  dedupWindow: 1000, // Окно дедупликации 1 секунда
-  rateLimit: 50, // Максимум сообщений в секунду
-  broadcastThrottle: 100 // Минимальный интервал вещания (мс)
+  maxClients: appConfig.websocket.maxClients,
+  clientTimeout: appConfig.websocket.clientTimeout,
+  pingInterval: appConfig.websocket.pingInterval,
+  maxMessageSize: appConfig.websocket.maxMessageSize,
+  maxSubscriptions: appConfig.websocket.maxSubscriptions,
+  compressionThreshold: appConfig.websocket.compressionThreshold,
+  cacheTTL: appConfig.websocket.cacheTTL,
+  dedupWindow: appConfig.websocket.dedupWindow,
+  rateLimit: appConfig.websocket.rateLimit,
+  broadcastThrottle: appConfig.websocket.broadcastThrottle
 };
 
 class WSServer {

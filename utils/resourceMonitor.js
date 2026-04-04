@@ -7,19 +7,20 @@ import os from 'os';
 import fs from 'fs-extra';
 import path from 'path';
 import { logger } from './logger.js';
+import { appConfig } from './appConfig.js';
 
 const STATS_FILE = path.join(process.cwd(), 'data', 'resource-stats.json');
 
 /**
- * Конфигурация мониторинга ресурсов
+ * Конфигурация мониторинга ресурсов из appConfig
  */
 export const RESOURCE_CONFIG = {
-  sampleInterval: 5000, // 5 секунд между замерами
-  historyLimit: 100, // Максимум 100 записей в истории
+  sampleInterval: appConfig.monitoring.resourceSampleInterval,
+  historyLimit: appConfig.monitoring.historyLimit,
   alerts: {
-    cpuThreshold: 80, // %
-    memoryThreshold: 85, // %
-    diskThreshold: 90 // %
+    cpuThreshold: appConfig.monitoring.cpuThreshold,
+    memoryThreshold: appConfig.monitoring.memoryThreshold,
+    diskThreshold: appConfig.monitoring.diskThreshold
   }
 };
 

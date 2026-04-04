@@ -280,7 +280,7 @@ app.get('/health', (req, res) => {
     cache: globalStatsCache.getStats()
   };
 
-  globalStatsCache.set(cacheKey, data, 5000); // 5 секунд TTL
+  globalStatsCache.set(cacheKey, data, appConfig.cache.defaultTTL);
   res.json(data);
 });
 
@@ -435,11 +435,17 @@ const gracefulShutdown = async signal => {
       logger.info('HTTP server closed', 'app');
     }
 
-    // Закрытие WebSocket сервера
+    // Закрытие WebSocket сервера с таймаутом
     if (globalWSServer.wss) {
       await new Promise(resolve => {
-        globalWSServer.wss.close();
-        resolve();
+        globalWSServer.wss.close(() => {
+          // Останавливаем broadcast interval
+          if (globalWSServer.broadcastTimer) {
+            clearInterval(globalWSServer.broadcastTimer);
+            globalWSServer.broadcastTimer = null;
+          }
+          resolve();
+        });
       }).catch(err => {
         logger.warn(`WebSocket close error: ${err.message}`, 'app');
       });
@@ -571,10 +577,28 @@ const startServer = async () => {
     // Запуск мониторинга ресурсов с конфигурацией
     globalResourceMonitor.startMonitoring(appConfig.monitoring.resourceSampleInterval);
 
-    // Отправка уведомления о старте (если включено)
-    globalNotificationManager.sendEvent('start', { version: '2.8.0-dev' }).catch(err => {
-      logger.debug(`Notification send failed: ${err.message}`, 'app');
-    });
+    // Автобэкап конфигурации (если включено)
+    if (appConfig.backup.enabled && appConfig.backup.autoInterval > 0) {
+      const autoBackupTimer = setInterval(() => {
+        globalConfigBackup.createBackup().then(result => {
+          if (result.success) {
+            logger.info(`Auto backup created: ${result.backupPath}`, 'backup');
+          } else {
+            logger.warn(`Auto backup failed: ${result.error}`, 'backup');
+          }
+        }).catch(err => {
+          logger.error(`Auto backup error: ${err.message}`, 'backup');
+        });
+      }, appConfig.backup.autoInterval);
+      autoBackupTimer.unref(); // Не блокирует graceful shutdown
+    }
+
+    // Отправка уведомления о старте (если настроены уведомления)
+    if (appConfig.notifications.telegramBotToken || appConfig.notifications.discordWebhookUrl) {
+      globalNotificationManager.sendEvent('start', { version: '2.8.0-dev' }).catch(err => {
+        logger.debug(`Notification send failed: ${err.message}`, 'app');
+      });
+    }
 
     // Проверка обновлений при старте (если включено)
     if (appConfig.updater.enabled) {
@@ -611,16 +635,17 @@ const startServer = async () => {
     // WebSocket сервер (на том же порту что и HTTP)
     globalWSServer.init(server, port);
 
-    // Initial bypass test
+    // Initial bypass test с настраиваемой задержкой
+    const initialBypassDelay = 5000; // 5 секунд по умолчанию
     const initBypassTimer = setTimeout(() => {
       globalSmartBypassManager.testAllMethods().catch(err => {
         logger.error(`Initial bypass test failed: ${err.message}`, 'app');
       });
-    }, 5000);
+    }, initialBypassDelay);
     initBypassTimer.unref(); // Не блокирует graceful shutdown
 
-    currentServer = server.listen(port, () => {
-      const msg = `🚀 Server running on http://localhost:${port} (WS: ${wsPort})`;
+    currentServer = server.listen(port, appConfig.network.host, () => {
+      const msg = `🚀 Server running on http://${appConfig.network.host === '0.0.0.0' ? 'localhost' : appConfig.network.host}:${port} (WS: ${wsPort})`;
       console.log(msg);
       logger.info(msg, 'app');
     });
@@ -632,7 +657,7 @@ const startServer = async () => {
         const newPort = await DynamicConfig.autoSelectPort(port + 1);
         currentServer.close();
         currentServer = app.listen(newPort, () => {
-          const msg = `🔄 Server restarted on http://localhost:${newPort}`;
+          const msg = `🔄 Server restarted on http://${appConfig.network.host === '0.0.0.0' ? 'localhost' : appConfig.network.host}:${newPort}`;
           console.log(msg);
           logger.info(msg, 'app');
           globalWSServer.broadcast({

@@ -1,9 +1,9 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v15
+## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v16
 
 ### ✅ Статус синхронизации
-- **dev**: активная ветка, требует комита изменений
+- **dev**: требует комита изменений
 - **main**: требует синхронизации с dev
 - Готово к релизу 2.8.0
 
@@ -16,7 +16,41 @@
 
 ---
 
-## ✅ ПОЛНЫЙ АУДИТ ЗАВЕРШЁН v15
+## ✅ ПОЛНЫЙ АУДИТ ЗАВЕРШЁН v16
+
+### 📋 Найденные проблемы и исправления
+
+| Проблема | Файл | Исправление |
+|----------|------|-------------|
+| 6 секций appConfig не использовались | app.js, websocketServer.js, resourceMonitor.js | Подключены все секции |
+| Hardcoded TTL 5000ms для кэша | app.js:283 | → appConfig.cache.defaultTTL |
+| server.listen не биндился к HOST | app.js:622 | → appConfig.network.host |
+| Автобэкап не был запущен | app.js | Добавлен setInterval с appConfig.backup.autoInterval |
+| Уведомления отправлялись всегда | app.js | → проверка telegramBotToken/discordWebhookUrl |
+| WebSocket broadcastTimer не останавливался | app.js shutdown | Добавлен clearInterval |
+| websocketServer.js hardcoded конфиги | websocketServer.js | → все 11 параметров из appConfig.websocket |
+| resourceMonitor.js hardcoded конфиги | resourceMonitor.js | → все 5 параметров из appConfig.monitoring |
+
+### 📊 Итоговая статистика использования appConfig
+
+| Секция appConfig | Используется |
+|------------------|-------------|
+| network.* | ✅ port, wsPort, host, nodeEnv, portRange* |
+| websocket.* | ✅ Все 12 параметров |
+| security.* | ✅ rateLimit*, cspEnabled, maxUploadSize |
+| logging.* | ✅ level, file, maxFiles, maxSize |
+| updater.* | ✅ enabled, checkInterval, timeout |
+| monitoring.* | ✅ autoCheckInterval, resourceSampleInterval, thresholds, historyLimit |
+| proxy.* | ✅ enabled, checkTimeout, autoRotationInterval |
+| dns.* | ✅ provider, timeout |
+| backup.* | ✅ enabled, autoInterval, path, maxCount |
+| notifications.* | ✅ telegramBotToken, telegramChatId, discordWebhookUrl |
+| cache.* | ✅ defaultTTL, maxEntries, cleanupInterval |
+| shutdown.* | ✅ timeout, serverCloseTimeout |
+
+---
+
+## ✅ ИСПРАВЛЕНО v15 — Полная интеграция appConfig
 
 ### 📋 Проверенные модули (39 файлов)
 

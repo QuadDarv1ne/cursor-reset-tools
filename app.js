@@ -33,6 +33,7 @@ import { globalDNSManager } from './utils/dnsManager.js';
 import { globalConfigBackup } from './utils/configBackup.js';
 import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
+import { globalVPNManager } from './utils/vpnManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
 import { createLogger } from './utils/logger.js';
 import { SECURITY_CONSTANTS } from './utils/constants.js';
@@ -543,11 +544,13 @@ const startServer = async () => {
       globalNotificationManager.init(),
       globalConfigBackup.init(),
       globalDPIBypass.init(),
-      globalWireGuardManager.init()
+      globalWireGuardManager.init(),
+      globalDNSManager.init(),
+      globalVPNManager.init()
     ]);
 
     // Логирование результатов инициализации
-    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup', 'DPIBypass', 'WireGuard'];
+    const managers = ['Monitor', 'Fingerprint', 'ProxyDatabase', 'Metrics', 'Resource', 'StatsCache', 'Notification', 'ConfigBackup', 'DPIBypass', 'WireGuard', 'DNS', 'VPN'];
     const criticalManagers = ['Monitor', 'ProxyDatabase', 'Resource']; // Критические менеджеры
     let criticalFailed = false;
 

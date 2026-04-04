@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v8
+## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v10
 
 ### ✅ Статус синхронизации
-- **dev**: 189d3a0 (HEAD) - fix: синтаксическая ошибка fingerprintManager
-- **main**: 189d3a0 - синхронизирована с dev ✅
+- **dev**: 0a44a0d (HEAD) - fix: .unref() для всех setTimeout
+- **main**: 0a44a0d - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -16,13 +16,28 @@
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде аудита (v8)
+## ✅ ИСПРАВЛЕНО в этом раунде аудита (v10)
 
-### Синтаксическая ошибка
-- [x] **fingerprintManager.js**: Исправлена синтаксическая ошибка в `changeHostnameWindows()` - лишние фигурные скобки в catch блоке
+### Полный graceful shutdown
+- [x] **helpers.js**: `.unref()` для checkFileExists и delay
+- [x] **cursorProcess.js**: `.unref()` для _waitForClose
+- [x] **cursorRegistrar.js**: `.unref()` для паузы в autoRegister
+- [x] **emailManager.js**: `.unref()` для waitForCursorEmail и waitForMessage
+- [x] **sqliteOptimizer.js**: `.unref()` для retry delay
 
-### Предыдущие исправления (v7)
-- [x] **wireguardManager.js**: Генерация ключей (SHA256 → randomBytes + warning)
+**Все setTimeout и setInterval в проекте теперь имеют `.unref()`**
+
+### Все исправления за сессию:
+| Раунд | Исправления |
+|-------|------------|
+| **v3** | Версия updater, rate limiting, graceful shutdown (websocket) |
+| **v4** | Deadlock proxy, интервал статуса, консолидация cursor process |
+| **v5** | `.unref()` для всех 7 setInterval |
+| **v6** | **Критические баги** -缺失щие методы getFetch(), waitForMessage(), extractVerification* |
+| **v7** | WireGuard ключи (SHA256 → randomBytes + warning) |
+| **v8** | Синтаксическая ошибка fingerprintManager |
+| **v9** | Полный аудит - проблем не найдено |
+| **v10** | `.unref()` для всех setTimeout (helpers, cursorProcess, email, sqlite) |
 
 ---
 

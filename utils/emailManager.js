@@ -300,6 +300,85 @@ class EmailManager {
   }
 
   /**
+   * Публичный метод для извлечения кода подтверждения (для cursorRegistrar)
+   */
+  extractVerificationCode(text) {
+    return this._extractVerificationCode(text);
+  }
+
+  /**
+   * Извлечь ссылку подтверждения из текста
+   */
+  extractVerificationLink(text) {
+    // Паттерны для ссылок подтверждения
+    const patterns = [
+      /https?:\/\/[^\s]*cursor[^\s]*verify[^\s]*/i,
+      /https?:\/\/[^\s]*cursor[^\s]*confirm[^\s]*/i,
+      /https?:\/\/[^\s]*cursor[^\s]*token[^\s]*/i,
+      /https?:\/\/[^\s]*auth\.cursor[^\s]*/i,
+      /https?:\/\/[^\s]*\?token=[A-Za-z0-9._-]+[^\s]*/i,
+      /https?:\/\/[^\s]*\?code=[A-Za-z0-9._-]+[^\s]*/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Ждать письмо с заданными параметрами (для cursorRegistrar)
+   */
+  async waitForMessage(options = {}) {
+    const {
+      subjectContains = 'cursor',
+      timeout = 120000
+    } = options;
+
+    const startTime = Date.now();
+    const checkInterval = 3000;
+
+    logger.info(`Waiting for email containing "${subjectContains}"...`, 'email');
+
+    while (Date.now() - startTime < timeout) {
+      const newMessages = await this.checkMessages();
+
+      for (const msg of newMessages) {
+        const subject = (msg.subject || '').toLowerCase();
+        const from = (msg.from || '').toLowerCase();
+        const preview = (msg.preview || '').toLowerCase();
+
+        if (subject.includes(subjectContains) ||
+            from.includes(subjectContains) ||
+            preview.includes(subjectContains)) {
+          logger.info(`Email found: ${msg.subject}`, 'email');
+
+          const content = await this.getMessageContent(msg.id);
+          const code = this._extractVerificationCode(content?.body || msg.preview || msg.subject);
+          const link = this.extractVerificationLink(content?.body || msg.preview || msg.subject);
+
+          return {
+            success: true,
+            message: msg,
+            code,
+            link,
+            content
+          };
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    }
+
+    logger.warn(`Timeout waiting for email containing "${subjectContains}"`, 'email');
+    return null;
+  }
+
+  /**
    * Получить текущую сессию
    */
   getSession() {

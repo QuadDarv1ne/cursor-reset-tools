@@ -553,6 +553,15 @@ class DPIBypass {
       platform: os.platform()
     };
   }
+
+  /**
+   * Остановка менеджера (для graceful shutdown)
+   */
+  stop() {
+    this.enabled = false;
+    logger.info('DPI Bypass stopped', 'dpi');
+    return true;
+  }
 }
 
 // Singleton

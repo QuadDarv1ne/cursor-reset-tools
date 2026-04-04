@@ -9,7 +9,8 @@ import { open } from 'sqlite';
 import crypto from 'crypto';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSupported, checkCursorProcess, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry, validateWorkbenchIntegrity, getFileHash } from '../utils/helpers.js';
+import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSupported, clearKeychain, updateWindowsRegistry, updateMacOSPlatformUUID, withRetry, validateWorkbenchIntegrity, getFileHash } from '../utils/helpers.js';
+import { globalCursorProcess } from '../utils/cursorProcess.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
 import { globalBackupManager } from '../utils/rollback.js';
@@ -786,7 +787,7 @@ rt.post('/reset', async (req, res) => {
       }
 
       const adminRights = await checkAdminRights();
-      const cursorRunning = await checkCursorProcess(os.platform());
+      const cursorRunning = await globalCursorProcess.isRunning();
 
       return res.json({
         success: true,
@@ -878,7 +879,7 @@ rt.get('/paths', async (req, res) => {
     const cacheKey = `cursor_running_${pt}`;
     const isRunning = await globalStatsCache.getOrCompute(
       cacheKey,
-      () => checkCursorProcess(pt),
+      () => globalCursorProcess.isRunning(),
       2000 // 2 секунды кэш
     );
 

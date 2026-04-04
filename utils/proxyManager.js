@@ -21,6 +21,7 @@ class ProxyManager {
       lastCheck: null
     };
     this.autoRotationInterval = null;
+    this.autoRotationIntervalMs = null; // Сохраняем интервал для статуса
 
     // Кэши с ограничениями для предотвращения утечек памяти
     this.dpiTestResults = new Map();
@@ -388,9 +389,14 @@ class ProxyManager {
     } finally {
       this.rotateLock = false;
       // Обрабатываем очередь
-      if (this.rotateQueue.length > 0) {
-        const next = this.rotateQueue.shift();
-        next();
+      const queueCopy = [...this.rotateQueue];
+      this.rotateQueue = [];
+      for (const resolve of queueCopy) {
+        try {
+          resolve();
+        } catch (err) {
+          logger.debug(`Error resolving rotate queue: ${err.message}`, 'proxy');
+        }
       }
     }
   }
@@ -575,12 +581,22 @@ class ProxyManager {
   startAutoRotation(intervalMs = 300000) {
     this.stopAutoRotation();
 
+    this.autoRotationIntervalMs = intervalMs; // Сохраняем интервал
+
     this.autoRotationInterval = setInterval(() => {
-      const proxy = this.rotateProxy();
-      if (proxy) {
-        logger.info(`Auto-rotated to: ${this.maskProxyUrl(proxy.url)}`, 'proxy');
-      }
+      this.rotateProxy().then(proxy => {
+        if (proxy) {
+          logger.info(`Auto-rotated to: ${this.maskProxyUrl(proxy.url)}`, 'proxy');
+        }
+      }).catch(err => {
+        logger.debug(`Auto-rotation error: ${err.message}`, 'proxy');
+      });
     }, intervalMs);
+
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.autoRotationInterval && typeof this.autoRotationInterval.unref === 'function') {
+      this.autoRotationInterval.unref();
+    }
 
     logger.info(`Auto-rotation started with interval ${intervalMs}ms`, 'proxy');
   }
@@ -592,6 +608,7 @@ class ProxyManager {
     if (this.autoRotationInterval) {
       clearInterval(this.autoRotationInterval);
       this.autoRotationInterval = null;
+      this.autoRotationIntervalMs = null;
       logger.info('Auto-rotation stopped', 'proxy');
     }
   }
@@ -602,7 +619,7 @@ class ProxyManager {
   getAutoRotationStatus() {
     return {
       active: this.autoRotationInterval !== null,
-      interval: this.autoRotationInterval ? 300000 : null,
+      interval: this.autoRotationIntervalMs,
       currentProxy: this.currentProxy ? {
         url: this.maskProxyUrl(this.currentProxy.url),
         country: this.currentProxy.country,

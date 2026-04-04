@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v3
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v4
 
 ### ✅ Статус синхронизации
-- **dev**: 059e16f (HEAD) - fix: версия, graceful shutdown, rate limiting
-- **main**: 059e16f - синхронизирована с dev ✅
+- **dev**: e82e927 (HEAD) - fix: proxyManager deadlock, курсор процесс
+- **main**: e82e927 - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -16,13 +16,13 @@
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде аудита
+## ✅ ИСПРАВЛЕНО в этом раунде аудита (v4)
 
 ### Критические исправления
-- [x] **updater.js**: CURRENT_VERSION 2.1.0 → 2.8.0-dev (синхронизировано с package.json)
-- [x] **websocketServer.js**: Добавлен .unref() для broadcastInterval (graceful shutdown)
-- [x] **bypass.js**: Добавлен rate limiting (10 запросов / 5 минут)
-- [x] **notifications.js**: Добавлен rate limiting на POST операции (10 запросов / 10 минут)
+- [x] **proxyManager.js**: Исправлен deadlock в rotateProxy (очередь обрабатывается полностью, не теряет запросы)
+- [x] **proxyManager.js**: Добавлен .unref() для autoRotationInterval (graceful shutdown)
+- [x] **proxyManager.js**: Исправлен getAutoRotationStatus (захардкоженный 300000 → реальный интервал)
+- [x] **reset.js**: Консолидирована проверка процесса (checkCursorProcess → globalCursorProcess)
 
 ---
 
@@ -122,8 +122,8 @@ e2e/         # Playwright E2E тесты
    - `cliManager.js` (1527 строк) - разбить на модули команд
    - `reset.js` (1580 строк) - разбить на подмодули операций
 
-2. **Централизация проверки процесса Cursor**
-   - Уже есть `cursorProcess.js`, но некоторые файлы дублируют логику
+2. ~~**Централизация проверки процесса Cursor**~~ ✅ ВЫПОЛНЕНО
+   - Теперь используется `globalCursorProcess` из `cursorProcess.js`
 
 3. **CSRF Protection**
    - Отсутствует csrf-csrf пакет
@@ -148,7 +148,7 @@ e2e/         # Playwright E2E тесты
 
 ### Версия и статус
 - **Версия:** 2.8.0-dev (package.json)
-- **Последний коммит:** eefe0cc - feat: add SQLite optimizer and complete P2 improvements
+- **Последний коммит:** e82e927 - fix: proxyManager deadlock, курсор процесс
 - **Ветка:** dev (синхронизирована с main)
 - **Следующий релиз:** 2.8.0
 

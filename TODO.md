@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v2
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v3
 
 ### ✅ Статус синхронизации
-- **dev**: eefe0cc (HEAD) - SQLite Optimizer + P2 improvements
-- **main**: eefe0cc - синхронизирована с dev ✅
+- **dev**: 059e16f (HEAD) - fix: версия, graceful shutdown, rate limiting
+- **main**: 059e16f - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -13,6 +13,16 @@
   dev-full-i18n (дополнительная)
   main (стабильная, синхронизирована)
 ```
+
+---
+
+## ✅ ИСПРАВЛЕНО в этом раунде аудита
+
+### Критические исправления
+- [x] **updater.js**: CURRENT_VERSION 2.1.0 → 2.8.0-dev (синхронизировано с package.json)
+- [x] **websocketServer.js**: Добавлен .unref() для broadcastInterval (graceful shutdown)
+- [x] **bypass.js**: Добавлен rate limiting (10 запросов / 5 минут)
+- [x] **notifications.js**: Добавлен rate limiting на POST операции (10 запросов / 10 минут)
 
 ---
 
@@ -28,15 +38,15 @@ cli.js                    # CLI entry point → utils/cliManager.js
 | Файл | Назначение | Rate Limit | Статус |
 |------|-----------|-----------|--------|
 | reset.js | Сброс Machine ID, патчинг, Pro конверсия | ✅ 5/15min | ✅ |
-| bypass.js | Тестирование обхода | ❌ | ⚠️ P1 |
-| proxy.js | Прокси + DoH + Leak Detector | ❌ | ⚠️ P1 (нет пагинации) |
+| bypass.js | Тестирование обхода | ✅ 10/5min | ✅ |
+| proxy.js | Прокси + DoH + Leak Detector | ✅ пагинация | ✅ |
 | network.js | VPN, DNS, System Proxy, Traffic | ✅ 10/10min | ✅ |
-| notifications.js | Telegram/Discord уведомления | ❌ | ⚠️ P2 |
-| backup.js | Бэкап конфигурации | ❌ | ✅ (пагинация есть) |
-| resources.js | Мониторинг ресурсов | ❌ | ✅ |
-| metrics.js | Метрики | ❌ | ✅ |
-| cache.js | Управление кэшем | ❌ | ✅ |
-| updater.js | Обновления | ❌ | ✅ (GET→POST исправлено) |
+| notifications.js | Telegram/Discord уведомления | ✅ POST 10/10min | ✅ |
+| backup.js | Бэкап конфигурации | ✅ пагинация | ✅ |
+| resources.js | Мониторинг ресурсов | ✅ | ✅ |
+| metrics.js | Метрики | ✅ | ✅ |
+| cache.js | Управление кэшем | ✅ | ✅ |
+| updater.js | Обновления | ✅ POST | ✅ |
 
 ### Утилиты (38 файлов в utils/)
 **Критические:**
@@ -93,67 +103,44 @@ e2e/         # Playwright E2E тесты
 
 ---
 
-## 🎯 ТЕКУЩИЕ ПРОБЛЕМЫ (После аудита)
+## 🎯 ТЕКУЩИЕ ПРОБЛЕМЫ (После аудита v3)
 
-### ✅ ИСПРАВЛЕНО в последних коммитах
+### ✅ ИСПРАВЛЕНО (все коммиты)
 - [x] updater.js: GET /download → POST (было P0) ✅
-- [x] Rate limiting на reset (5/15min) и network (10/10min) ✅
+- [x] updater.js: CURRENT_VERSION 2.1.0 → 2.8.0-dev ✅
+- [x] Rate limiting на reset (5/15min), network (10/10min), bypass (10/5min), notifications (POST 10/10min) ✅
 - [x] Валидация DNS provider через whitelist ✅
 - [x] Валидация в cliManager.js через validator ✅
 - [x] Magic numbers вынесены в constants.js ✅
-- [x] Пагинация в backup.js ✅
+- [x] Пагинация в backup.js и proxy.js ✅
 - [x] CONFIG в bypassServer.js использует переменные окружения ✅
+- [x] websocketServer.js: .unref() для graceful shutdown ✅
 
-### ⚠️ ОСТАВШИЕСЯ ПРОБЛЕМЫ
+### ⚠️ ОСТАВШИЕСЯ ПРОБЛЕМЫ (P2 - улучшения)
 
-#### P1 - Важные
-
-1. **Пагинация в proxy.js**
-   - Файл: `routes/proxy.js`
-   - Проблема: Некоторые списки прокси могут возвращать все элементы
-   - Решение: Добавить offset/limit для списков прокси
-
-2. **Отсутствие rate limiting на bypass.js**
-   - Файл: `routes/bypass.js`
-   - Проблема: Нет индивидуального rate limiter
-   - Решение: Добавить limiter для тестирования обхода
-
-3. **Отсутствие rate limiting на notifications.js**
-   - Файл: `routes/notifications.js`
-   - Проблема: Нет защиты от спама уведомлений
-   - Решение: Добавить limiter (10/10min)
-
-#### P2 - Улучшения
-
-4. **Большие файлы**
+1. **Большие файлы**
    - `cliManager.js` (1527 строк) - разбить на модули команд
    - `reset.js` (1580 строк) - разбить на подмодули операций
-   - `bypassServer.js` (415 строк) - приемлемо
 
-5. **Централизация проверки процесса Cursor**
+2. **Централизация проверки процесса Cursor**
    - Уже есть `cursorProcess.js`, но некоторые файлы дублируют логику
-   - Нужно проверить использование везде
 
-6. **CSRF Protection**
+3. **CSRF Protection**
    - Отсутствует csrf-csrf пакет
    - POST эндпоинты уязвимы без CSRF токенов
-   - Требует добавления пакета и middleware
 
-7. **JSDoc аннотации**
+4. **JSDoc аннотации**
    - Большинство функций без полной документации
    - validator.js имеет хороший пример - распространить на другие модули
 
-8. **TypeScript миграция**
+5. **TypeScript миграция**
    - Рассмотреть для критических модулей (validator, helpers)
-   - Начать с добавления JSDoc типов
 
-9. **Performance тесты**
+6. **Performance тесты**
    - Нет k6 или autocannon тестов
-   - Нужны для проверки rate limiting и нагрузки
 
-10. **WebSocket API документация**
-    - Есть websocketServer.js, но нет документации API
-    - Нужен список событий и форматов сообщений
+7. **WebSocket API документация**
+   - Есть websocketServer.js, но нет документации API
 
 ---
 
@@ -192,17 +179,18 @@ e2e/         # Playwright E2E тесты
 
 ### Критические пути (должны работать стабильно)
 1. ✅ Reset Machine ID - основной функционал
-2. ✅ Rate limiting - защита от abuse
+2. ✅ Rate limiting - защита от abuse (все эндпоинты)
 3. ✅ Валидация ввода - безопасность
-4. ✅ Graceful shutdown - стабильность
+4. ✅ Graceful shutdown - стабильность (.unref() добавлен)
 5. ✅ Бэкап и откат - восстановление при ошибках
+6. ✅ Версия приложения синхронизирована
 
 ### Для релиза 2.8.0 нужно:
 - [x] Все P0 исправлены
-- [ ] Исправить оставшиеся P1 (пагинация proxy, rate limiting bypass/notifications)
+- [x] Все P1 исправлены
 - [ ] Финальное тестирование
 - [ ] Обновить CHANGELOG.md
-- [ ] Merge dev → main
+- [ ] Merge dev → main (уже синхронизировано)
 - [ ] Создать тег v2.8.0
 - [ ] Опубликовать релиз на GitHub
 

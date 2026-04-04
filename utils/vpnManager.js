@@ -11,7 +11,7 @@ import fs from 'fs-extra';
 import https from 'https';
 import http from 'http';
 import { logger } from './logger.js';
-import { NETWORK_CONSTANTS, CACHE_CONSTANTS, VPN_CONSTANTS } from './constants.js';
+import { CACHE_CONSTANTS, VPN_CONSTANTS } from './constants.js';
 
 const execPromise = promisify(exec);
 

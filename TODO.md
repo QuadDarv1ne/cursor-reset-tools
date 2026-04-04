@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v4
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v5
 
 ### ✅ Статус синхронизации
-- **dev**: e82e927 (HEAD) - fix: proxyManager deadlock, курсор процесс
-- **main**: e82e927 - синхронизирована с dev ✅
+- **dev**: 2bffe2a (HEAD) - fix: graceful shutdown .unref() для всех setInterval
+- **main**: 2bffe2a - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -16,13 +16,21 @@
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде аудита (v4)
+## ✅ ИСПРАВЛЕНО в этом раунде аудита (v5)
 
-### Критические исправления
-- [x] **proxyManager.js**: Исправлен deadlock в rotateProxy (очередь обрабатывается полностью, не теряет запросы)
-- [x] **proxyManager.js**: Добавлен .unref() для autoRotationInterval (graceful shutdown)
-- [x] **proxyManager.js**: Исправлен getAutoRotationStatus (захардкоженный 300000 → реальный интервал)
-- [x] **reset.js**: Консолидирована проверка процесса (checkCursorProcess → globalCursorProcess)
+### Критические исправления — Graceful Shutdown
+- [x] **monitorManager.js**: autoCheckTimer.unref()
+- [x] **proxyDatabase.js**: updateInterval.unref()
+- [x] **smartBypassManager.js**: autoTestInterval.unref()
+- [x] **resourceMonitor.js**: уже было .unref() ✅
+- [x] **statsCache.js**: уже было .unref() ✅
+- [x] **websocketServer.js**: broadcastInterval.unref() ✅
+- [x] **proxyManager.js**: autoRotationInterval.unref() ✅
+
+### Предыдущие исправления (v4)
+- [x] **proxyManager.js**: Исправлен deadlock в rotateProxy
+- [x] **proxyManager.js**: Исправлен getAutoRotationStatus
+- [x] **reset.js**: Консолидация проверки процесса (→ globalCursorProcess)
 
 ---
 
@@ -116,30 +124,28 @@ e2e/         # Playwright E2E тесты
 - [x] CONFIG в bypassServer.js использует переменные окружения ✅
 - [x] websocketServer.js: .unref() для graceful shutdown ✅
 
-### ⚠️ ОСТАВШИЕСЯ ПРОБЛЕМЫ (P2 - улучшения)
+### ⚠️ ОСТАВШИЕСЯ ПРОБЛЕМЫ (P2 - улучшения для будущих версий)
 
 1. **Большие файлы**
    - `cliManager.js` (1527 строк) - разбить на модули команд
    - `reset.js` (1580 строк) - разбить на подмодули операций
+   - `vpnManager.js` (873 строки) - разбить на подмодули
 
-2. ~~**Централизация проверки процесса Cursor**~~ ✅ ВЫПОЛНЕНО
-   - Теперь используется `globalCursorProcess` из `cursorProcess.js`
-
-3. **CSRF Protection**
+2. **CSRF Protection**
    - Отсутствует csrf-csrf пакет
    - POST эндпоинты уязвимы без CSRF токенов
 
-4. **JSDoc аннотации**
+3. **JSDoc аннотации**
    - Большинство функций без полной документации
    - validator.js имеет хороший пример - распространить на другие модули
 
-5. **TypeScript миграция**
+4. **TypeScript миграция**
    - Рассмотреть для критических модулей (validator, helpers)
 
-6. **Performance тесты**
+5. **Performance тесты**
    - Нет k6 или autocannon тестов
 
-7. **WebSocket API документация**
+6. **WebSocket API документация**
    - Есть websocketServer.js, но нет документации API
 
 ---
@@ -148,7 +154,7 @@ e2e/         # Playwright E2E тесты
 
 ### Версия и статус
 - **Версия:** 2.8.0-dev (package.json)
-- **Последний коммит:** e82e927 - fix: proxyManager deadlock, курсор процесс
+- **Последний коммит:** 2bffe2a - fix: graceful shutdown .unref() для всех setInterval
 - **Ветка:** dev (синхронизирована с main)
 - **Следующий релиз:** 2.8.0
 

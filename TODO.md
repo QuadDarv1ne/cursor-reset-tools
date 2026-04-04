@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v10
+## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v11
 
 ### ✅ Статус синхронизации
-- **dev**: 0a44a0d (HEAD) - fix: .unref() для всех setTimeout
-- **main**: 0a44a0d - синхронизирована с dev ✅
+- **dev**: 45dd565 (HEAD) - fix: app.js и bypassServer.js проблемы
+- **main**: 45dd565 - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -16,28 +16,13 @@
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде аудита (v10)
+## ✅ ИСПРАВЛЕНО в этом раунде аудита (v11)
 
-### Полный graceful shutdown
-- [x] **helpers.js**: `.unref()` для checkFileExists и delay
-- [x] **cursorProcess.js**: `.unref()` для _waitForClose
-- [x] **cursorRegistrar.js**: `.unref()` для паузы в autoRegister
-- [x] **emailManager.js**: `.unref()` для waitForCursorEmail и waitForMessage
-- [x] **sqliteOptimizer.js**: `.unref()` для retry delay
-
-**Все setTimeout и setInterval в проекте теперь имеют `.unref()`**
-
-### Все исправления за сессию:
-| Раунд | Исправления |
-|-------|------------|
-| **v3** | Версия updater, rate limiting, graceful shutdown (websocket) |
-| **v4** | Deadlock proxy, интервал статуса, консолидация cursor process |
-| **v5** | `.unref()` для всех 7 setInterval |
-| **v6** | **Критические баги** -缺失щие методы getFetch(), waitForMessage(), extractVerification* |
-| **v7** | WireGuard ключи (SHA256 → randomBytes + warning) |
-| **v8** | Синтаксическая ошибка fingerprintManager |
-| **v9** | Полный аудит - проблем не найдено |
-| **v10** | `.unref()` для всех setTimeout (helpers, cursorProcess, email, sqlite) |
+### Критические проблемы app.js и bypassServer.js
+- [x] **app.js**: Добавлен `.unref()` для initial bypass timer
+- [x] **app.js**: Исправлена версия в уведомлении (2.4.0 → 2.8.0-dev)
+- [x] **app.js**: Исправлена проверка Content-Type (теперь разрешает multipart/form-data и urlencoded)
+- [x] **bypassServer.js**: Добавлен `.unref()` для heartbeat timer
 
 ---
 

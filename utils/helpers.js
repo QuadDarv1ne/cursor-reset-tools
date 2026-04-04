@@ -6,6 +6,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from './config.js';
 import { logger } from './logger.js';
+import { FILE_CONSTANTS, PROCESS_CONSTANTS } from './constants.js';
 
 const execPromise = promisify(exec);
 
@@ -118,7 +119,7 @@ export const validatePaths = paths => {
  * @param {number} timeout - мс
  * @returns {Promise<boolean>}
  */
-export const checkFileExists = async (filePath, timeout = 5000) => new Promise(resolve => {
+export const checkFileExists = async (filePath, timeout = FILE_CONSTANTS.FILE_CHECK_TIMEOUT) => new Promise(resolve => {
   const timer = setTimeout(() => resolve(false), timeout);
 
   fs.access(filePath, fs.constants.F_OK, err => {
@@ -175,7 +176,7 @@ export const isCursorVersionSupported = version => {
  * @param {number} timeout - мс
  * @returns {Promise<boolean>}
  */
-export const checkCursorProcess = async (platform, timeout = config.timeouts.processCheck) => {
+export const checkCursorProcess = async (platform, timeout = PROCESS_CONSTANTS.PROCESS_CHECK_TIMEOUT) => {
   try {
     const checkPromise = new Promise(resolve => {
       try {
@@ -300,12 +301,12 @@ export const validateWorkbenchIntegrity = async filePath => {
     size = Buffer.byteLength(content, 'utf8');
 
     // Проверка минимального размера (workbench не может быть слишком маленьким)
-    if (size < 10000) {
+    if (size < FILE_CONSTANTS.WORKBENCH_MIN_SIZE) {
       errors.push(`File too small (${size} bytes), possible corruption`);
     }
 
     // Проверка максимальной размер (не более 50MB)
-    if (size > 50 * 1024 * 1024) {
+    if (size > FILE_CONSTANTS.WORKBENCH_MAX_SIZE) {
       errors.push(`File too large (${size} bytes), possible corruption`);
     }
 
@@ -326,11 +327,11 @@ export const validateWorkbenchIntegrity = async filePath => {
     const openParens = (content.match(/\(/g) || []).length;
     const closeParens = (content.match(/\)/g) || []).length;
 
-    if (Math.abs(openBraces - closeBraces) > 100) {
+    if (Math.abs(openBraces - closeBraces) > FILE_CONSTANTS.WORKBENCH_BRACE_TOLERANCE) {
       errors.push(`Unbalanced braces: ${openBraces} open, ${closeBraces} close`);
     }
 
-    if (Math.abs(openParens - closeParens) > 100) {
+    if (Math.abs(openParens - closeParens) > FILE_CONSTANTS.WORKBENCH_BRACE_TOLERANCE) {
       errors.push(`Unbalanced parentheses: ${openParens} open, ${closeParens} close`);
     }
 

@@ -99,21 +99,44 @@ class WSServer {
     this.send(clientId, {
       type: 'welcome',
       clientId,
-      timestamp: Date.now(),
       message: 'Connected to Cursor Reset Tools',
-      serverInfo: {
-        maxClients: this.maxClients,
-        currentClients: this.clients.size
+      timestamp: connectedAt
+    }).catch(err => {
+      logger.error(`Failed to send welcome message: ${err.message}`, 'websocket');
+    });
+
+    // Обработка сообщений от клиента
+    ws.on('message', data => {
+      try {
+        this.handleMessage(clientId, data);
+      } catch (error) {
+        logger.error(`Message handling error for ${clientId}: ${error.message}`, 'websocket', {
+          stack: error.stack
+        });
+        this.send(clientId, {
+          type: 'error',
+          message: 'Internal server error processing message'
+        }).catch(() => {});
       }
     });
 
-    // Отправка текущего статуса
-    this.sendStatus(clientId);
+    // Обработка отключения
+    ws.on('close', () => {
+      try {
+        this.removeClient(clientId);
+      } catch (error) {
+        logger.error(`Error removing client ${clientId}: ${error.message}`, 'websocket');
+      }
+    });
 
-    // Обработка сообщений
-    ws.on('message', message => this.handleMessage(clientId, message));
+    // Обработка ошибок
+    ws.on('error', error => {
+      logger.error(`WebSocket error for ${clientId}: ${error.message}`, 'websocket', {
+        code: error.code
+      });
+    });
 
-    // Pong
+    // Pong handler
     ws.on('pong', () => {
       const client = this.clients.get(clientId);
       if (client) {
@@ -121,29 +144,6 @@ class WSServer {
         client.pingPong.lastPong = Date.now();
       }
     });
-
-    // Отключение
-    ws.on('close', (code, _reason) => {
-      logger.debug(`Client disconnected: ${clientId} (code: ${code})`, 'websocket');
-      this.handleDisconnect(clientId);
-    });
-
-    ws.on('error', error => logger.error(`WS client error (${clientId}): ${error.message}`, 'websocket'));
-
-    // Установка таймаута для неактивных соединений
-    const timeoutId = setTimeout(() => {
-      const client = this.clients.get(clientId);
-      if (client && Date.now() - client.lastActivity > WS_CONFIG.clientTimeout) {
-        logger.debug(`Client ${clientId} timed out due to inactivity`, 'websocket');
-        ws.close(1001, 'Client inactive');
-      }
-    }, WS_CONFIG.clientTimeout);
-
-    // Сохраняем ID таймера для очистки
-    const client = this.clients.get(clientId);
-    if (client) {
-      client.timeoutId = timeoutId;
-    }
   }
 
   /**

@@ -761,10 +761,42 @@ const ld = async (logs, toolName) => {
   return lg.join('\n');
 };
 
+/**
+ * POST /api/reset
+ * Сброс Machine ID (с поддержкой dry-run)
+ */
 rt.post('/reset', async (req, res) => {
   try {
+    const { dryRun = false } = req.body;
+
     // Audit trail для деструктивной операции
-    logger.info(`Reset operation triggered by request from ${req.ip}`, 'audit');
+    logger.info(`Reset operation triggered by request from ${req.ip} (dry-run: ${dryRun})`, 'audit');
+
+    if (dryRun) {
+      // Dry-run режим - только проверка без модификации
+      const { mp, sp, dp, ap, cp } = gp();
+      const paths = { mp, sp, dp, ap, cp };
+      const pathStatus = {};
+
+      for (const [key, path] of Object.entries(paths)) {
+        pathStatus[key] = {
+          exists: fs.existsSync(path),
+          path
+        };
+      }
+
+      const adminRights = await checkAdminRights();
+      const cursorRunning = await checkCursorProcess(os.platform());
+
+      return res.json({
+        success: true,
+        dryRun: true,
+        paths: pathStatus,
+        adminRights,
+        cursorRunning,
+        warning: cursorRunning ? 'Cursor is running! Close it before actual reset.' : null
+      });
+    }
 
     const result = await rm();
     res.json({ success: true, log: result });
@@ -776,6 +808,8 @@ rt.post('/reset', async (req, res) => {
 
 rt.post('/patch', async (req, res) => {
   try {
+    const { dryRun = false } = req.body;
+
     // Валидация action параметра
     const validActions = ['bypass', 'disable', 'pro'];
     const action = req.body.action || req.query.action || 'bypass';
@@ -788,7 +822,33 @@ rt.post('/patch', async (req, res) => {
     }
 
     // Audit trail для деструктивной операции
-    logger.info(`Patch operation '${action}' triggered by request from ${req.ip}`, 'audit');
+    logger.info(`Patch operation '${action}' triggered by request from ${req.ip} (dry-run: ${dryRun})`, 'audit');
+
+    if (dryRun) {
+      // Dry-run режим - только проверка файлов
+      const workbenchPath = gw();
+      const { dp } = gp();
+
+      const files = {
+        workbench: { path: workbenchPath, exists: fs.existsSync(workbenchPath) },
+        database: { path: dp, exists: fs.existsSync(dp) }
+      };
+
+      // Проверка версий и размера
+      if (files.workbench.exists) {
+        const stats = fs.statSync(workbenchPath);
+        files.workbench.size = stats.size;
+        files.workbench.sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+      }
+
+      return res.json({
+        success: true,
+        dryRun: true,
+        action,
+        files,
+        warning: 'This is a dry run. No files will be modified.'
+      });
+    }
 
     let result;
 

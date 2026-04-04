@@ -35,6 +35,7 @@ import { globalDPIBypass } from './utils/dpiBypass.js';
 import { globalWireGuardManager } from './utils/wireguardManager.js';
 import { globalProxyManager } from './utils/proxyManager.js';
 import { createLogger } from './utils/logger.js';
+import { SECURITY_CONSTANTS } from './utils/constants.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -142,8 +143,54 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: SECURITY_CONSTANTS.MAX_UPLOAD_SIZE }));
+app.use(express.urlencoded({ extended: true, limit: SECURITY_CONSTANTS.MAX_UPLOAD_SIZE }));
+
+// Middleware для логирования запросов
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const requestId = req.headers['x-request-id'] || 'unknown';
+
+  // Логирование начала запроса (только в debug mode)
+  if (process.env.LOG_LEVEL === 'debug') {
+    logger.debug(`Request started: ${req.method} ${req.path}`, 'http', {
+      requestId,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+  }
+
+  // Перехват завершения запроса
+  const originalEnd = res.end;
+  res.end = function (...args) {
+    const duration = Date.now() - startTime;
+
+    // Логирование медленных запросов (>1 секунда)
+    if (duration > 1000) {
+      logger.warn(`Slow request: ${req.method} ${req.path} (${duration}ms)`, 'http', {
+        requestId,
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        duration
+      });
+    }
+
+    // Логирование ошибок
+    if (res.statusCode >= 500) {
+      logger.error(`Server error: ${req.method} ${req.path} (${res.statusCode})`, 'http', {
+        requestId,
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode
+      });
+    }
+
+    originalEnd.apply(res, args);
+  };
+
+  next();
+});
 
 // Проверка Content-Type для POST/PUT запросов
 app.use((req, res, next) => {
@@ -166,27 +213,13 @@ const staticCache = process.env.NODE_ENV === 'production'
 
 app.use(express.static(path.join(__dirname, 'public'), staticCache));
 
-// ============================================
-// Input Validation Middleware
-// ============================================
-// Валидация всех POST/PUT запросов
+// Проверка на XSS в теле запроса (перемещено из глобального middleware)
 app.use((req, res, next) => {
   if (req.method === 'POST' || req.method === 'PUT') {
-    // Проверка на XSS в теле запроса
     if (req.body && typeof req.body === 'object') {
       for (const [key, value] of Object.entries(req.body)) {
         if (typeof value === 'string') {
-          // Проверка на опасные паттерны
-          const dangerousPatterns = [
-            /<script/i,
-            /javascript:/i,
-            /on\w+\s*=/i,
-            /<iframe/i,
-            /<object/i,
-            /<embed/i
-          ];
-
-          for (const pattern of dangerousPatterns) {
+          for (const pattern of SECURITY_CONSTANTS.XSS_PATTERNS) {
             if (pattern.test(value)) {
               logger.warn(`XSS attempt detected in ${key}: ${value.substring(0, 100)}`, 'security');
               return res.status(400).json({

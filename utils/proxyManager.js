@@ -9,6 +9,7 @@ import https from 'https';
 import http from 'http';
 import fetch from 'node-fetch';
 import { logger } from './logger.js';
+import { appConfig } from './appConfig.js';
 
 class ProxyManager {
   constructor() {
@@ -22,17 +23,16 @@ class ProxyManager {
       lastCheck: null
     };
     this.autoRotationInterval = null;
-    this.autoRotationIntervalMs = null; // Сохраняем интервал для статуса
+    this.autoRotationIntervalMs = null;
 
-    // Кэши с ограничениями для предотвращения утечек памяти
+    // Кэши с ограничениями из appConfig
     this.dpiTestResults = new Map();
     this.geoIpCache = new Map();
-    this.connectionPool = new Map();
     this.proxyHealthScore = new Map();
 
-    // Лимиты для предотвращения утечек памяти
-    this.MAX_CACHE_SIZE = 100;
-    this.CACHE_TTL = 300000; // 5 минут
+    // Лимиты из appConfig.proxy
+    this.MAX_CACHE_SIZE = appConfig.proxy.maxCacheSize;
+    this.CACHE_TTL = appConfig.proxy.cacheTTL;
 
     // Mutex для синхронизации rotateProxy
     this.rotateLock = false;
@@ -636,7 +636,6 @@ class ProxyManager {
    */
   clearProxy() {
     this.currentProxy = null;
-    this.connectionPool.clear();
     logger.info('Proxy cleared, working without proxy', 'proxy');
   }
 
@@ -711,6 +710,7 @@ class ProxyManager {
       const timeoutId = setTimeout(() => {
         reject(new Error('Request timeout'));
       }, timeout);
+      timeoutId.unref();
 
       const protocol = url.startsWith('https') ? https : http;
 
@@ -808,7 +808,6 @@ class ProxyManager {
     // Очистка кэшей
     this.dpiTestResults.clear();
     this.geoIpCache.clear();
-    this.connectionPool.clear();
     this.proxyHealthScore.clear();
     logger.info('Proxy Manager cleanup completed', 'proxy');
     return true;

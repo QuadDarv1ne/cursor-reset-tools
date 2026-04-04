@@ -178,7 +178,7 @@ export class ResourceMonitor {
     return new Promise(resolve => {
       const startMeasure = os.cpus().map(cpu => cpu.times);
 
-      setTimeout(() => {
+      const cpuTimer = setTimeout(() => {
         const endMeasure = os.cpus().map(cpu => cpu.times);
 
         let totalIdle = 0;
@@ -203,6 +203,7 @@ export class ResourceMonitor {
         const usage = ((totalTick - totalIdle) / totalTick) * 100;
         resolve(Math.round(usage * 100) / 100);
       }, RESOURCE_CONFIG.sampleInterval / 2);
+      cpuTimer.unref();
     });
   }
 

@@ -11,11 +11,11 @@ import { FILE_CONSTANTS, PROCESS_CONSTANTS } from './constants.js';
 const execPromise = promisify(exec);
 
 /**
- * Retry конфигурация
+ * Retry конфигурация из config.automation
  */
 export const RETRY_CONFIG = {
-  maxAttempts: 3,
-  baseDelay: 1000,
+  maxAttempts: config.automation.autoRetryMaxAttempts,
+  baseDelay: config.automation.autoRetryBaseDelay,
   maxDelay: 10000,
   exponential: true
 };

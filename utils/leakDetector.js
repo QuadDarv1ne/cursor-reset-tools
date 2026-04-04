@@ -793,6 +793,7 @@ class LeakDetector {
   async fetchWithTimeout(url, options, timeout) {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);
+      timeoutId.unref();
       const protocol = url.startsWith('https') ? https : http;
 
       protocol.get(url, options, res => {

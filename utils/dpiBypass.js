@@ -74,6 +74,7 @@ class DPIBypass {
     };
 
     this.testResults = new Map();
+    this.MAX_TEST_RESULTS = 100; // Лимит для предотвращения утечки памяти
   }
 
   /**
@@ -115,6 +116,12 @@ class DPIBypass {
         const result = await this.testMethod(methodKey);
         results[methodKey] = result;
         this.testResults.set(methodKey, result);
+
+        // Очистка старых записей при превышении лимита
+        if (this.testResults.size > this.MAX_TEST_RESULTS) {
+          const oldestKey = this.testResults.keys().next().value;
+          this.testResults.delete(oldestKey);
+        }
       } catch (error) {
         results[methodKey] = { success: false, error: error.message };
       }
@@ -320,6 +327,7 @@ class DPIBypass {
       const timeout = setTimeout(() => {
         reject(new Error('Connection timeout'));
       }, 10000);
+      timeout.unref();
 
       const req = https.request({
         hostname: 'cursor.sh',
@@ -523,6 +531,7 @@ class DPIBypass {
       const timeout = setTimeout(() => {
         resolve({ accessible: false, error: 'timeout' });
       }, 8000);
+      timeout.unref();
 
       https.get(`https://${domain}/`, {
         timeout: 7000,

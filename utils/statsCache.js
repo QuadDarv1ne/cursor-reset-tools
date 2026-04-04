@@ -4,17 +4,18 @@
  */
 
 import { logger } from './logger.js';
+import { appConfig } from './appConfig.js';
 
 /**
- * Конфигурация кэша
+ * Конфигурация кэша из appConfig
  */
 export const CACHE_CONFIG = {
-  defaultTTL: 300000, // 5 минут по умолчанию
-  maxEntries: 1000, // Максимум записей в кэше
-  cleanupInterval: 60000, // Очистка каждые 1 минуту
+  defaultTTL: appConfig.cache.defaultTTL,
+  maxEntries: appConfig.cache.maxEntries,
+  cleanupInterval: appConfig.cache.cleanupInterval,
   stats: {
     enabled: true,
-    historyLimit: 100 // История запросов
+    historyLimit: appConfig.monitoring.historyLimit
   }
 };
 

@@ -210,6 +210,7 @@ export class ProxyDatabase {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
+      timeout.unref();
 
       const response = await fetch(api.url, {
         signal: controller.signal,

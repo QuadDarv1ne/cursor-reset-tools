@@ -324,6 +324,7 @@ export async function withTimeout(promise, timeout, errorMessage = 'Operation ti
     timeoutId = setTimeout(() => {
       reject(new Error(errorMessage));
     }, timeout);
+    timeoutId.unref();
   });
 
   try {

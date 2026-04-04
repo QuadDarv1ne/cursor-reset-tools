@@ -585,15 +585,17 @@ const startServer = async () => {
     // Автобэкап конфигурации (если включено)
     if (appConfig.backup.enabled && appConfig.backup.autoInterval > 0) {
       const autoBackupTimer = setInterval(() => {
-        globalConfigBackup.createBackup().then(result => {
-          if (result.success) {
-            logger.info(`Auto backup created: ${result.backupPath}`, 'backup');
-          } else {
-            logger.warn(`Auto backup failed: ${result.error}`, 'backup');
-          }
-        }).catch(err => {
-          logger.error(`Auto backup error: ${err.message}`, 'backup');
-        });
+        globalConfigBackup.createBackup()
+          .then(result => {
+            if (result.success) {
+              logger.info(`Auto backup created: ${result.path || result.backupPath}`, 'backup');
+            } else {
+              logger.warn(`Auto backup failed: ${result.error}`, 'backup');
+            }
+          })
+          .catch(err => {
+            logger.error(`Auto backup error: ${err.message}`, 'backup');
+          });
       }, appConfig.backup.autoInterval);
       autoBackupTimer.unref(); // Не блокирует graceful shutdown
     }
@@ -607,24 +609,28 @@ const startServer = async () => {
 
     // Проверка обновлений при старте (если включено)
     if (appConfig.updater.enabled) {
-      globalUpdater.checkForUpdates().then(result => {
-        if (result.updateAvailable) {
-          logger.info(`Update available: ${result.currentVersion} → ${result.latestVersion}`, 'app');
-        }
-      }).catch(err => {
-        logger.error(`Update check failed: ${err.message}`, 'app');
-      });
+      globalUpdater.checkForUpdates()
+        .then(result => {
+          if (result.updateAvailable) {
+            logger.info(`Update available: ${result.currentVersion} → ${result.latestVersion}`, 'app');
+          }
+        })
+        .catch(err => {
+          logger.error(`Update check failed: ${err.message}`, 'app');
+        });
 
       // Автоматическое обновление с интервалом
       if (appConfig.updater.checkInterval > 0) {
         const autoUpdateTimer = setInterval(() => {
-          globalUpdater.checkForUpdates().then(result => {
-            if (result.updateAvailable) {
-              logger.info(`Auto-update: ${result.currentVersion} → ${result.latestVersion}`, 'app');
-            }
-          }).catch(err => {
-            logger.error(`Auto-update check failed: ${err.message}`, 'app');
-          });
+          globalUpdater.checkForUpdates()
+            .then(result => {
+              if (result.updateAvailable) {
+                logger.info(`Auto-update: ${result.currentVersion} → ${result.latestVersion}`, 'app');
+              }
+            })
+            .catch(err => {
+              logger.error(`Auto-update check failed: ${err.message}`, 'app');
+            });
         }, appConfig.updater.checkInterval);
         autoUpdateTimer.unref(); // Не блокирует graceful shutdown
       }

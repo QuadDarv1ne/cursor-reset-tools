@@ -413,6 +413,7 @@ class WireGuardManager {
         socket.destroy();
         resolve({ success: false, error: 'timeout' });
       }, 5000);
+      timeout.unref();
 
       socket.connect(parseInt(port, 10) || 51820, host, () => {
         clearTimeout(timeout);

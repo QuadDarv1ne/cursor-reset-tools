@@ -6,6 +6,7 @@
 import fetch from 'node-fetch';
 import { logger } from './logger.js';
 import { globalIPManager } from './ipManager.js';
+import { appConfig } from './appConfig.js';
 
 const MONITOR_TARGETS = {
   cursor: [
@@ -31,7 +32,7 @@ class MonitorManager {
     this.status = {};
     this.lastCheck = {};
     this.history = [];
-    this.checkInterval = 30000; // 30 секунд
+    this.checkInterval = appConfig.monitoring.autoCheckInterval;
     this.autoCheckEnabled = false;
     this.autoCheckTimer = null;
   }
@@ -51,6 +52,7 @@ class MonitorManager {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), target.timeout || 5000);
+      timeoutId.unref();
 
       const startTime = Date.now();
 
@@ -143,7 +145,7 @@ class MonitorManager {
     });
 
     // Ограничение истории
-    if (this.history.length > 100) {
+    if (this.history.length > appConfig.monitoring.historyLimit) {
       this.history.shift();
     }
 

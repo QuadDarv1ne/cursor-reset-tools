@@ -37,7 +37,6 @@ class WSServer {
 
     // Оптимизации
     this.statusCache = { data: null, timestamp: 0 };
-    this.messageHashes = new Map(); // Дедупликация
     this.lastBroadcast = 0;
     this.stats = {
       totalConnections: 0,

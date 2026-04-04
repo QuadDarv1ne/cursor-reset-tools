@@ -20,6 +20,7 @@ export class AutoRollbackManager {
     this.validationEnabled = options.validationEnabled !== false;
     this.autoRollbackEnabled = options.autoRollbackEnabled !== false;
     this.hashAlgorithm = 'sha256';
+    this.maxOperations = 100; // Лимит для предотвращения утечки памяти
   }
 
   /**
@@ -54,6 +55,14 @@ export class AutoRollbackManager {
       filesModified: [],
       hashesBefore: new Map()
     };
+
+    // Очистка старых операций при превышении лимита
+    if (this.operationStack.size >= this.maxOperations) {
+      const oldestKey = this.operationStack.keys().next().value;
+      this.operationStack.delete(oldestKey);
+      logger.warn(`Operation stack limit reached, removed oldest: ${oldestKey}`, 'autoRollback');
+    }
+
     this.operationStack.set(operationId, context);
     logger.info(`Operation started: ${operationId}`, 'autoRollback');
     return context;

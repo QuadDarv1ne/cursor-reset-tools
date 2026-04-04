@@ -249,6 +249,7 @@ class VPNManager {
     // Запрос к API
     const result = await new Promise(resolve => {
       const timeout = setTimeout(() => resolve(null), VPN_CONSTANTS.VPN_API_TIMEOUT);
+      timeout.unref();
 
       http.get('http://ip-api.com/json/', res => {
         clearTimeout(timeout);
@@ -645,6 +646,7 @@ class VPNManager {
   async getVPNIP() {
     return new Promise(resolve => {
       const timeout = setTimeout(() => resolve(null), VPN_CONSTANTS.VPN_API_TIMEOUT);
+      timeout.unref();
 
       https.get('https://api.ipify.org?format=json', res => {
         clearTimeout(timeout);
@@ -878,8 +880,8 @@ class VPNManager {
    * Остановка менеджера (для graceful shutdown)
    */
   stop() {
-    // Очистка кэшей
-    this.ipInfoCache.clear();
+    // Очистка кэша IPInfo (это объект, не Map)
+    this.ipInfoCache = null;
     this.ipInfoCacheTime = 0;
     logger.info('VPN Manager stopped', 'vpn');
     return true;

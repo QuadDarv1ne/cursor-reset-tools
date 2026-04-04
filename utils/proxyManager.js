@@ -7,6 +7,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpsProxyAgent } from 'hpagent';
 import https from 'https';
 import http from 'http';
+import fetch from 'node-fetch';
 import { logger } from './logger.js';
 
 class ProxyManager {
@@ -676,6 +677,30 @@ class ProxyManager {
       ...this.currentProxy,
       url: this.maskProxyUrl(this.currentProxy.url)
     } : null;
+  }
+
+  /**
+   * Получить fetch функцию с настроенным прокси (для использования в других модулях)
+   * @returns {Function} Fetch функция с прокси
+   */
+  getFetch() {
+    const proxy = this.currentProxy;
+    const agent = proxy ? this.createAgent(proxy) : undefined;
+
+    // Возвращаем fetch с настроенным агентом
+    return async (url, options = {}) => {
+      const fetchOptions = {
+        ...options,
+        agent: agent || options.agent
+      };
+
+      if (!options.agent && agent) {
+        // Для node-fetch использу agent через опцию
+        return fetch(url, { ...fetchOptions, agent });
+      }
+
+      return fetch(url, fetchOptions);
+    };
   }
 
   /**

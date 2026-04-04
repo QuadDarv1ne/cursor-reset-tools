@@ -119,6 +119,16 @@ class IPManager {
       historyCount: this.ipHistory.length
     };
   }
+
+  /**
+   * Остановить менеджер (для graceful shutdown)
+   */
+  stop() {
+    this.currentIP = null;
+    this.ipHistory = [];
+    logger.info('IP Manager stopped', 'ip');
+    return true;
+  }
 }
 
 export const globalIPManager = new IPManager();

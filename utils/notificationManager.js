@@ -379,6 +379,15 @@ ${notification.message}
   }
 
   /**
+   * Остановить менеджер (для graceful shutdown)
+   */
+  stop() {
+    this.clearQueue();
+    logger.info('Notification Manager stopped', 'notification');
+    return true;
+  }
+
+  /**
    * Экспорт конфигурации
    */
   exportConfig() {

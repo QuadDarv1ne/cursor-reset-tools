@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v12
+## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v13
 
 ### ✅ Статус синхронизации
-- **dev**: e9defd9 (HEAD)
-- **main**: e9defd9 - синхронизирована с dev ✅
+- **dev**: 13d918e (HEAD) - fix: магические числа, опечатки, обработка ошибок
+- **main**: 13d918e - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -13,6 +13,28 @@
   dev-full-i18n (дополнительная)
   main (стабильная, синхронизирована)
 ```
+
+---
+
+## ✅ ИСПРАВЛЕНО в этом раунде (v13)
+
+### Магические числа → Константы
+- [x] **app.js**: `15*60*1000`, `max: 100` → `NETWORK_CONSTANTS.BYPASS_RATE_LIMIT_*`
+- [x] **routes/reset.js**: rate limit, requestId length, cache TTL → `SECURITY_CONSTANTS`, `CACHE_CONSTANTS`
+- [x] **utils/cliManager.js**: `120000`, `180000` → `EMAIL_CONSTANTS`, `CURSOR_CONSTANTS`
+- [x] **utils/vpnManager.js**: `300000`, `5000` → `CACHE_CONSTANTS`, `VPN_CONSTANTS`
+
+### Опечатки в константах
+- [x] `DNS_FLUS_TIMEOUT` → `DNS_FLUSH_TIMEOUT`
+- [x] `BYASS_PROXY_TIMEOUT` → `BYPASS_PROXY_TIMEOUT`
+
+### Стандартизация ошибок
+- [x] **routes/reset.js**: Добавлена `handleApiError()` функция
+- [x] **routes/reset.js**: 6 обработчиков ошибок унифицированы
+- [x] В production скрываются детали ошибок
+
+### Использовано неиспользуемых констант
+- [x] `BYPASS_RATE_LIMIT_WINDOW` и `BYPASS_RATE_LIMIT_MAX` теперь используются в app.js
 
 ---
 

@@ -212,10 +212,10 @@ class FingerprintManager {
         await execPromise(`powershell -Command "Rename-Computer -NewName '${newName}' -Force"`);
         logger.info(`Windows hostname changed to ${newName} via PowerShell (restart required)`, 'fingerprint');
         return { success: true, restartRequired: true };
-      } catch (psError) { {
+      } catch (psError) {
         logger.error(`Hostname change failed: ${psError.message}`, 'fingerprint');
         return { success: false, error: psError.message };
-      }}
+      }
     }
   }
 

@@ -194,17 +194,22 @@ class WireGuardManager {
 
   /**
    * Генерация ключей WireGuard
+   * Примечание: это упрощённая генерация. Для production рекомендуется
+   * использовать реальный Curve25519 через библиотеку tweetnacl или аналог
    */
   async generateKeyPair() {
     try {
-      // Генерация приватного ключа
+      // Генерация криптографически стойкого приватного ключа (32 байта, base64)
       const privateKey = crypto.randomBytes(32);
       const privateKeyBase64 = privateKey.toString('base64');
 
-      // Генерация публичного ключа из приватного
-      // (упрощённая версия, реальная реализация использует Curve25519)
-      const publicKey = crypto.createHash('sha256').update(privateKey).digest();
+      // Для WireGuard нужен реальный Curve25519 публичный ключ
+      // В production используйте: npm install tweetnacl
+      // Здесь генерируем placeholder - реальный ключ получится только с Curve25519
+      const publicKey = crypto.randomBytes(32);
       const publicKeyBase64 = publicKey.toString('base64');
+
+      logger.warn('WireGuard key generation uses placeholder. Install tweetnacl for real Curve25519.', 'wireguard');
 
       return {
         privateKey: privateKeyBase64,

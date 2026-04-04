@@ -246,7 +246,7 @@ export class BypassServer {
     });
 
     // Heartbeat
-    setInterval(() => {
+    const heartbeatTimer = setInterval(() => {
       this.wss.clients.forEach(ws => {
         if (ws.isAlive === false) {
           return ws.terminate();
@@ -255,6 +255,7 @@ export class BypassServer {
         ws.ping();
       });
     }, 30000);
+    heartbeatTimer.unref(); // Не блокирует graceful shutdown
   }
 
   /**

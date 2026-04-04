@@ -192,14 +192,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Проверка Content-Type для POST/PUT запросов
+// Проверка Content-Type для POST/PUT запросов с телом
+// Разрешаем application/json, multipart/form-data, application/x-www-form-urlencoded
 app.use((req, res, next) => {
-  if (['POST', 'PUT'].includes(req.method) && req.body) {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
     const contentType = req.headers['content-type'];
-    if (!contentType || !contentType.includes('application/json')) {
+    if (contentType &&
+        !contentType.includes('application/json') &&
+        !contentType.includes('multipart/form-data') &&
+        !contentType.includes('application/x-www-form-urlencoded')) {
       return res.status(415).json({
         success: false,
-        error: 'Unsupported Media Type. Content-Type must be application/json'
+        error: 'Unsupported Media Type. Content-Type must be application/json, multipart/form-data, or application/x-www-form-urlencoded'
       });
     }
   }
@@ -501,7 +505,7 @@ const startServer = async () => {
     globalResourceMonitor.startMonitoring(5000);
 
     // Отправка уведомления о старте (если включено)
-    globalNotificationManager.sendEvent('start', { version: '2.4.0' }).catch(err => {
+    globalNotificationManager.sendEvent('start', { version: '2.8.0-dev' }).catch(err => {
       logger.debug(`Notification send failed: ${err.message}`, 'app');
     });
 
@@ -518,11 +522,12 @@ const startServer = async () => {
     globalWSServer.init(server, wsPort);
 
     // Initial bypass test
-    setTimeout(() => {
+    const initBypassTimer = setTimeout(() => {
       globalSmartBypassManager.testAllMethods().catch(err => {
         logger.error(`Initial bypass test failed: ${err.message}`, 'app');
       });
     }, 5000);
+    initBypassTimer.unref(); // Не блокирует graceful shutdown
 
     currentServer = server.listen(port, () => {
       const msg = `🚀 Server running on http://localhost:${port} (WS: ${wsPort})`;

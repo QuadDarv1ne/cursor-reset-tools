@@ -137,7 +137,7 @@ export const translations = {
     modalAccept: 'Я понимаю и принимаю',
 
     // Header
-    versionLabel: 'v2.0.0',
+    versionLabel: 'v2.8.0',
 
     // Features
     featureRecommended: 'Рекомендуется: Для лучшей совместимости используйте Cursor версии 0.49.x',
@@ -324,7 +324,7 @@ export const translations = {
     modalAccept: 'I Understand and Accept',
 
     // Header
-    versionLabel: 'v2.0.0',
+    versionLabel: 'v2.8.0',
 
     // Features
     featureRecommended: 'Recommended: For best compatibility, use Cursor version 0.49.x',
@@ -508,7 +508,7 @@ export const translations = {
     modalAccept: '我理解并接受',
 
     // Header
-    versionLabel: 'v2.0.0',
+    versionLabel: 'v2.8.0',
 
     // Features
     featureRecommended: '建议：为了最佳兼容性，请使用 Cursor 版本 0.49.x',

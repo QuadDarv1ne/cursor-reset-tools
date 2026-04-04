@@ -1,10 +1,10 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v6
+## 🔍 Аудит проекта (4 апреля 2026 г.) - АКТУАЛЬНЫЙ v8
 
 ### ✅ Статус синхронизации
-- **dev**: 9f4ee02 (HEAD) - fix: добавлены缺失щие методы в emailManager
-- **main**: 9f4ee02 - синхронизирована с dev ✅
+- **dev**: 189d3a0 (HEAD) - fix: синтаксическая ошибка fingerprintManager
+- **main**: 189d3a0 - синхронизирована с dev ✅
 - Готово к релизу 2.8.0
 
 ### 📊 Статус веток
@@ -16,17 +16,13 @@
 
 ---
 
-## ✅ ИСПРАВЛЕНО в этом раунде аудита (v6)
+## ✅ ИСПРАВЛЕНО в этом раунде аудита (v8)
 
-### Критические баги —缺失щие методы
-- [x] **proxyManager.js**: Добавлен `getFetch()` метод (вызывается в cursorRegistrar.js)
-- [x] **emailManager.js**: Добавлен `extractVerificationCode()` (публичный вместо приватного)
-- [x] **emailManager.js**: Добавлен `extractVerificationLink()` (извлечение ссылок подтверждения)
-- [x] **emailManager.js**: Добавлен `waitForMessage()` (ожидание письма с параметрами)
-- **Без этих методов регистрация Cursor не работала вообще**
+### Синтаксическая ошибка
+- [x] **fingerprintManager.js**: Исправлена синтаксическая ошибка в `changeHostnameWindows()` - лишние фигурные скобки в catch блоке
 
-### Предыдущие исправления (v5)
-- [x] **Graceful Shutdown**: все 7 setInterval имеют `.unref()`
+### Предыдущие исправления (v7)
+- [x] **wireguardManager.js**: Генерация ключей (SHA256 → randomBytes + warning)
 
 ---
 
@@ -150,7 +146,7 @@ e2e/         # Playwright E2E тесты
 
 ### Версия и статус
 - **Версия:** 2.8.0-dev (package.json)
-- **Последний коммит:** 2bffe2a - fix: graceful shutdown .unref() для всех setInterval
+- **Последний коммит:** 189d3a0 - fix: синтаксическая ошибка fingerprintManager
 - **Ветка:** dev (синхронизирована с main)
 - **Следующий релиз:** 2.8.0
 

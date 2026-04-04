@@ -1,6 +1,6 @@
 # TODO - Cursor Reset Tools
 
-## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v16
+## 🔍 Аудит проекта (5 апреля 2026 г.) - АКТУАЛЬНЫЙ v17
 
 ### ✅ Статус синхронизации
 - **dev**: требует комита изменений
@@ -13,6 +13,47 @@
   dev-full-i18n (дополнительная)
   main (стабильная, требует синхронизации)
 ```
+
+---
+
+## ✅ ИСПРАВЛЕНО v17 — Полный lifecycle менеджеров
+
+### Критические исправления
+
+| Проблема | Файл | Исправление |
+|----------|------|-------------|
+| `stopMetrics()` не существовал | app.js:382 | Метод уже был в metricsManager.js |
+| `cleanup()` не существовал | proxyManager.js | Добавлен: stopAutoRotation + очистка 4 кэшей |
+| METRICS_CONFIG hardcoded | metricsManager.js:14-18 | → appConfig.monitoring.* |
+| dnsManager не имел init/stop | dnsManager.js | Добавлены init() + stop() |
+| vpnManager не имел init/stop | vpnManager.js | Добавлены init() + stop() |
+| vpnManager не в init блоке | app.js:536 | Добавлен в Promise.allSettled |
+| dnsManager не в init блоке | app.js:536 | Добавлен в Promise.allSettled |
+| globalVPNManager не импортирован | app.js | Добавлен импорт |
+| dnsManager.stop не вызывался | app.js:387 | Добавлен в shutdown |
+| vpnManager.stop не вызывался | app.js:391 | Добавлен в shutdown |
+
+### Итоговая матрица lifecycle методов
+
+| Менеджер | init() | stop()/cleanup() | В init блоке | В shutdown |
+|----------|--------|-------------------|--------------|------------|
+| MonitorManager | ✅ | ✅ stopAutoCheck | ✅ | ✅ |
+| FingerprintManager | ✅ | ✅ cleanup | ✅ | ✅ |
+| ProxyDatabase | ✅ | ✅ close | ✅ | ✅ |
+| MetricsManager | ✅ | ✅ stopMetrics | ✅ | ✅ |
+| ResourceMonitor | ✅ | ✅ stopMonitoring | ✅ | ✅ |
+| StatsCache | ✅ | ✅ stop | ✅ | ✅ |
+| NotificationManager | ✅ | ✅ stop | ✅ | ✅ |
+| ConfigBackup | ✅ | ✅ stop | ✅ | ✅ |
+| DPIBypass | ✅ | ✅ stop | ✅ | ✅ |
+| WireGuardManager | ✅ | ✅ disconnect | ✅ | ✅ |
+| DNSManager | ✅ | ✅ stop | ✅ | ✅ |
+| VPNManager | ✅ | ✅ stop | ✅ | ✅ |
+| SmartBypassManager | ✅ | ✅ stop | ✅ | ✅ |
+| WSServer | ✅ | ✅ stop | ✅ | ✅ |
+| IPManager | N/A | ✅ stop | N/A | ✅ |
+| AutoRollbackManager | N/A | ✅ cleanup | N/A | ✅ |
+| ProxyManager | N/A | ✅ cleanup | N/A | ✅ |
 
 ---
 

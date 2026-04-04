@@ -324,6 +324,15 @@ class FingerprintManager {
   async resetFingerprint() {
     return this.reset();
   }
+
+  /**
+   * Очистка ресурсов (для graceful shutdown)
+   */
+  cleanup() {
+    // Нет активных таймеров или соединений, просто логирование
+    logger.info('Fingerprint Manager cleanup', 'fingerprint');
+    return true;
+  }
 }
 
 export const globalFingerprintManager = new FingerprintManager();

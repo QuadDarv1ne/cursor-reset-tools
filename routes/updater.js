@@ -38,10 +38,10 @@ router.get('/check', async (req, res) => {
 });
 
 /**
- * GET /api/updater/download
+ * POST /api/updater/download
  * Скачать обновление
  */
-router.get('/download', async (req, res) => {
+router.post('/download', async (req, res) => {
   try {
     const downloadPath = path.join(process.cwd(), 'updates', 'update.zip');
     await globalUpdater.downloadUpdate(downloadPath);

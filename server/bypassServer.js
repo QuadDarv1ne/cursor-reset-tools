@@ -12,17 +12,17 @@ import { logger } from '../utils/logger.js';
 import { globalProxyDatabase } from '../utils/proxyDatabase.js';
 
 /**
- * Конфигурация сервера
+ * Конфигурация сервера (с поддержкой переменных окружения)
  */
 const CONFIG = {
-  port: process.env.BYPASS_PORT || 3001,
-  wsPort: process.env.WS_PORT || 3002,
-  maxClients: 100,
-  proxyTimeout: 30000,
-  healthCheckInterval: 60000,
+  port: parseInt(process.env.BYPASS_PORT, 10) || 3001,
+  wsPort: parseInt(process.env.WS_PORT, 10) || 3002,
+  maxClients: parseInt(process.env.BYPASS_MAX_CLIENTS, 10) || 100,
+  proxyTimeout: parseInt(process.env.BYPASS_PROXY_TIMEOUT, 10) || 30000,
+  healthCheckInterval: parseInt(process.env.BYPASS_HEALTH_CHECK_INTERVAL, 10) || 60000,
   rateLimit: {
-    windowMs: 60000,
-    maxRequests: 100
+    windowMs: parseInt(process.env.BYPASS_RATE_LIMIT_WINDOW, 10) || 60000,
+    maxRequests: parseInt(process.env.BYPASS_RATE_LIMIT_MAX, 10) || 100
   }
 };
 

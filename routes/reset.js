@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs-extra';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -31,6 +32,22 @@ import { globalProxyManager } from '../utils/proxyManager.js';
 
 const rt = express.Router();
 const execPromise = promisify(exec);
+
+// Rate limiter для reset операций (максимум 5 запросов в 15 минут)
+const resetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 5,
+  message: {
+    success: false,
+    error: 'Too many reset requests, please try again later (max 5 per 15 minutes)'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => req.ip || 'unknown'
+});
+
+// Применяем rate limiter ко всем reset операциям
+rt.use(resetLimiter);
 
 // Инициализация логгера
 logger.init();
@@ -748,7 +765,7 @@ rt.post('/reset', async (req, res) => {
   try {
     // Audit trail для деструктивной операции
     logger.info(`Reset operation triggered by request from ${req.ip}`, 'audit');
-    
+
     const result = await rm();
     res.json({ success: true, log: result });
   } catch (err) {
@@ -762,17 +779,17 @@ rt.post('/patch', async (req, res) => {
     // Валидация action параметра
     const validActions = ['bypass', 'disable', 'pro'];
     const action = req.body.action || req.query.action || 'bypass';
-    
+
     if (!validActions.includes(action)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}`
       });
     }
-    
+
     // Audit trail для деструктивной операции
     logger.info(`Patch operation '${action}' triggered by request from ${req.ip}`, 'audit');
-    
+
     let result;
 
     if (action === 'bypass') {

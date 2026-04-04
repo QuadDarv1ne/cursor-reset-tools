@@ -46,6 +46,37 @@ router.get('/status', async (req, res) => {
 });
 
 /**
+ * GET /api/proxy/list
+ * Список прокси с пагинацией
+ */
+router.get('/list', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const limitNum = Math.min(parseInt(limit, 10) || 50, 100); // Максимум 100
+    const offsetNum = Math.max(parseInt(offset, 10) || 0, 0);
+
+    const proxies = globalProxyManager.getProxyList();
+
+    // Применяем пагинацию
+    const paginatedProxies = proxies.slice(offsetNum, offsetNum + limitNum);
+
+    return res.json({
+      success: true,
+      proxies: paginatedProxies,
+      pagination: {
+        total: proxies.length,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: offsetNum + limitNum < proxies.length
+      }
+    });
+  } catch (error) {
+    logger.error(`Proxy list error: ${error.message}`, 'proxy');
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * POST /api/proxy/add
  * Добавить прокси
  */

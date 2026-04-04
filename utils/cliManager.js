@@ -15,6 +15,7 @@ import { globalUpdater } from './updater.js';
 import { globalBypassServer } from '../server/bypassServer.js';
 import { globalConfigBackup } from './configBackup.js';
 import { logger } from './logger.js';
+import { validateUrl, validateProxyProtocol } from './validator.js';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -428,14 +429,29 @@ async function handleProxyAdd(args) {
   const proxyStr = params[0];
   const protocol = flags.protocol || 'socks5';
 
-  globalProxyManager.addProxy(proxyStr, protocol);
-  output(`Прокси добавлен: ${proxyStr} (${protocol})`, 'success');
+  // Валидация протокола
+  const protocolValidation = validateProxyProtocol(protocol);
+  if (!protocolValidation.valid) {
+    output(`Недопустимый протокол: ${protocolValidation.error}`, 'error');
+    return;
+  }
+
+  // Базовая валидация URL
+  const fullUrl = `${protocol}://${proxyStr}`;
+  const urlValidation = validateUrl(fullUrl);
+  if (!urlValidation.valid) {
+    output(`Недопустимый URL прокси: ${urlValidation.error}`, 'error');
+    return;
+  }
+
+  globalProxyManager.addProxy(proxyStr, protocolValidation.value);
+  output(`Прокси добавлен: ${proxyStr} (${protocolValidation.value})`, 'success');
 
   // Проверка прокси
   output('Проверка прокси...', 'process');
   const isWorking = await globalProxyManager.checkProxy(
-    globalProxyManager.parseProxy(proxyStr, protocol),
-    protocol
+    globalProxyManager.parseProxy(proxyStr, protocolValidation.value),
+    protocolValidation.value
   );
 
   output(isWorking ? 'Пркси работает' : 'Прокси не работает', isWorking ? 'success' : 'warning');

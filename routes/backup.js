@@ -74,12 +74,29 @@ router.post('/preview', async (req, res) => {
 
 /**
  * GET /api/config-backup/list
- * Список бэкапов
+ * Список бэкапов с пагинацией
  */
 router.get('/list', async (req, res) => {
   try {
+    const { limit = 50, offset = 0 } = req.query;
+    const limitNum = Math.min(parseInt(limit, 10) || 50, 100); // Максимум 100
+    const offsetNum = Math.max(parseInt(offset, 10) || 0, 0);
+
     const backups = await globalConfigBackup.listBackups();
-    return res.json({ success: true, backups });
+
+    // Применяем пагинацию
+    const paginatedBackups = backups.slice(offsetNum, offsetNum + limitNum);
+
+    return res.json({
+      success: true,
+      backups: paginatedBackups,
+      pagination: {
+        total: backups.length,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: offsetNum + limitNum < backups.length
+      }
+    });
   } catch (error) {
     logger.error(`Backup list error: ${error.message}`, 'backup');
     return res.status(500).json({ success: false, error: error.message });

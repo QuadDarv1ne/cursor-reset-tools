@@ -4,8 +4,9 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { globalVPNManager } from '../utils/vpnManager.js';
-import { globalDNSManager } from '../utils/dnsManager.js';
+import { globalDNSManager, DNS_SERVERS } from '../utils/dnsManager.js';
 import { globalDoHManager } from '../utils/dohManager.js';
 import { globalSystemProxyManager } from '../utils/systemProxyManager.js';
 import { globalMonitorManager } from '../utils/monitorManager.js';
@@ -15,6 +16,27 @@ import { validateRequest, validateIp, validateDomain } from '../utils/validator.
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+
+// Whitelist допустимых DNS провайдеров
+const VALID_DNS_PROVIDERS = Object.keys(DNS_SERVERS);
+
+// Rate limiter для DNS/VPN операций (максимум 10 запросов в 10 минут)
+const networkLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 минут
+  max: 10,
+  message: {
+    success: false,
+    error: 'Too many network requests, please try again later (max 10 per 10 minutes)'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => req.ip || 'unknown'
+});
+
+// Применяем rate limiter к чувствительным операциям
+router.post('/dns/set', networkLimiter);
+router.post('/dns/restore', networkLimiter);
+router.post('/vpn*', networkLimiter);
 
 // ============================================
 // VPN endpoints
@@ -194,7 +216,15 @@ router.post('/dns/set', async (req, res) => {
 
     const { provider } = validation.data;
 
-    const success = await globalDNSManager.setDNS(provider);
+    // Валидация через whitelist допустимых провайдеров
+    if (!VALID_DNS_PROVIDERS.includes(provider.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid DNS provider. Must be one of: ${VALID_DNS_PROVIDERS.join(', ')}`
+      });
+    }
+
+    const success = await globalDNSManager.setDNS(provider.toLowerCase());
     if (success) {
       await globalDNSManager.flushDNSCache();
       return res.json({ success: true, message: `DNS set to ${provider}` });

@@ -298,6 +298,11 @@ class MonitorManager {
       });
     }, interval);
 
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.autoCheckTimer && typeof this.autoCheckTimer.unref === 'function') {
+      this.autoCheckTimer.unref();
+    }
+
     logger.info(`Auto monitor enabled (interval: ${interval}ms)`, 'monitor');
   }
 

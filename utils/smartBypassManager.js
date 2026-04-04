@@ -945,6 +945,11 @@ class SmartBypassManager {
       }
     }, intervalMs);
 
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.autoTestInterval && typeof this.autoTestInterval.unref === 'function') {
+      this.autoTestInterval.unref();
+    }
+
     logger.info(`Auto-test started with interval ${intervalMs}ms`, 'smart-bypass');
   }
 

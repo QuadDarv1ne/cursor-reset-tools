@@ -383,6 +383,11 @@ export class ProxyDatabase {
       await this.refresh();
     }, intervalMs);
 
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.updateInterval && typeof this.updateInterval.unref === 'function') {
+      this.updateInterval.unref();
+    }
+
     logger.info(`Auto-update enabled (interval: ${intervalMs}ms)`, 'proxy-db');
   }
 

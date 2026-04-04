@@ -4,12 +4,32 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { globalNotificationManager } from '../utils/notificationManager.js';
 import { globalStatsCache } from '../utils/statsCache.js';
 import { validateUrl } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+
+// Rate limiter для уведомлений (максимум 10 запросов в 10 минут)
+const notificationLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 минут
+  max: 10,
+  message: {
+    success: false,
+    error: 'Too many notification requests, please try again later (max 10 per 10 minutes)'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => req.ip || 'unknown'
+});
+
+// Применяем rate limiter к изменяющим операциям
+router.post('/configure/*', notificationLimiter);
+router.post('/enable', notificationLimiter);
+router.post('/disable', notificationLimiter);
+router.post('/test', notificationLimiter);
 
 /**
  * GET /api/notifications/status

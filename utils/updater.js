@@ -27,9 +27,9 @@ export const UPDATER_CONFIG = {
 };
 
 /**
- * Текущая версия приложения
+ * Текущая версия приложения (синхронизировано с package.json)
  */
-export const CURRENT_VERSION = '2.1.0';
+export const CURRENT_VERSION = '2.8.0-dev';
 
 /**
  * Класс Updater

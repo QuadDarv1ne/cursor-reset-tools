@@ -354,6 +354,11 @@ class WSServer {
       this.broadcast(status, 'status');
     }, interval);
 
+    // Разрешаем процессу завершиться даже с активным интервалом
+    if (this.broadcastInterval && typeof this.broadcastInterval.unref === 'function') {
+      this.broadcastInterval.unref();
+    }
+
     logger.info(`WebSocket broadcast started (interval: ${interval}ms)`, 'websocket');
   }
 

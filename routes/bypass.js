@@ -3,10 +3,26 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { globalBypassTester } from '../utils/bypassTester.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+
+// Rate limiter для bypass тестирования (максимум 10 запросов в 5 минут)
+const bypassLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 минут
+  max: 10,
+  message: {
+    success: false,
+    error: 'Too many bypass test requests, please try again later (max 10 per 5 minutes)'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => req.ip || 'unknown'
+});
+
+router.use(bypassLimiter);
 
 /**
  * GET /api/bypass/test/full

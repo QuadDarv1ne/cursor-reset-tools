@@ -12,6 +12,7 @@ import https from 'https';
 import http from 'http';
 import { logger } from './logger.js';
 import { CACHE_CONSTANTS, VPN_CONSTANTS } from './constants.js';
+import { globalCircuitBreakerManager } from './circuitBreaker.js';
 
 const execPromise = promisify(exec);
 
@@ -246,47 +247,63 @@ class VPNManager {
       return this.ipInfoCache;
     }
 
-    // Запрос к API
-    const result = await new Promise(resolve => {
-      const timeout = setTimeout(() => resolve(null), VPN_CONSTANTS.VPN_API_TIMEOUT);
-      timeout.unref();
+    const circuitBreaker = globalCircuitBreakerManager.get('api:ip-check');
 
-      http.get('http://ip-api.com/json/', res => {
-        clearTimeout(timeout);
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            if (json.status === 'success') {
-              resolve({
-                ip: json.query,
-                country: json.country,
-                countryCode: json.countryCode,
-                city: json.city,
-                isp: json.isp,
-                org: json.org
-              });
-            } else {
-              resolve(null);
-            }
-          } catch {
-            resolve(null);
-          }
+    try {
+      // Запрос к API через Circuit Breaker
+      const result = await circuitBreaker.execute(async () => {
+        return await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('IP info request timeout'));
+          }, VPN_CONSTANTS.VPN_API_TIMEOUT);
+          timeout.unref();
+
+          http.get('http://ip-api.com/json/', res => {
+            clearTimeout(timeout);
+            let data = '';
+            res.on('data', chunk => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data);
+                if (json.status === 'success') {
+                  resolve({
+                    ip: json.query,
+                    country: json.country,
+                    countryCode: json.countryCode,
+                    city: json.city,
+                    isp: json.isp,
+                    org: json.org
+                  });
+                } else {
+                  reject(new Error(`IP API returned status: ${json.status}`));
+                }
+              } catch (error) {
+                reject(error);
+              }
+            });
+          }).on('error', error => {
+            clearTimeout(timeout);
+            reject(error);
+          });
         });
-      }).on('error', () => {
-        clearTimeout(timeout);
-        resolve(null);
+      }, {
+        fallback: () => {
+          logger.warn('IP info service temporarily unavailable (circuit breaker)', 'vpn');
+          return this.ipInfoCache || null;
+        }
       });
-    });
 
-    // Сохранение в кэш
-    if (result) {
-      this.ipInfoCache = result;
-      this.ipInfoCacheTime = now;
+      // Сохранение в кэш
+      if (result) {
+        this.ipInfoCache = result;
+        this.ipInfoCacheTime = now;
+      }
+
+      return result;
+    } catch (error) {
+      logger.debug(`getIPInfo failed: ${error.message}`, 'vpn');
+      return this.ipInfoCache || null;
     }
-
-    return result;
   }
 
   /**
@@ -644,27 +661,38 @@ class VPNManager {
    * Получение VPN IP
    */
   async getVPNIP() {
-    return new Promise(resolve => {
-      const timeout = setTimeout(() => resolve(null), VPN_CONSTANTS.VPN_API_TIMEOUT);
-      timeout.unref();
+    const circuitBreaker = globalCircuitBreakerManager.get('api:ip-check');
 
-      https.get('https://api.ipify.org?format=json', res => {
-        clearTimeout(timeout);
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(data);
-            resolve(json.ip);
-          } catch {
-            resolve(null);
-          }
+    try {
+      return await circuitBreaker.execute(async () => {
+        return await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('VPN IP request timeout'));
+          }, VPN_CONSTANTS.VPN_API_TIMEOUT);
+          timeout.unref();
+
+          https.get('https://api.ipify.org?format=json', res => {
+            clearTimeout(timeout);
+            let data = '';
+            res.on('data', chunk => { data += chunk; });
+            res.on('end', () => {
+              try {
+                const json = JSON.parse(data);
+                resolve(json.ip);
+              } catch (error) {
+                reject(error);
+              }
+            });
+          }).on('error', error => {
+            clearTimeout(timeout);
+            reject(error);
+          });
         });
-      }).on('error', () => {
-        clearTimeout(timeout);
-        resolve(null);
       });
-    });
+    } catch (error) {
+      logger.debug(`getVPNIP failed: ${error.message}`, 'vpn');
+      return null;
+    }
   }
 
   /**

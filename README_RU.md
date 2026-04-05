@@ -53,11 +53,54 @@ cd cursor-reset-tools
 # Установка зависимостей
 npm install
 
-# Запуск приложения
+# Автоматическая настройка (рекомендуется)
 npm start
 ```
 
-Сервер запустится на http://localhost:3000
+Приложение автоматически настроится при первом запуске:
+- ✓ Создаст нужные директории
+- ✓ Сгенерирует `.env` файл с настройками по умолчанию
+- ✓ Проверит окружение и зависимости
+
+### Ручная настройка (опционально)
+
+```bash
+# Проверить окружение
+node cli.js autosetup:check
+
+# Применить исправления и создать .env
+node cli.js autosetup:fix
+
+# Выбрать профиль (minimal/standard/full)
+node cli.js autosetup:fix --profile full
+```
+
+### Профили автонастройки
+
+| Профиль | Описание | Для кого |
+|---------|----------|----------|
+| `minimal` | Только основные функции | Быстрый старт, мало ресурсов |
+| `standard` | Баланс (по умолчанию) | Большинство пользователей |
+| `full` | Все функции включены | Продвинутые пользователи |
+
+### CLI команды для автонастройки
+
+```bash
+# Проверить статус окружения
+node cli.js autosetup:check
+
+# Применить автоматические исправления
+node cli.js autosetup:fix
+
+# Сгенерировать .env файл
+node cli.js autosetup:env
+
+# Посмотреть доступные профили
+node cli.js autosetup:profiles
+
+# Проверить текущий статус
+node cli.js autosetup:status
+```
 
 ### С помощью Make
 
@@ -84,6 +127,33 @@ docker-compose up --build
 # Или вручную
 docker build -t cursor-reset-tools .
 docker run -p 3000:3000 -v $(pwd)/data:/app/data cursor-reset-tools
+```
+
+## Стабильность и надёжность
+
+Приложение включает **Circuit Breakers** и **умную retry логику** для максимальной стабильности:
+
+- **Автоматическое восстановление** - Ошибочные операции повторяются с экспоненциальной задержкой + jitter
+- **Защита от каскадных сбоев** - Circuit breakers предотвращают лавинообразные ошибки
+- **Мониторинг в реальном времени** - Отслеживание здоровья всех подсистем
+
+### Команды Circuit Breakers
+
+```bash
+# Проверить статус всех circuit breakers
+node cli.js cb:status
+
+# Показать только разомкнутые цепи
+node cli.js cb:status --open
+
+# Сбросить все circuit breakers
+node cli.js cb:reset --all
+
+# Сбросить конкретный breaker
+node cli.js cb:reset --name proxy:check
+
+# Подробная информация о breaker
+node cli.js cb:info api:ip-check
 ```
 
 ## Быстрая проверка VPN и DNS

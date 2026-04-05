@@ -12,16 +12,19 @@ const execPromise = promisify(exec);
 
 /**
  * Retry конфигурация из config.automation
+ * Улучшенная с экспоненциальной задержкой и jitter
  */
 export const RETRY_CONFIG = {
   maxAttempts: config.automation.autoRetryMaxAttempts,
   baseDelay: config.automation.autoRetryBaseDelay,
   maxDelay: 10000,
-  exponential: true
+  exponential: true,
+  jitter: 0.1 // Добавление случайности для предотвращения thundering herd
 };
 
 /**
  * Выполнение операции с retry logic
+ * Улучшенная версия с экспоненциальной задержкой и jitter
  * @param {Function} operation - Асинхронная операция
  * @param {Object} options - Опции retry
  * @returns {Promise<any>}
@@ -32,7 +35,9 @@ export const withRetry = async (operation, options = {}) => {
     baseDelay = RETRY_CONFIG.baseDelay,
     maxDelay = RETRY_CONFIG.maxDelay,
     exponential = RETRY_CONFIG.exponential,
-    onRetry
+    jitter = RETRY_CONFIG.jitter,
+    onRetry,
+    name = 'operation'
   } = options;
 
   let lastError;
@@ -46,15 +51,33 @@ export const withRetry = async (operation, options = {}) => {
       lastError = error;
 
       if (attempt >= maxAttempts) {
-        logger.error(`Operation failed after ${attempt} attempts: ${error.message}`, 'retry');
+        logger.error(
+          `${name} failed after ${attempt} attempts: ${error.message}`,
+          'retry'
+        );
         break;
       }
 
-      const delayTime = exponential
-        ? Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay)
+      // Расчёт задержки с экспоненциальным ростом и jitter
+      let delayTime = exponential
+        ? baseDelay * Math.pow(2, attempt - 1)
         : baseDelay;
 
-      logger.debug(`Attempt ${attempt} failed, retrying in ${delayTime}ms...`, 'retry');
+      // Ограничение максимальной задержки
+      delayTime = Math.min(delayTime, maxDelay);
+
+      // Добавление jitter для предотвращения thundering herd
+      if (jitter > 0) {
+        const jitterAmount = delayTime * jitter * (Math.random() * 2 - 1);
+        delayTime += jitterAmount;
+      }
+
+      delayTime = Math.max(0, Math.round(delayTime));
+
+      logger.debug(
+        `${name} attempt ${attempt}/${maxAttempts} failed, retrying in ${delayTime}ms...`,
+        'retry'
+      );
 
       if (onRetry) {
         await onRetry(error, attempt, delayTime);

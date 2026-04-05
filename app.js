@@ -42,6 +42,8 @@ import { createLogger } from './utils/logger.js';
 import { SECURITY_CONSTANTS } from './utils/constants.js';
 import { globalAutoRollbackManager } from './utils/autoRollback.js';
 import { appConfig } from './utils/appConfig.js';
+import { globalAutoSetup } from './utils/autoSetup.js';
+import { globalCircuitBreakerManager } from './utils/circuitBreaker.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -308,6 +310,24 @@ app.get('/config', (req, res) => {
   });
 });
 
+// AutoSetup status endpoint
+app.get('/api/autosetup/status', (req, res) => {
+  const status = globalAutoSetup.getStatus();
+  res.json({
+    success: true,
+    ...status
+  });
+});
+
+// AutoSetup profiles endpoint
+app.get('/api/autosetup/profiles', (req, res) => {
+  res.json({
+    success: true,
+    profiles: globalAutoSetup.getProfiles(),
+    current: globalAutoSetup.getStatus().profile
+  });
+});
+
 // Smart bypass status и Monitor status удалены - дублируются в routes/bypass.js
 
 // ============================================
@@ -336,6 +356,43 @@ app.get('/bypass', (req, res) => {
 
 app.get('/dashboard', (req, res) => {
   res.render('dashboard', {});
+});
+
+// Circuit Breakers status endpoint
+app.get('/api/circuit-breakers/status', (req, res) => {
+  const status = globalCircuitBreakerManager.getAllStatus();
+  res.json({
+    success: true,
+    ...status
+  });
+});
+
+// Circuit Breakers reset endpoint
+app.post('/api/circuit-breakers/reset', (req, res) => {
+  globalCircuitBreakerManager.resetAll();
+  res.json({
+    success: true,
+    message: 'All circuit breakers reset'
+  });
+});
+
+// Circuit Breakers individual reset
+app.post('/api/circuit-breakers/:name/reset', (req, res) => {
+  const { name } = req.params;
+  const breaker = globalCircuitBreakerManager.get(name);
+  
+  if (!breaker) {
+    return res.status(404).json({
+      success: false,
+      error: `Circuit breaker '${name}' not found`
+    });
+  }
+
+  breaker.reset();
+  res.json({
+    success: true,
+    message: `Circuit breaker '${name}' reset`
+  });
 });
 
 // ============================================
@@ -536,6 +593,43 @@ app.use((req, res) => {
 let currentServer = server;
 const startServer = async () => {
   try {
+    // ============================================
+    // Автонастройка окружения (ПЕРВЫМ шагом)
+    // ============================================
+    const autoSetupResult = await globalAutoSetup.init({
+      profile: process.env.AUTOSETUP_PROFILE || 'standard',
+      autoFix: true,
+      generateEnv: true,
+      strict: false // Не прерывать при ошибках, только предупреждения
+    });
+
+    if (autoSetupResult.success) {
+      const setupTime = autoSetupResult.duration;
+      const fixes = autoSetupResult.fixes.length;
+      const warnings = autoSetupResult.warnings.length;
+
+      if (fixes > 0 || warnings > 0) {
+        logger.info(
+          `AutoSetup: ${fixes} fixes applied, ${warnings} warnings (${setupTime}ms)`,
+          'app'
+        );
+      }
+
+      // Логирование предупреждений
+      if (warnings > 0) {
+        autoSetupResult.warnings.forEach(w => logger.warn(`AutoSetup: ${w}`, 'app'));
+      }
+    } else {
+      logger.error('AutoSetup failed with errors:', 'app');
+      autoSetupResult.errors.forEach(e => logger.error(`  - ${e}`, 'app'));
+    }
+
+    // ============================================
+    // Инициализация Circuit Breakers (защита от каскадных сбоев)
+    // ============================================
+    globalCircuitBreakerManager.initDefaults();
+    logger.info('Circuit breakers initialized', 'app');
+
     // Инициализация менеджеров (ПАРАЛЛЕЛЬНО для ускорения запуска)
     const initResults = await Promise.allSettled([
       globalMonitorManager.init(),

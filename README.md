@@ -49,13 +49,91 @@ cd cursor-reset-tools
 npm install
 ```
 
-3. **Start the application**
+3. **Automatic Setup (Recommended)**
+
+The tool automatically configures itself on first run:
+- Creates required directories
+- Generates `.env` file with defaults
+- Validates environment and dependencies
+
+```bash
+npm start
+```
+
+For manual setup or customization:
+
+```bash
+# Check environment
+node cli.js autosetup:check
+
+# Apply fixes and generate .env
+node cli.js autosetup:fix
+
+# Choose a profile (minimal/standard/full)
+node cli.js autosetup:fix --profile full
+```
+
+4. **Start the application**
 
 ```bash
 npm start
 ```
 
 The server will start at http://localhost:3000
+
+### AutoSetup Profiles
+
+| Profile | Description | Best For |
+|---------|-------------|----------|
+| `minimal` | Basic features only | Quick start, low resources |
+| `standard` | Balanced (default) | Most users |
+| `full` | All features enabled | Power users |
+
+### CLI Commands for AutoSetup
+
+```bash
+# Check environment status
+node cli.js autosetup:check
+
+# Apply automatic fixes
+node cli.js autosetup:fix
+
+# Generate .env file
+node cli.js autosetup:env
+
+# View available profiles
+node cli.js autosetup:profiles
+
+# Check current status
+node cli.js autosetup:status
+```
+
+## Stability & Reliability
+
+The tool includes **Circuit Breakers** and **Smart Retry** logic for maximum stability:
+
+- **Automatic failure recovery** - Failed operations are retried with exponential backoff + jitter
+- **Circuit breaker protection** - Prevents cascading failures across all services
+- **Real-time monitoring** - Track health of all subsystems
+
+### Circuit Breaker Commands
+
+```bash
+# Check all circuit breakers status
+node cli.js cb:status
+
+# Show only open (tripped) breakers
+node cli.js cb:status --open
+
+# Reset all circuit breakers
+node cli.js cb:reset --all
+
+# Reset specific breaker
+node cli.js cb:reset --name proxy:check
+
+# Get detailed info about a breaker
+node cli.js cb:info api:ip-check
+```
 
 ## Running with Administrator Rights
 

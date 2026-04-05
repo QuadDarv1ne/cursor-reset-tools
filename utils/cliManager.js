@@ -14,6 +14,8 @@ import { globalCursorRegistrar } from './cursorRegistrar.js';
 import { globalUpdater } from './updater.js';
 import { globalBypassServer } from '../server/bypassServer.js';
 import { globalConfigBackup } from './configBackup.js';
+import { globalAutoSetup } from './autoSetup.js';
+import { globalCircuitBreakerManager } from './circuitBreaker.js';
 import { logger } from './logger.js';
 import { validateUrl, validateProxyProtocol } from './validator.js';
 import { EMAIL_CONSTANTS, CURSOR_CONSTANTS } from './constants.js';
@@ -356,6 +358,50 @@ export const CLI_COMMANDS = {
     description: 'Статистика бэкапов',
     usage: 'backup:stats',
     handler: handleBackupStats
+  },
+
+  // AutoSetup команды
+  'autosetup:check': {
+    description: 'Проверить окружение',
+    usage: 'autosetup:check [--profile minimal|standard|full]',
+    handler: handleAutoSetupCheck
+  },
+  'autosetup:fix': {
+    description: 'Исправить проблемы',
+    usage: 'autosetup:fix [--profile minimal|standard|full]',
+    handler: handleAutoSetupFix
+  },
+  'autosetup:env': {
+    description: 'Сгенерировать .env файл',
+    usage: 'autosetup:env [--force]',
+    handler: handleAutoSetupEnv
+  },
+  'autosetup:profiles': {
+    description: 'Список профилей',
+    usage: 'autosetup:profiles',
+    handler: handleAutoSetupProfiles
+  },
+  'autosetup:status': {
+    description: 'Статус автонастройки',
+    usage: 'autosetup:status',
+    handler: handleAutoSetupStatus
+  },
+
+  // Circuit Breaker команды
+  'cb:status': {
+    description: 'Статус circuit breakers',
+    usage: 'cb:status [--open]',
+    handler: handleCircuitBreakerStatus
+  },
+  'cb:reset': {
+    description: 'Сброс circuit breakers',
+    usage: 'cb:reset [--all] [--name <name>]',
+    handler: handleCircuitBreakerReset
+  },
+  'cb:info': {
+    description: 'Информация о circuit breaker',
+    usage: 'cb:info <name>',
+    handler: handleCircuitBreakerInfo
   }
 };
 
@@ -1336,6 +1382,270 @@ async function handleBackupStats() {
   }
 }
 
+// ============================================
+// AutoSetup обработчики
+// ============================================
+
+async function handleAutoSetupCheck(args) {
+  const { flags } = args;
+  const profile = flags.profile || 'standard';
+
+  output(`Проверка окружения (профиль: ${profile})...`, 'process');
+
+  try {
+    const result = await globalAutoSetup.init({
+      profile,
+      autoFix: false,
+      generateEnv: false,
+      strict: false
+    });
+
+    if (result.success) {
+      output('Проверка завершена успешно', 'success');
+    } else {
+      output('Обнаружены проблемы:', 'warning');
+      result.errors?.forEach(e => console.log(`  ❌ ${e}`));
+    }
+
+    // Показать предупреждения
+    if (result.warnings?.length > 0) {
+      console.log('');
+      output('Предупреждения:', 'warning');
+      result.warnings.forEach(w => console.log(`  ⚠️  ${w}`));
+    }
+
+    // Показать исправления
+    if (result.fixes?.length > 0) {
+      console.log('');
+      output('Исправления:', 'info');
+      result.fixes.forEach(f => console.log(`  ✓ ${f.type}: ${f.action}`));
+    }
+  } catch (error) {
+    output(`Ошибка проверки: ${error.message}`, 'error');
+  }
+}
+
+async function handleAutoSetupFix(args) {
+  const { flags } = args;
+  const profile = flags.profile || 'standard';
+
+  output(`Применение исправлений (профиль: ${profile})...`, 'process');
+
+  try {
+    const result = await globalAutoSetup.init({
+      profile,
+      autoFix: true,
+      generateEnv: true,
+      strict: false
+    });
+
+    if (result.success) {
+      output(`Автонастройка завершена (${result.duration}ms)`, 'success');
+
+      if (result.fixes?.length > 0) {
+        console.log('');
+        output(`Применено исправлений: ${result.fixes.length}`, 'info');
+        result.fixes.forEach(f => {
+          const icon = f.action === 'error' ? '❌' : f.action === 'warning' ? '⚠️' : '✓';
+          console.log(`  ${icon} ${f.type}: ${f.action}${f.path ? ` (${f.path})` : ''}`);
+        });
+      }
+
+      if (result.warnings?.length > 0) {
+        console.log('');
+        output(`Предупреждений: ${result.warnings.length}`, 'warning');
+        result.warnings.forEach(w => console.log(`  ⚠️  ${w}`));
+      }
+    } else {
+      output('Автонастройка завершилась с ошибками:', 'error');
+      result.errors?.forEach(e => console.log(`  ❌ ${e}`));
+    }
+  } catch (error) {
+    output(`Ошибка исправления: ${error.message}`, 'error');
+  }
+}
+
+async function handleAutoSetupEnv(args) {
+  const { flags } = args;
+  const force = flags.force || false;
+
+  output('Генерация .env файла...', 'process');
+
+  try {
+    const projectRoot = process.cwd();
+    const envPath = path.join(projectRoot, '.env');
+    const envExists = await fs.pathExists(envPath);
+
+    if (envExists && !force) {
+      output('.env файл уже существует. Используйте --force для перезаписи', 'warning');
+      return;
+    }
+
+    const envContent = globalAutoSetup.generateEnvContent();
+    await fs.writeFile(envPath, envContent, { encoding: 'utf8' });
+
+    output(`.env файл создан: ${envPath}`, 'success');
+    output('Отредактируйте файл под ваши потребности', 'info');
+  } catch (error) {
+    output(`Ошибка генерации .env: ${error.message}`, 'error');
+  }
+}
+
+async function handleAutoSetupProfiles() {
+  output('Доступные профили автонастройки:', 'info');
+
+  const profiles = globalAutoSetup.getProfiles();
+
+  for (const [name, profile] of Object.entries(profiles)) {
+    const current = globalAutoSetup.getStatus().profile === name ? ' ← текущий' : '';
+    console.log(`\n  ${name.toUpperCase()}${current}`);
+    console.log(`  ${profile.description}`);
+    console.log('  Функции:');
+
+    for (const [feature, enabled] of Object.entries(profile.features)) {
+      const icon = enabled ? '✓' : '✗';
+      console.log(`    ${icon} ${feature}`);
+    }
+  }
+
+  console.log('\n');
+  output('Использование: node cli.js autosetup:fix --profile <name>', 'info');
+}
+
+async function handleAutoSetupStatus() {
+  output('Статус автонастройки:', 'info');
+
+  const status = globalAutoSetup.getStatus();
+
+  console.log(`  Инициализировано: ${status.initialized ? '✓ Да' : '✗ Нет'}`);
+  console.log(`  Профиль: ${status.profile}`);
+  console.log(`  Применено исправлений: ${status.fixes.length}`);
+
+  if (status.fixes.length > 0) {
+    console.log('\n  История исправлений:');
+    status.fixes.forEach((f, i) => {
+      console.log(`    ${i + 1}. ${f.type}: ${f.action}${f.path ? ` (${f.path})` : ''}`);
+    });
+  }
+
+  // Показать результаты проверок
+  if (status.checks.environment) {
+    console.log('\n  Окружение:');
+    console.log(`    Платформа: ${status.checks.environment.checks.platform.value}`);
+    console.log(`    Node.js: ${status.checks.environment.checks.nodeVersion.value}`);
+    console.log(`    Память свободно: ${status.checks.environment.checks.memory.percentFree}%`);
+  }
+}
+
+// ============================================
+// Circuit Breaker обработчики
+// ============================================
+
+async function handleCircuitBreakerStatus(args) {
+  const { flags } = args;
+  const showOpenOnly = flags.open || false;
+
+  output('Статус Circuit Breakers:', 'info');
+
+  const status = globalCircuitBreakerManager.getAllStatus();
+
+  console.log(`\n  Глобальная статистика:`);
+  console.log(`    Всего breakers: ${status.global.totalBreakers}`);
+  console.log(`    Разомкнуто: ${status.global.openBreakers}`);
+  console.log(`    Всего вызовов: ${status.global.totalCalls}`);
+  console.log(`    Всего ошибок: ${status.global.totalFailures}`);
+
+  if (showOpenOnly) {
+    const openBreakers = globalCircuitBreakerManager.getOpenBreakers();
+    
+    console.log(`\n  Разомкнутые circuit breakers:`);
+    if (openBreakers.length === 0) {
+      console.log('    Нет разомкнутых цепей');
+    } else {
+      openBreakers.forEach(({ name, status }) => {
+        console.log(`\n    🔴 ${name}`);
+        console.log(`      Состояние: ${status.state}`);
+        console.log(`      Ошибок: ${status.stats.failedCalls}`);
+        console.log(`      Отклонено: ${status.stats.rejectedCalls}`);
+        if (status.timeUntilNextAttempt) {
+          console.log(`      Следующая попытка через: ${(status.timeUntilNextAttempt / 1000).toFixed(1)}s`);
+        }
+      });
+    }
+  } else {
+    console.log(`\n  Все circuit breakers:`);
+    for (const [name, breakerStatus] of Object.entries(status.breakers)) {
+      const icon = breakerStatus.state === 'closed' ? '🟢' : 
+                   breakerStatus.state === 'open' ? '🔴' : '🟡';
+      console.log(`    ${icon} ${name} (${breakerStatus.state})`);
+      console.log(`       Вызовы: ${breakerStatus.stats.totalCalls} | Ошибки: ${breakerStatus.stats.failedCalls} (${breakerStatus.stats.failureRate}%)`);
+    }
+  }
+}
+
+async function handleCircuitBreakerReset(args) {
+  const { flags } = args;
+  const resetAll = flags.all || false;
+  const name = flags.name || null;
+
+  if (resetAll) {
+    output('Сброс всех circuit breakers...', 'process');
+    globalCircuitBreakerManager.resetAll();
+    output('Все circuit breakers сброшены', 'success');
+  } else if (name) {
+    output(`Сброс circuit breaker: ${name}...`, 'process');
+    const breaker = globalCircuitBreakerManager.get(name);
+    
+    if (!breaker) {
+      output(`Circuit breaker не найден: ${name}`, 'error');
+      return;
+    }
+
+    breaker.reset();
+    output(`Circuit breaker '${name}' сброшен`, 'success');
+  } else {
+    output('Укажите --all для сброса всех или --name <имя> для конкретного', 'warning');
+  }
+}
+
+async function handleCircuitBreakerInfo(args) {
+  const { params } = args;
+
+  if (params.length < 1) {
+    output('Укажите имя circuit breaker: cb:info <name>', 'error');
+    return;
+  }
+
+  const name = params[0];
+  const breaker = globalCircuitBreakerManager.get(name);
+
+  if (!breaker) {
+    output(`Circuit breaker не найден: ${name}`, 'error');
+    return;
+  }
+
+  const status = breaker.getStatus();
+
+  output(`Circuit Breaker: ${name}`, 'info');
+  console.log(`  Состояние: ${status.state}`);
+  console.log(`  Всего вызовов: ${status.stats.totalCalls}`);
+  console.log(`  Успешных: ${status.stats.successfulCalls} (${status.stats.successRate}%)`);
+  console.log(`  Ошибок: ${status.stats.failedCalls} (${status.stats.failureRate}%)`);
+  console.log(`  Отклонено: ${status.stats.rejectedCalls}`);
+  console.log(`  Последовательных ошибок: ${status.stats.consecutiveFailures}`);
+  console.log(`  Изменений состояния: ${status.stats.stateChanges}`);
+  
+  if (status.nextAttempt) {
+    console.log(`  Следующая попытка: ${new Date(status.nextAttempt).toLocaleString('ru-RU')}`);
+  }
+
+  console.log('\n  Конфигурация:');
+  console.log(`    Порог ошибок: ${status.config.failureThreshold}`);
+  console.log(`    Порог успеха: ${status.config.successThreshold}`);
+  console.log(`    Таймаут восстановления: ${status.config.recoveryTimeout}ms`);
+  console.log(`    Максимум retry: ${status.config.maxRetries}`);
+}
+
 async function handleHelp(args) {
   const { params } = args;
 
@@ -1373,6 +1683,8 @@ async function handleHelp(args) {
     'Monitor': ['monitor:check', 'monitor:start', 'monitor:stop', 'monitor:status'],
     'Reset': ['reset', 'reset:all'],
     'Backup': ['backup:export', 'backup:import', 'backup:list', 'backup:auto', 'backup:delete', 'backup:cleanup', 'backup:stats'],
+    'AutoSetup': ['autosetup:check', 'autosetup:fix', 'autosetup:env', 'autosetup:profiles', 'autosetup:status'],
+    'Circuit Breaker': ['cb:status', 'cb:reset', 'cb:info'],
     'Info': ['info', 'help']
   };
 

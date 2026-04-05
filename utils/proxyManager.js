@@ -10,6 +10,7 @@ import http from 'http';
 import fetch from 'node-fetch';
 import { logger } from './logger.js';
 import { appConfig } from './appConfig.js';
+import { globalCircuitBreakerManager } from './circuitBreaker.js';
 
 class ProxyManager {
   constructor() {
@@ -411,37 +412,49 @@ class ProxyManager {
       return { success: false, error: 'Proxy not found' };
     }
 
-    const startTime = Date.now();
-
+    const circuitBreaker = globalCircuitBreakerManager.get('proxy:check');
+    
     try {
-      const agent = this.createAgent(proxy);
-      const testUrl = 'https://api.ipify.org?format=json';
+      return await circuitBreaker.execute(async () => {
+        const startTime = Date.now();
 
-      const response = await this.fetchWithTimeout(testUrl, { agent }, timeout);
-      const data = JSON.parse(response);
+        const agent = this.createAgent(proxy);
+        const testUrl = 'https://api.ipify.org?format=json';
 
-      const responseTime = Date.now() - startTime;
+        const response = await this.fetchWithTimeout(testUrl, { agent }, timeout);
+        const data = JSON.parse(response);
 
-      proxy.successCount++;
-      proxy.responseTimes.push(responseTime);
-      if (proxy.responseTimes.length > 10) {
-        proxy.responseTimes.shift();
-      }
-      proxy.avgResponseTime = proxy.responseTimes.reduce((a, b) => a + b, 0) / proxy.responseTimes.length;
+        const responseTime = Date.now() - startTime;
 
-      // Обновляем health score
-      this.updateHealthScore(proxy, true, responseTime);
+        proxy.successCount++;
+        proxy.responseTimes.push(responseTime);
+        if (proxy.responseTimes.length > 10) {
+          proxy.responseTimes.shift();
+        }
+        proxy.avgResponseTime = proxy.responseTimes.reduce((a, b) => a + b, 0) / proxy.responseTimes.length;
 
-      return {
-        success: true,
-        ip: data.ip,
-        responseTime,
-        avgResponseTime: proxy.avgResponseTime
-      };
+        // Обновляем health score
+        this.updateHealthScore(proxy, true, responseTime);
+
+        return {
+          success: true,
+          ip: data.ip,
+          responseTime,
+          avgResponseTime: proxy.avgResponseTime
+        };
+      }, {
+        fallback: () => {
+          proxy.failCount++;
+          this.updateHealthScore(proxy, false);
+          return {
+            success: false,
+            error: 'Circuit breaker fallback - proxy temporarily unavailable'
+          };
+        }
+      });
     } catch (error) {
       proxy.failCount++;
       this.updateHealthScore(proxy, false);
-
       return {
         success: false,
         error: error.message

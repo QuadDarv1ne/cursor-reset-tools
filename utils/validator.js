@@ -18,6 +18,8 @@
  * });
  */
 
+import { appConfig } from './appConfig.js';
+
 /**
  * Базовые паттерны для валидации
  * @typedef {Object} Patterns
@@ -129,7 +131,7 @@ export function validateUrl(url) {
   }
 
   // Проверка на localhost в production
-  if (process.env.NODE_ENV === 'production') {
+  if (appConfig.network.nodeEnv === 'production') {
     const localhostPattern = /(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)/i;
     if (localhostPattern.test(sanitized)) {
       return { valid: false, error: 'Localhost URLs are not allowed in production' };

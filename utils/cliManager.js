@@ -1557,7 +1557,7 @@ async function handleCircuitBreakerStatus(args) {
 
   if (showOpenOnly) {
     const openBreakers = globalCircuitBreakerManager.getOpenBreakers();
-    
+
     console.log(`\n  Разомкнутые circuit breakers:`);
     if (openBreakers.length === 0) {
       console.log('    Нет разомкнутых цепей');
@@ -1575,8 +1575,8 @@ async function handleCircuitBreakerStatus(args) {
   } else {
     console.log(`\n  Все circuit breakers:`);
     for (const [name, breakerStatus] of Object.entries(status.breakers)) {
-      const icon = breakerStatus.state === 'closed' ? '🟢' : 
-                   breakerStatus.state === 'open' ? '🔴' : '🟡';
+      const icon = breakerStatus.state === 'closed' ? '🟢' :
+        breakerStatus.state === 'open' ? '🔴' : '🟡';
       console.log(`    ${icon} ${name} (${breakerStatus.state})`);
       console.log(`       Вызовы: ${breakerStatus.stats.totalCalls} | Ошибки: ${breakerStatus.stats.failedCalls} (${breakerStatus.stats.failureRate}%)`);
     }
@@ -1595,7 +1595,7 @@ async function handleCircuitBreakerReset(args) {
   } else if (name) {
     output(`Сброс circuit breaker: ${name}...`, 'process');
     const breaker = globalCircuitBreakerManager.get(name);
-    
+
     if (!breaker) {
       output(`Circuit breaker не найден: ${name}`, 'error');
       return;
@@ -1634,7 +1634,7 @@ async function handleCircuitBreakerInfo(args) {
   console.log(`  Отклонено: ${status.stats.rejectedCalls}`);
   console.log(`  Последовательных ошибок: ${status.stats.consecutiveFailures}`);
   console.log(`  Изменений состояния: ${status.stats.stateChanges}`);
-  
+
   if (status.nextAttempt) {
     console.log(`  Следующая попытка: ${new Date(status.nextAttempt).toLocaleString('ru-RU')}`);
   }

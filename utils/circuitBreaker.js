@@ -5,10 +5,7 @@
  * @module utils/circuitBreaker
  */
 
-import { createLogger } from './logger.js';
-import { appConfig } from './appConfig.js';
-
-const logger = createLogger({ level: appConfig.logging.level });
+import { logger } from './logger.js';
 
 // ============================================
 // Константы и конфигурация
@@ -17,31 +14,22 @@ const logger = createLogger({ level: appConfig.logging.level });
 const DEFAULT_CONFIG = {
   // Порог ошибок до открытия цепи
   failureThreshold: 5,
-  
   // Порог успеха для закрытия цепи (в half-open состоянии)
   successThreshold: 3,
-  
   // Время ожидания перед попыткой восстановления (мс)
   recoveryTimeout: 30000,
-  
   // Таймаут выполнения операции (мс)
   timeout: 10000,
-  
   // Базовая задержка для retry (мс)
   retryBaseDelay: 1000,
-  
   // Максимальная задержка retry (мс)
   retryMaxDelay: 60000,
-  
   // Множитель экспоненциальной задержки
   retryMultiplier: 2,
-  
   // Jitter для предотвращения thundering herd
   jitterFactor: 0.1,
-  
   // Максимальное количество retry
   maxRetries: 3,
-  
   // Включить мониторинг
   monitoring: true
 };
@@ -51,9 +39,9 @@ const DEFAULT_CONFIG = {
 // ============================================
 
 const CircuitState = {
-  CLOSED: 'closed',       // Нормальное состояние, запросы выполняются
-  OPEN: 'open',           // Цепь разомкнута, запросы блокируются
-  HALF_OPEN: 'half_open'  // Проверка восстановления
+  CLOSED: 'closed', // Нормальное состояние, запросы выполняются
+  OPEN: 'open', // Цепь разомкнута, запросы блокируются
+  HALF_OPEN: 'half_open' // Проверка восстановления
 };
 
 // ============================================
@@ -95,12 +83,12 @@ class CircuitStats {
   }
 
   get failureRate() {
-    if (this.totalCalls === 0) return 0;
+    if (this.totalCalls === 0) {return 0;}
     return (this.failedCalls / this.totalCalls) * 100;
   }
 
   get successRate() {
-    if (this.totalCalls === 0) return 0;
+    if (this.totalCalls === 0) {return 0;}
     return (this.successfulCalls / this.totalCalls) * 100;
   }
 
@@ -174,11 +162,11 @@ export class CircuitBreaker {
     // Выполнение с retry если включено
     while (attempt <= maxRetries && enableRetry) {
       attempt++;
-      
+
       try {
         // Выполнение операции с таймаутом
         const result = await this._executeWithTimeout(operation, timeout);
-        
+
         // Запись успеха
         this._recordSuccess();
         return result;
@@ -257,17 +245,17 @@ export class CircuitBreaker {
    */
   _calculateRetryDelay(attempt) {
     const { retryBaseDelay, retryMaxDelay, retryMultiplier, jitterFactor } = this.config;
-    
+
     // Экспоненциальная задержка
     let delay = retryBaseDelay * Math.pow(retryMultiplier, attempt - 1);
-    
+
     // Ограничение максимум
     delay = Math.min(delay, retryMaxDelay);
-    
+
     // Добавление jitter для предотвращения thundering herd
     const jitter = delay * jitterFactor * (Math.random() * 2 - 1);
     delay += jitter;
-    
+
     return Math.max(0, Math.round(delay));
   }
 
@@ -312,7 +300,7 @@ export class CircuitBreaker {
   _tripCircuit() {
     this._changeState(CircuitState.OPEN);
     this.nextAttempt = Date.now() + this.config.recoveryTimeout;
-    
+
     this._logger.warn(
       `CircuitBreaker [${this.name}] TRIPPED! Next attempt in ${this.config.recoveryTimeout}ms`,
       'circuit-breaker'
@@ -342,7 +330,7 @@ export class CircuitBreaker {
     this.stats.reset();
     this.nextAttempt = null;
     this._changeState(CircuitState.CLOSED);
-    
+
     this._logger.info(`CircuitBreaker [${this.name}] manually reset`, 'circuit-breaker');
   }
 
@@ -441,7 +429,7 @@ export class CircuitBreakerManager {
     // Отслеживание изменений состояния
     breaker.onStateChange((oldState, newState) => {
       this._updateGlobalStats();
-      
+
       if (newState === CircuitState.OPEN) {
         logger.error(`CircuitBreaker opened: ${name}`, 'circuit-breaker-manager');
       } else if (newState === CircuitState.CLOSED) {
@@ -523,7 +511,7 @@ export class CircuitBreakerManager {
     let totalFailures = 0;
 
     this.breakers.forEach(breaker => {
-      if (breaker.state === CircuitState.OPEN) openCount++;
+      if (breaker.state === CircuitState.OPEN) {openCount++;}
       totalCalls += breaker.stats.totalCalls;
       totalFailures += breaker.stats.failedCalls;
     });

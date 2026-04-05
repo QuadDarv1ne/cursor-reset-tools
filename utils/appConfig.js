@@ -109,7 +109,10 @@ export const appConfig = {
     rateLimitMax: parseNumber(process.env.RATE_LIMIT_MAX_REQUESTS, 100),
 
     /** Максимальный размер загружаемых данных */
-    maxUploadSize: process.env.MAX_UPLOAD_SIZE || '1mb'
+    maxUploadSize: process.env.MAX_UPLOAD_SIZE || '1mb',
+
+    /** Начальная задержка тестирования bypass (мс) */
+    initialBypassDelay: parseNumber(process.env.INITIAL_BYPASS_DELAY, 5000)
   },
 
   // ============================================
@@ -313,7 +316,7 @@ export const appConfig = {
   }
 };
 
-// Заморозка конфигурации для предотвращения изменений
+// Заморозка вложенных объектов
 Object.freeze(appConfig.network);
 Object.freeze(appConfig.websocket);
 Object.freeze(appConfig.security);
@@ -326,5 +329,15 @@ Object.freeze(appConfig.backup);
 Object.freeze(appConfig.notifications);
 Object.freeze(appConfig.cache);
 Object.freeze(appConfig.shutdown);
+Object.freeze(appConfig.features);
+Object.freeze(appConfig.limits);
+
+// Заморозка методов
+Object.freeze(appConfig.get);
+Object.freeze(appConfig.isEnabled);
+Object.freeze(appConfig.toPublicConfig);
+
+// Полная заморозка顶层 объекта
+Object.freeze(appConfig);
 
 export default appConfig;

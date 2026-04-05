@@ -380,7 +380,7 @@ app.post('/api/circuit-breakers/reset', (req, res) => {
 app.post('/api/circuit-breakers/:name/reset', (req, res) => {
   const { name } = req.params;
   const breaker = globalCircuitBreakerManager.get(name);
-  
+
   if (!breaker) {
     return res.status(404).json({
       success: false,
@@ -744,17 +744,15 @@ const startServer = async () => {
     globalWSServer.init(server, port);
 
     // Initial bypass test с настраиваемой задержкой
-    const initialBypassDelay = 5000; // 5 секунд по умолчанию
     const initBypassTimer = setTimeout(() => {
       globalSmartBypassManager.testAllMethods().catch(err => {
         logger.error(`Initial bypass test failed: ${err.message}`, 'app');
       });
-    }, initialBypassDelay);
+    }, appConfig.security.initialBypassDelay);
     initBypassTimer.unref(); // Не блокирует graceful shutdown
 
     currentServer = server.listen(port, appConfig.network.host, () => {
       const msg = `🚀 Server running on http://${appConfig.network.host === '0.0.0.0' ? 'localhost' : appConfig.network.host}:${port} (WS: ${wsPort})`;
-      console.log(msg);
       logger.info(msg, 'app');
     });
 
@@ -766,7 +764,6 @@ const startServer = async () => {
         currentServer.close();
         currentServer = app.listen(newPort, () => {
           const msg = `🔄 Server restarted on http://${appConfig.network.host === '0.0.0.0' ? 'localhost' : appConfig.network.host}:${newPort}`;
-          console.log(msg);
           logger.info(msg, 'app');
           globalWSServer.broadcast({
             type: 'server_restart',

@@ -87,8 +87,6 @@
     "unicode-bom": ["error", "never"],
     "max-statements-per-line": ["error", { "max": 2 }],
     "no-multi-spaces": "error",
-    "no-plusplus": "off",
-    "no-nested-ternary": "off",
     "complexity": ["off", { "max": 20 }],
     "max-depth": ["off", { "max": 4 }],
     "max-params": ["warn", { "max": 5 }],

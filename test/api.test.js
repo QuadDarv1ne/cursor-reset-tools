@@ -35,7 +35,7 @@ describe('API Integration Tests', () => {
   afterAll(async () => {
     // Остановка сервера
     if (server) {
-      server.close();
+      await new Promise(resolve => server.close(resolve));
     }
   });
 

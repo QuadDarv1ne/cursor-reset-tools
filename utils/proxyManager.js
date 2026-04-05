@@ -413,7 +413,7 @@ class ProxyManager {
     }
 
     const circuitBreaker = globalCircuitBreakerManager.get('proxy:check');
-    
+
     try {
       return await circuitBreaker.execute(async () => {
         const startTime = Date.now();

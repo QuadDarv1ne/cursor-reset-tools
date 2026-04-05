@@ -442,12 +442,14 @@ class LeakDetector {
       // Проверка служб телеметрии
       for (const service of this.windowsTelemetryServices) {
         try {
-          const { stdout } = await execPromise(`sc query "${service}" 2>nul`);
+          const safeService = service.replace(/[^a-zA-Z0-9_\-\.]/g, '');
+          if (!safeService) {continue;}
+          const { stdout } = await execPromise(`sc query "${safeService}" 2>nul`);
           if (stdout.includes('RUNNING') || stdout.includes('4  RUNNING')) {
-            result.services.push({ name: service, status: 'running' });
+            result.services.push({ name: safeService, status: 'running' });
             result.enabled = true;
           } else if (stdout.includes('STOPPABLE')) {
-            result.services.push({ name: service, status: 'stopped_but_enabled' });
+            result.services.push({ name: safeService, status: 'stopped_but_enabled' });
           }
         } catch {
           // Служба не найдена или ошибка доступа
@@ -457,9 +459,11 @@ class LeakDetector {
       // Проверка задач телеметрии
       for (const task of this.windowsTelemetryTasks) {
         try {
-          const { stdout } = await execPromise(`schtasks /query /tn "${task}" 2>nul`);
+          const safeTask = task.replace(/[^a-zA-Z0-9_\-\.\\]/g, '');
+          if (!safeTask) {continue;}
+          const { stdout } = await execPromise(`schtasks /query /tn "${safeTask}" 2>nul`);
           if (stdout.includes('Ready') || stdout.includes('Running')) {
-            result.tasks.push({ name: task, status: 'enabled' });
+            result.tasks.push({ name: safeTask, status: 'enabled' });
             result.enabled = true;
           }
         } catch {

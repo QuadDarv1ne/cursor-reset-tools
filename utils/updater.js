@@ -106,43 +106,41 @@ export class Updater {
    */
   async fetchLatestRelease() {
     const circuitBreaker = globalCircuitBreakerManager.get('updater:service');
-    
-    return await circuitBreaker.execute(async () => {
-      return new Promise((resolve, reject) => {
-        const options = {
-          hostname: 'api.github.com',
-          path: `/repos/${UPDATER_CONFIG.owner}/${UPDATER_CONFIG.repo}/releases/latest`,
-          method: 'GET',
-          headers: {
-            'User-Agent': 'cursor-reset-tools-updater',
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          timeout: UPDATER_CONFIG.timeout
-        };
 
-        const req = https.get(options, res => {
-          let data = '';
+    return circuitBreaker.execute(async () => new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.github.com',
+        path: `/repos/${UPDATER_CONFIG.owner}/${UPDATER_CONFIG.repo}/releases/latest`,
+        method: 'GET',
+        headers: {
+          'User-Agent': 'cursor-reset-tools-updater',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        timeout: UPDATER_CONFIG.timeout
+      };
 
-          res.on('data', chunk => {
-            data += chunk;
-          });
+      const req = https.get(options, res => {
+        let data = '';
 
-          res.on('end', () => {
-            try {
-              resolve(JSON.parse(data));
-            } catch (error) {
-              reject(new Error('Failed to parse GitHub API response'));
-            }
-          });
+        res.on('data', chunk => {
+          data += chunk;
         });
 
-        req.on('error', reject);
-        req.on('timeout', () => {
-          req.destroy();
-          reject(new Error('GitHub API timeout'));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (error) {
+            reject(new Error('Failed to parse GitHub API response'));
+          }
         });
       });
-    });
+
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('GitHub API timeout'));
+      });
+    }));
   }
 
   /**

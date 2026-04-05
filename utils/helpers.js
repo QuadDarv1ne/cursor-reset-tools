@@ -258,27 +258,41 @@ export const updateWindowsRegistry = async newGuid => {
   if (os.platform() !== 'win32') {return false;}
 
   try {
-    const cmds = [
-      `REG ADD HKCU\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
-      `REG ADD HKCU\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
-      `REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
-      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
-      `REG ADD HKCU\\Software\\Cursor /v MachineId /t REG_SZ /d ${newGuid} /f /reg:64`
-    ];
+    const safeGuid1 = uuidv4().replace(/[^a-zA-Z0-9\-]/g, '');
+    const safeGuid2 = newGuid.replace(/[^a-zA-Z0-9\-]/g, '');
 
-    // ПАРАЛЛЕЛЬНОЕ выполнение вместо последовательного
-    const results = await Promise.allSettled(cmds.map(cmd => execPromise(cmd)));
-
-    // Логирование результатов
-    const success = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
-
-    if (failed > 0) {
-      logger.warn(`Registry update: ${success} succeeded, ${failed} failed`, 'helpers');
+    if (!safeGuid1 || !safeGuid2) {
+      logger.error('Invalid GUID format detected', 'helpers');
+      return false;
     }
 
-    return success > 0; // Возвращаем true если хотя бы одна команда успешна
-  } catch {
+    const cmds = [
+      `REG ADD HKCU\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${safeGuid1} /f`,
+      `REG ADD HKCU\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${safeGuid2} /f`,
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${safeGuid1} /f`,
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${safeGuid2} /f`,
+      `REG ADD HKCU\\Software\\Cursor /v MachineId /t REG_SZ /d ${safeGuid2} /f /reg:64`
+    ];
+
+    const results = await Promise.allSettled(cmds.map(cmd => execPromise(cmd)));
+
+    const success = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected');
+
+    if (failed.length > 0) {
+      failed.forEach((result, idx) => {
+        if (result.status === 'rejected') {
+          logger.error(`Registry command ${idx} failed: ${result.reason?.message || 'unknown error'}`, 'helpers');
+        }
+      });
+      logger.warn(`Registry update: ${success} succeeded, ${failed.length} failed`, 'helpers');
+    } else {
+      logger.info(`Registry update: all ${success} commands succeeded`, 'helpers');
+    }
+
+    return success > 0;
+  } catch (error) {
+    logger.error(`Registry update failed: ${error.message}`, 'helpers');
     return false;
   }
 };
@@ -299,12 +313,12 @@ export const updateMacOSPlatformUUID = async id => {
       await execPromise(`defaults write ${hp} "UUID" "${id}"`);
       await execPromise(`sudo defaults write ${p} "UUID" "${id}"`);
       return true;
-    } catch {
-      // Игнорируем ошибки
+    } catch (error) {
+      logger.error(`macOS Platform UUID update failed: ${error.message}`, 'helpers');
+      return false;
     }
-
-    return false;
-  } catch {
+  } catch (error) {
+    logger.error(`macOS PlatformUUID outer error: ${error.message}`, 'helpers');
     return false;
   }
 };

@@ -13,6 +13,7 @@ import { checkAdminRights, validatePaths, getCursorVersion, isCursorVersionSuppo
 import { globalCursorProcess } from '../utils/cursorProcess.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../utils/config.js';
+import { appConfig } from '../utils/appConfig.js';
 import { globalBackupManager } from '../utils/rollback.js';
 import { validateRequest } from '../utils/validator.js';
 import { globalFileValidator } from '../utils/fileValidator.js';
@@ -38,7 +39,7 @@ const execPromise = promisify(exec);
 // Вспомогательная функция для обработки ошибок API
 const handleApiError = (err, res, context = 'API') => {
   logger.error(`${context} error: ${err.message}`, 'api');
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = appConfig.network.nodeEnv === 'production';
   res.status(500).json({
     success: false,
     error: isProduction ? 'Internal server error' : err.message
@@ -58,8 +59,24 @@ const resetLimiter = rateLimit({
   keyGenerator: req => req.ip || 'unknown'
 });
 
-// Применяем rate limiter ко всем reset операциям
-rt.use(resetLimiter);
+// Rate limiter для операций чтения (более мягкий)
+const readLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 минута
+  max: 30, // 30 запросов в минуту
+  message: {
+    success: false,
+    error: 'Too many requests, please slow down'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: req => req.ip || 'unknown'
+});
+
+// Применяем rate limiter только к POST операциям (деструктивным)
+rt.post('*', resetLimiter);
+
+// Для GET используем более мягкий лимит
+rt.get('*', readLimiter);
 
 // Инициализация логгера
 logger.init();
@@ -582,7 +599,7 @@ const du = async () => {
         }
       } else {
         try {
-          fs.chmodSync(updaterPath, 0o444);
+          await fs.chmod(updaterPath, 0o444);
         } catch (e) {
           logs.push(`⚠️ Failed to set updater file permissions: ${e.message}`);
         }
@@ -605,7 +622,7 @@ const du = async () => {
           }
         } else {
           try {
-            fs.chmodSync(up, 0o444);
+            await fs.chmod(up, 0o444);
           } catch (e) {
             logs.push(`⚠️ Failed to set update.yml permissions: ${e.message}`);
           }
@@ -814,7 +831,7 @@ rt.post('/reset', async (req, res) => {
     res.json({ success: true, log: result });
   } catch (err) {
     logger.error(`Reset API error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
+    res.status(500).json({ success: false, error: appConfig.network.nodeEnv === 'production' ? 'Internal server error' : err.message });
   }
 });
 
@@ -877,14 +894,14 @@ rt.post('/patch', async (req, res) => {
     res.json({ success: true, log: result });
   } catch (err) {
     logger.error(`Patch API error: ${err.message}`, 'api');
-    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
+    res.status(500).json({ success: false, error: appConfig.network.nodeEnv === 'production' ? 'Internal server error' : err.message });
   }
 });
 
 rt.get('/paths', async (req, res) => {
   try {
     const { mp, sp, dp, ap, cp, up, pt } = gp();
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = appConfig.network.nodeEnv === 'production';
 
     // Кэшированная проверка процесса Cursor
     const cacheKey = `cursor_running_${pt}`;

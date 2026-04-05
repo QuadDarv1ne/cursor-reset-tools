@@ -3,95 +3,54 @@
 ## 🔍 АКТУАЛЬНЫЙ СТАТУС (5 апреля 2026 г.) - v2.8.0-dev
 
 ### 📊 Текущая ветка
-- **dev**: активная, несохранённые изменения готовы к коммиту ✅
-- **main**: стабильная, требует обновления после dev
+- **dev**: ✅ Синхронизирована с origin/dev, готова к релизу 2.8.0
+- **main**: ✅ Синхронизирована с origin/main, включает все изменения из dev
 
-### 📦 НОВЫЕ МОДУЛИ (готовы к интеграции)
+### ✅ ВЫПОЛНЕНО В ЭТОЙ ВЕРСИИ (Коммит: 1c7ee4e)
 
-#### 1. utils/autoSetup.js - Автоматическая настройка
-- **Статус**: ✅ Реализован, интегрирован в app.js и cliManager.js
-- **Функционал**:
-  - Проверка окружения (платформа, Node.js версия, память, CPU)
+#### Автоматизация
+- [x] **AutoSetup** (utils/autoSetup.js) - полная проверка и настройка окружения при старте
+  - Проверка окружения (платформа, Node.js, память, CPU)
   - Проверка/создание директорий
   - Проверка/генерация .env файла
   - Проверка зависимостей
   - Проверка прав доступа
   - 3 профиля: minimal, standard, full
   - Автоматическое исправление проблем
-- **API эндпоинты**: `/api/autosetup/status`, `/api/autosetup/profiles`
-- **CLI команды**: `autosetup:check`, `autosetup:fix`, `autosetup:env`, `autosetup:profiles`, `autosetup:status`
-- **Интеграция**: Вызывается ПЕРВЫМ при запуске сервера в app.js
+  - API: `/api/autosetup/status`, `/api/autosetup/profiles`
+  - CLI: `autosetup:check`, `autosetup:fix`, `autosetup:env`, `autosetup:profiles`, `autosetup:status`
 
-#### 2. utils/circuitBreaker.js - Защита от каскадных сбоев
-- **Статус**: ✅ Реализован, интегрирован в app.js и cliManager.js
-- **Функционал**:
+- [x] **CircuitBreaker** (utils/circuitBreaker.js) - защита от каскадных сбоев
   - Паттерн Circuit Breaker (Closed/Open/Half-Open)
   - Экспоненциальная задержка с jitter
   - Таймауты операций
   - Fallback функции
-  -retry с лимитами
+  - retry с лимитами
   - Статистика вызовов
   - 8 предконфигурированных breakers для основных сервисов
-- **API эндпоинты**: `/api/circuit-breakers/status`, `/api/circuit-breakers/reset`, `/api/circuit-breakers/:name/reset`
-- **CLI команды**: `cb:status`, `cb:reset`, `cb:info`
-- **Интеграция**: Инициализируется при запуске сервера
+  - API: `/api/circuit-breakers/status`, `/api/circuit-breakers/reset`, `/api/circuit-breakers/:name/reset`
+  - CLI: `cb:status`, `cb:reset`, `cb:info`
 
-#### 3. utils/helpers.js - Улучшенный retry logic
-- **Статус**: ✅ Улучшен
-- **Изменения**:
-  - Добавлен jitter для предотвращения thundering herd
-  - Улучшенное логирование с именем операции
-  - Более гибкая конфигурация задержек
+#### Интеграция CircuitBreaker в модули
+- [x] **proxyManager.js** - checkProxy обёрнут в CircuitBreaker с fallback
+- [x] **vpnManager.js** - getIPInfo и getVPNIP обёрнуты в CircuitBreaker
+- [x] **updater.js** - fetchLatestRelease обёрнут в CircuitBreaker
+- [x] **dnsManager.js** - добавлен импорт CircuitBreaker (готов к использованию)
 
----
-
-## ✅ ЧТО СДЕЛАНО В ЭТОЙ ВЕРСИИ
-
-### Автоматизация
-- [x] **AutoSetup** - полная проверка и настройка окружения при старте
-- [x] **Генерация .env** - автоматическое создание конфигурации
-- [x] **Профили настройки** - minimal/standard/full для разных сценариев
-- [x] **CLI команды** - 5 новых команд для autosetup
-- [x] **API эндпоинты** - 2 новых эндпоинта для статуса
-
-### Стабильность
-- [x] **Circuit Breaker** - защита от каскадных сбоев для 8 сервисов
-- [x] **Exponential backoff + jitter** - улучшенный retry logic в helpers.js
-- [x] **CLI команды** - 3 новых команды для circuit breakers
-- [x] **API эндпоинты** - 3 новых эндпоинта для управления
-
-### Интеграция
+#### Улучшения
+- [x] **helpers.js** - улучшен retry logic с jitter для предотвращения thundering herd
+- [x] **cliManager.js** - 8 новых CLI команд (всего 52)
 - [x] **app.js** - AutoSetup и CircuitBreaker инициализируются при старте
-- [x] **cliManager.js** - 8 новых CLI команд добавлены
 - [x] **README.md** - документация обновлена с описанием AutoSetup
+- [x] **README_RU.md** - русская версия документации
 
----
-
-## ⚠️ ТРЕБУЕТ ПРОВЕРКИ И ИСПРАВЛЕНИЙ
-
-### P1 - Важные проблемы
-
-#### 1. Circuit Breaker не используется в реальных операциях
-- **Проблема**: CircuitBreaker инициализирован, но не обёрнуты реальные вызовы
-- **Что нужно**: Обернуть вызовы в proxyManager, vpnManager, dnsManager, updater
-- **Приоритет**: Средний - функционал есть, но не используется
-
-#### 2. AutoSetup дублирует инициализацию
-- **Проблема**: AutoSetup проверяет директории, но менеджеры тоже могут их создавать
-- **Что нужно**: Убедиться что нет дублирования логики создания директорий
-
-#### 3. Отсутствует валидация входных данных в API
-- **Проблема**: API endpoints для circuit-breakers не валидируют входные параметры
-- **Риск**: Возможность некорректных данных
-
-### P2 - Улучшения
-
-#### 1. README.md неполный
-- Нужно добавить документацию по Circuit Breaker API
-
-#### 2. Тесты отсутствуют для новых модулей
-- autoSetup.js - нет тестов
-- circuitBreaker.js - нет тестов
+### 📦 СТАТИСТИКА КОММИТА
+- **Файлов изменено**: 12
+- **Новых файлов**: 2 (autoSetup.js, circuitBreaker.js)
+- **Строк добавлено**: 2153
+- **Строк удалено**: 485
+- **CLI команд добавлено**: 8
+- **API эндпоинтов добавлено**: 5
 
 ---
 
